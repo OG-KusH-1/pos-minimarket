@@ -1,0 +1,242 @@
+<h2 mat-dialog-title>Cerrar turno — {{ data.session.number }}</h2>
+
+<mat-dialog-content class="close-dialog-content">
+  @if (loading()) {
+    <div class="loading-box" role="status">
+      <mat-spinner diameter="32" />
+      <span>Calculando resumen esperado del turno…</span>
+    </div>
+  } @else if (loadError(); as err) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ err }}</span>
+      <button mat-button type="button" (click)="loadInitialData()">Reintentar</button>
+    </div>
+  } @else if (summary(); as s) {
+    <section class="summary-strip" aria-label="Resumen de efectivo del turno">
+      <div class="summary-kv">
+        <span class="kv-label">Cajero</span>
+        <strong>{{ cashierDisplay }}</strong>
+      </div>
+      <div class="summary-kv">
+        <span class="kv-label">Apertura</span>
+        <strong>{{ s.openingAmount ?? 0 | clp }}</strong>
+      </div>
+      <div class="summary-kv">
+        <span class="kv-label">Ingresos</span>
+        <strong>{{ s.cashIn ?? 0 | clp }}</strong>
+      </div>
+      <div class="summary-kv">
+        <span class="kv-label">Retiros</span>
+        <strong>{{ s.cashOut ?? 0 | clp }}</strong>
+      </div>
+      <div class="summary-kv">
+        <span class="kv-label">Efectivo esperado</span>
+        <strong>{{ s.expectedCash ?? 0 | clp }}</strong>
+      </div>
+      <div class="summary-kv">
+        <span class="kv-label">Operaciones</span>
+        <strong>{{ s.salesCount ?? 0 }} ventas · {{ s.returnCount ?? 0 }} dev.</strong>
+      </div>
+    </section>
+
+    <section class="denom-section" aria-label="Calculadora de denominaciones CLP">
+      <div class="section-header">
+        <h3>Desglose de efectivo (CLP)</h3>
+        <button mat-button type="button" (click)="clearDenominations()">Limpiar conteo</button>
+      </div>
+
+      <div class="denom-columns">
+        <div class="denom-group">
+          <h4>Billetes</h4>
+          <div class="denom-grid">
+            @for (denom of billDenominations; track denom.value) {
+              <label class="denom-row">
+                <span class="denom-label">{{ denom.label }}</span>
+                <input
+                  class="denom-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  [value]="quantities()[denom.value + ''] ?? 0"
+                  [attr.aria-label]="'Cantidad de billetes de ' + denom.label"
+                  (input)="onDenominationChange(denom.value, $any($event.target).value)"
+                />
+                <span class="denom-subtotal">
+                  {{ calculator.lineSubtotal(denom.value, quantities()[denom.value + '']) | clp }}
+                </span>
+              </label>
+            }
+          </div>
+        </div>
+
+        <div class="denom-group">
+          <h4>Monedas</h4>
+          <div class="denom-grid">
+            @for (denom of coinDenominations; track denom.value) {
+              <label class="denom-row">
+                <span class="denom-label">{{ denom.label }}</span>
+                <input
+                  class="denom-input"
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputmode="numeric"
+                  [value]="quantities()[denom.value + ''] ?? 0"
+                  [attr.aria-label]="'Cantidad de monedas de ' + denom.label"
+                  (input)="onDenominationChange(denom.value, $any($event.target).value)"
+                />
+                <span class="denom-subtotal">
+                  {{ calculator.lineSubtotal(denom.value, quantities()[denom.value + '']) | clp }}
+                </span>
+              </label>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="denom-total-bar">
+        <span>Total calculado por denominaciones (Σ denominación × cantidad):</span>
+        <strong>{{ denominationTotal() | clp }}</strong>
+      </div>
+    </section>
+
+    <section class="counts-section" aria-label="Arqueo por medio de pago">
+      <h3>Arqueo por medio de pago</h3>
+
+      <table class="counts-table">
+        <thead>
+          <tr>
+            <th>Medio de pago</th>
+            <th class="num">Esperado</th>
+            <th class="num">Contado (CLP)</th>
+            <th class="num">Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of methodRows(); track row.method) {
+            <tr>
+              <td>{{ row.label }}</td>
+              <td class="num">{{ row.expected | clp }}</td>
+              <td class="num">
+                @if (countsForm.controls[row.method]; as ctrl) {
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    class="count-field"
+                  >
+                    <span matTextPrefix>$&nbsp;</span>
+                    <input
+                      matInput
+                      type="number"
+                      min="0"
+                      step="1"
+                      inputmode="numeric"
+                      [formControl]="ctrl"
+                      [attr.aria-label]="'Monto contado para ' + row.label"
+                      (input)="onManualCountInput(row.method, $any($event.target).value)"
+                    />
+                    @if (
+                      ctrl.hasError('required') || ctrl.hasError('min') || ctrl.hasError('pattern')
+                    ) {
+                      <mat-error>Monto inválido</mat-error>
+                    }
+                  </mat-form-field>
+                }
+              </td>
+              <td
+                class="num diff-cell"
+                [class.diff-cell--ok]="rowDifference(row) === 0"
+                [class.diff-cell--warn]="rowDifference(row) !== 0"
+              >
+                {{ rowDifference(row) | clp }}
+              </td>
+            </tr>
+          }
+        </tbody>
+        <tfoot>
+          <tr class="totals-row">
+            <th>Total arqueo</th>
+            <th class="num">{{ expectedTotal() | clp }}</th>
+            <th class="num">{{ countedTotal() | clp }}</th>
+            <th
+              class="num"
+              [class.diff-cell--ok]="differenceTotal() === 0"
+              [class.diff-cell--danger]="exceedsTolerance()"
+              [class.diff-cell--warn]="differenceTotal() !== 0 && !exceedsTolerance()"
+            >
+              {{ differenceTotal() | clp }}
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+    </section>
+
+    @if (exceedsTolerance()) {
+      <div class="warning-banner" role="status">
+        <mat-icon>warning_amber</mat-icon>
+        <span>
+          La diferencia total (<strong>{{ differenceTotal() | clp }}</strong
+          >) supera la tolerancia configurada (<strong>{{
+            settings().differenceTolerance | clp
+          }}</strong
+          >). Puedes autorizarla con un supervisor ahora o cerrar dejando el turno pendiente de
+          aprobación.
+        </span>
+      </div>
+    }
+
+    <mat-form-field appearance="outline" class="notes-field">
+      <mat-label>Observaciones de cierre (opcional)</mat-label>
+      <textarea
+        matInput
+        rows="2"
+        [formControl]="notesControl"
+        placeholder="Detalle de diferencias o novedades del turno"
+      ></textarea>
+      <mat-hint align="end">{{ notesControl.value.length }} / 500</mat-hint>
+      @if (notesControl.hasError('maxlength')) {
+        <mat-error>Máximo 500 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    @if (submitError(); as error) {
+      <p class="error-banner" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </p>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="submitting()" (click)="cancel()">Cancelar</button>
+  @if (!loading() && !loadError()) {
+    @if (exceedsTolerance()) {
+      <button mat-stroked-button type="button" [disabled]="submitting()" (click)="submitDirect()">
+        Cerrar pendiente de aprobación
+      </button>
+      <button
+        mat-flat-button
+        type="button"
+        [disabled]="submitting()"
+        (click)="submitWithSupervisorOverride()"
+      >
+        @if (submitting()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          Autorizar con supervisor y cerrar
+        }
+      </button>
+    } @else {
+      <button mat-flat-button type="button" [disabled]="submitting()" (click)="submitDirect()">
+        @if (submitting()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          Confirmar cierre
+        }
+      </button>
+    }
+  }
+</mat-dialog-actions>

@@ -1,0 +1,83 @@
+<h2 mat-dialog-title>Registrar movimiento — {{ data.sessionNumber }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="dialog-content">
+    @if (data.expectedCash !== undefined) {
+      <p class="expected-hint">
+        Efectivo esperado actual en caja: <strong>{{ data.expectedCash | clp }}</strong>
+      </p>
+    }
+
+    <div class="type-row">
+      <mat-button-toggle-group formControlName="movementType" aria-label="Tipo de movimiento">
+        <mat-button-toggle value="CASH_IN" [disabled]="!data.canCashIn">
+          Ingreso de efectivo
+        </mat-button-toggle>
+        <mat-button-toggle value="CASH_OUT" [disabled]="!data.canCashOut">
+          Retiro de efectivo
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Monto (CLP)</mat-label>
+      <span matTextPrefix>$&nbsp;</span>
+      <input
+        matInput
+        type="number"
+        min="1"
+        step="1"
+        inputmode="numeric"
+        formControlName="amount"
+        placeholder="Ej. 50000"
+      />
+      @if (form.controls.amount.hasError('required')) {
+        <mat-error>El monto es obligatorio.</mat-error>
+      } @else if (form.controls.amount.hasError('min')) {
+        <mat-error>El monto debe ser al menos $1.</mat-error>
+      } @else if (form.controls.amount.hasError('pattern')) {
+        <mat-error>Ingresa un monto entero en pesos chilenos.</mat-error>
+      } @else if (form.controls.amount.getError('server'); as serverMsg) {
+        <mat-error>{{ serverMsg }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Motivo</mat-label>
+      <textarea
+        matInput
+        rows="3"
+        formControlName="reason"
+        placeholder="Ej. Sencillo de caja o retiro a bóveda"
+      ></textarea>
+      <mat-hint align="end">{{ form.controls.reason.value.length }} / 250</mat-hint>
+      @if (form.controls.reason.hasError('required')) {
+        <mat-error>El motivo es obligatorio.</mat-error>
+      } @else if (form.controls.reason.hasError('minlength')) {
+        <mat-error>Ingresa al menos 3 caracteres.</mat-error>
+      } @else if (form.controls.reason.hasError('maxlength')) {
+        <mat-error>Máximo 250 caracteres.</mat-error>
+      } @else if (form.controls.reason.getError('server'); as serverMsg) {
+        <mat-error>{{ serverMsg }}</mat-error>
+      }
+    </mat-form-field>
+
+    @if (errorMessage(); as error) {
+      <p class="error-banner" role="alert">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [disabled]="submitting()" (click)="cancel()">Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" />
+      } @else {
+        Registrar
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,9 @@
+# Generado o de terceros
+/src/app/api
+/dist
+/.angular
+/coverage
+/node_modules
+/openapi
+package-lock.json
+/src/_theme-colors.scss

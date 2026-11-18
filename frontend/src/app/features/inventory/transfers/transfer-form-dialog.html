@@ -1,0 +1,235 @@
+<h2 mat-dialog-title>
+  {{ isEdit ? 'Editar borrador ' + (data.transfer?.number ?? '') : 'Nueva transferencia' }}
+</h2>
+@if (saving() || loadingStores()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando o guardando transferencia" />
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="content">
+    <div class="route-grid">
+      <div class="origin-card">
+        <span class="field-label">Local de origen (activo)</span>
+        <strong>{{ originStoreLabel() }}</strong>
+      </div>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Local de destino</mat-label>
+        <mat-select formControlName="destinationStoreId">
+          @for (store of stores(); track store.id) {
+            <mat-option [value]="store.id">
+              {{ store.code ? store.code + ' — ' + store.name : store.name }}
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.controls.destinationStoreId.hasError('required')) {
+          <mat-error>El local de destino es obligatorio.</mat-error>
+        } @else if (form.controls.destinationStoreId.hasError('sameAsOrigin')) {
+          <mat-error>El destino debe ser distinto del local de origen.</mat-error>
+        } @else if (form.controls.destinationStoreId.hasError('server')) {
+          <mat-error>{{ form.controls.destinationStoreId.getError('server') }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (storesError(); as stErr) {
+      <p class="server-error" role="alert">{{ stErr }}</p>
+    } @else if (!loadingStores() && stores().length === 0) {
+      <p class="warning-box" role="status">
+        No hay otros locales activos disponibles como destino.
+      </p>
+    }
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observaciones (opcional)</mat-label>
+      <textarea
+        matInput
+        formControlName="notes"
+        rows="2"
+        maxlength="500"
+        placeholder="Ej. Reposición semanal hacia sucursal"
+      ></textarea>
+      <mat-hint align="end">{{ form.controls.notes.value.length }} / 500</mat-hint>
+      @if (form.controls.notes.hasError('maxlength')) {
+        <mat-error>Máximo 500 caracteres.</mat-error>
+      } @else if (form.controls.notes.hasError('server')) {
+        <mat-error>{{ form.controls.notes.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="product-picker">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+        <mat-label>Agregar producto</mat-label>
+        <input
+          matInput
+          [formControl]="productSearchControl"
+          [matAutocomplete]="productAuto"
+          placeholder="Buscar por nombre o SKU..."
+        />
+        <mat-icon matPrefix>search</mat-icon>
+        <mat-autocomplete
+          #productAuto="matAutocomplete"
+          [displayWith]="displayProductOption"
+          (optionSelected)="onProductSelected($event)"
+        >
+          @for (option of productOptions(); track option.id) {
+            <mat-option [value]="option">
+              <span>{{ option.sku }} — {{ option.name }}</span>
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </mat-form-field>
+      <span class="picker-hint">Los productos de tipo pack no se transfieren directamente.</span>
+    </div>
+
+    @if (serverError(); as err) {
+      <p class="server-error" role="alert">{{ err }}</p>
+    }
+
+    @if (duplicateIndexes().size > 0) {
+      <p class="server-error" role="alert">
+        Hay líneas repetidas con el mismo producto y lote (o ambas en FEFO automático). Ajusta el
+        lote o consolida las cantidades.
+      </p>
+    }
+
+    <div formArrayName="lines" class="lines-section">
+      @if (linesArray.length === 0) {
+        <div class="empty-lines" role="status">
+          <mat-icon aria-hidden="true">inventory_2</mat-icon>
+          <span>Agrega al menos un producto para guardar el borrador.</span>
+        </div>
+      } @else {
+        @for (meta of lineMetas(); track $index; let i = $index) {
+          @let group = lineGroupAt(i);
+          @let isDup = duplicateIndexes().has(i);
+          <div class="line-card" [class.line-card--duplicate]="isDup" [formGroupName]="i">
+            <div class="line-header">
+              <div class="line-product">
+                <span class="sku">{{ meta.sku }}</span>
+                <strong>{{ meta.name }}</strong>
+                @if (meta.lotControlled) {
+                  <span class="lot-badge">Controlado por lote</span>
+                }
+              </div>
+              <button
+                mat-icon-button
+                type="button"
+                [attr.aria-label]="'Quitar línea ' + meta.name"
+                (click)="removeLine(i)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+
+            <div class="line-controls">
+              <mat-form-field appearance="outline" class="qty-field">
+                <mat-label>Cantidad ({{ unitFor(meta) }})</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  formControlName="qtySent"
+                  min="0"
+                  [step]="stepFor(meta)"
+                  autocomplete="off"
+                />
+                @if (group.controls.qtySent.hasError('required')) {
+                  <mat-error>Obligatorio.</mat-error>
+                } @else if (group.controls.qtySent.hasError('positiveRequired')) {
+                  <mat-error>Debe ser mayor a 0.</mat-error>
+                } @else if (group.controls.qtySent.hasError('integerRequired')) {
+                  <mat-error>Requiere cantidad entera.</mat-error>
+                } @else if (group.controls.qtySent.hasError('server')) {
+                  <mat-error>{{ group.controls.qtySent.getError('server') }}</mat-error>
+                }
+              </mat-form-field>
+
+              @if (meta.lotControlled) {
+                <mat-form-field appearance="outline" class="lot-field">
+                  <mat-label>Lote origen</mat-label>
+                  <mat-select formControlName="originLotId">
+                    <mat-option [value]="null">Automático (FEFO al despachar)</mat-option>
+                    @for (lot of meta.lots; track lot.id) {
+                      <mat-option [value]="lot.id">
+                        {{ formatLotOption(lot, unitFor(meta)) }}
+                      </mat-option>
+                    }
+                  </mat-select>
+                  @if (meta.loadingMeta) {
+                    <mat-hint>Cargando lotes disponibles...</mat-hint>
+                  } @else if (meta.lots.length === 0) {
+                    <mat-hint>No hay lotes con saldo disponible en origen.</mat-hint>
+                  } @else {
+                    <mat-hint>
+                      Si eliges FEFO, al despachar se asignará desde los lotes próximos a vencer.
+                    </mat-hint>
+                  }
+                  @if (group.controls.originLotId.hasError('server')) {
+                    <mat-error>{{ group.controls.originLotId.getError('server') }}</mat-error>
+                  }
+                </mat-form-field>
+              } @else {
+                <div class="no-lot-note">
+                  <span>{{
+                    meta.loadingMeta ? 'Verificando control de lote...' : 'Sin control de lote'
+                  }}</span>
+                </div>
+              }
+            </div>
+
+            @if (canPreviewFefo(i)) {
+              <div class="fefo-row">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="meta.loadingFefo"
+                  (click)="previewFefo(i)"
+                >
+                  <mat-icon aria-hidden="true">event_available</mat-icon>
+                  Previsualizar FEFO
+                </button>
+
+                @if (meta.fefoError; as fErr) {
+                  <span class="fefo-error">{{ fErr }}</span>
+                } @else if (meta.fefoSuggestion; as suggestion) {
+                  <div class="fefo-preview" role="status">
+                    @if ((suggestion.allocations?.length ?? 0) > 0) {
+                      <span>
+                        Sugerido:
+                        @for (
+                          alloc of suggestion.allocations ?? [];
+                          track alloc.lotId;
+                          let last = $last
+                        ) {
+                          <strong>{{ alloc.lotNumber }}</strong>
+                          ({{ alloc.quantity | qty: unitFor(meta)
+                          }}{{
+                            alloc.expiryDate ? ', vence ' + formatExpiry(alloc.expiryDate) : ''
+                          }}){{ last ? '' : ' + ' }}
+                        }
+                      </span>
+                    }
+                    @if ((suggestion.shortage ?? 0) > 0) {
+                      <span class="fefo-shortage">
+                        Faltante en lotes: {{ suggestion.shortage | qty: unitFor(meta) }}
+                      </span>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="saving() || linesArray.length === 0">
+      {{ isEdit ? 'Guardar cambios' : 'Crear borrador' }}
+    </button>
+  </mat-dialog-actions>
+</form>

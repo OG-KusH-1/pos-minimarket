@@ -1,0 +1,69 @@
+<h2 mat-dialog-title>Ventas suspendidas</h2>
+
+<mat-dialog-content class="suspended-list-content">
+  @if (errorMessage(); as error) {
+    <div class="error-banner" role="alert" data-testid="suspended-list-error">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state" role="status">
+      <mat-spinner diameter="28" />
+      <span>Cargando ventas en espera…</span>
+    </div>
+  } @else if (items().length === 0) {
+    <div class="empty-state" data-testid="suspended-empty-state">
+      <mat-icon aria-hidden="true">pause_circle_outline</mat-icon>
+      <p>No hay ventas suspendidas activas en esta terminal.</p>
+    </div>
+  } @else {
+    <ul class="suspended-items" aria-label="Listado de ventas suspendidas">
+      @for (item of items(); track item.id ?? $index) {
+        <li class="suspended-row" data-testid="suspended-sale-row">
+          <div class="suspended-main">
+            <div class="suspended-title">
+              <strong>{{ item.label || 'Venta en espera #' + item.id }}</strong>
+              <span class="pill">{{ item.itemCount ?? 0 }} ítem(s)</span>
+            </div>
+            <div class="suspended-meta">
+              <span>Cajero: {{ item.userName || '—' }}</span>
+              <span>· Creada: {{ formatTimestamp(item.createdAt) }}</span>
+              @if (item.expiresAt) {
+                <span>· Vence: {{ formatTimestamp(item.expiresAt) }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="suspended-actions">
+            <strong class="estimated-total">{{ item.estimatedTotal ?? 0 | clp }}</strong>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="busyId() !== null"
+              data-testid="delete-suspended-btn"
+              (click)="deleteSale(item)"
+            >
+              Eliminar
+            </button>
+            <button
+              mat-flat-button
+              type="button"
+              [disabled]="busyId() !== null"
+              data-testid="resume-suspended-btn"
+              (click)="resumeSale(item)"
+            >
+              Retomar
+            </button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [disabled]="loading()" (click)="loadList()">Actualizar</button>
+  <button mat-button type="button" [mat-dialog-close]="undefined">Cerrar (Esc)</button>
+</mat-dialog-actions>

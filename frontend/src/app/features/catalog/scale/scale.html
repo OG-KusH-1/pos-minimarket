@@ -1,0 +1,97 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Códigos de balanza</h1>
+      <p class="subtitle">
+        Prefijos y posiciones EAN-13 para decodificar PLU, peso o precio en el punto de venta.
+      </p>
+    </div>
+    @if (canManage()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nueva configuración
+      </button>
+    }
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando configuraciones de balanza" />
+  }
+
+  @if (error(); as err) {
+    <div class="error-box" role="alert">
+      <span>{{ err }}</span>
+      <button mat-stroked-button type="button" (click)="loadConfigs()">Reintentar</button>
+    </div>
+  } @else if (!loading() && configs().length === 0) {
+    <p class="empty-state" role="status">No hay configuraciones de balanza registradas.</p>
+  } @else {
+    <div class="table-container">
+      <table mat-table [dataSource]="configs()" aria-label="Listado de configuraciones de balanza">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let row">{{ row.name }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="prefix">
+          <th mat-header-cell *matHeaderCellDef>Prefijo</th>
+          <td mat-cell *matCellDef="let row">
+            <code>{{ row.prefix }}</code>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="embeddedType">
+          <th mat-header-cell *matHeaderCellDef>Valor embebido</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="badge" [class.badge--price]="row.embeddedType === 'PRICE'">
+              {{ row.embeddedType === 'WEIGHT' ? 'Peso (kg)' : 'Precio ($)' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="plu">
+          <th mat-header-cell *matHeaderCellDef>PLU</th>
+          <td mat-cell *matCellDef="let row">Pos. {{ row.pluStart }} ({{ row.pluLength }} díg.)</td>
+        </ng-container>
+
+        <ng-container matColumnDef="value">
+          <th mat-header-cell *matHeaderCellDef>Valor</th>
+          <td mat-cell *matCellDef="let row">
+            Pos. {{ row.valueStart }} ({{ row.valueLength }} díg., {{ row.valueDecimals }} dec.)
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="active">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="badge"
+              [class.badge--active]="row.active !== false"
+              [class.badge--inactive]="row.active === false"
+            >
+              {{ row.active !== false ? 'Activa' : 'Inactiva' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef class="align-end">Acciones</th>
+          <td mat-cell *matCellDef="let row" class="align-end">
+            <button
+              mat-icon-button
+              type="button"
+              matTooltip="Editar configuración"
+              [attr.aria-label]="'Editar ' + row.name"
+              (click)="openEdit(row)"
+            >
+              <mat-icon>edit</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+      </table>
+    </div>
+  }
+</section>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<!-- Plantilla solo para pruebas de PdfRenderer: usa el layout base.html. -->
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base :: layout(title=${title}, body=~{::main})}">
+<body>
+  <main>
+    <h2 class="section">Detalle</h2>
+    <table class="data">
+      <thead><tr><th>Producto</th><th class="num">Cantidad</th></tr></thead>
+      <tbody>
+        <tr th:each="line : ${lines}">
+          <td th:text="${line}">producto</td>
+          <td class="num">1</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

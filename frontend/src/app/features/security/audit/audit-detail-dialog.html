@@ -1,0 +1,147 @@
+<h2 mat-dialog-title>Detalle de evento de auditoría #{{ data.logId }}</h2>
+
+<mat-dialog-content class="content">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando detalle de auditoría" />
+  } @else if (error(); as errMsg) {
+    <div class="error-box" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ errMsg }}</span>
+      <button mat-stroked-button type="button" (click)="loadEntry()">Reintentar</button>
+    </div>
+  } @else if (entry(); as log) {
+    <section class="meta-section" aria-label="Metadatos del evento">
+      <dl class="meta-grid">
+        <div class="meta-item">
+          <dt>Fecha y hora</dt>
+          <dd>{{ formatDateTime(log.occurredAt) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Acción</dt>
+          <dd>
+            <strong>{{ actionLabel(log.action) }}</strong>
+            @if (log.action && actionLabel(log.action) !== log.action) {
+              <code class="code-tag">{{ log.action }}</code>
+            }
+          </dd>
+        </div>
+        <div class="meta-item">
+          <dt>Entidad</dt>
+          <dd>
+            {{ entityTypeLabel(log.entityType) }}
+            @if (log.entityType && entityTypeLabel(log.entityType) !== log.entityType) {
+              <code class="code-tag">{{ log.entityType }}</code>
+            }
+            @if (log.entityId) {
+              <span class="entity-id">#{{ log.entityId }}</span>
+            }
+          </dd>
+        </div>
+        <div class="meta-item">
+          <dt>Usuario</dt>
+          <dd>{{ formatUser(log) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Local</dt>
+          <dd>{{ formatStore(log.storeId) }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Terminal</dt>
+          <dd>
+            {{
+              log.terminalId !== undefined && log.terminalId !== null ? '#' + log.terminalId : '—'
+            }}
+          </dd>
+        </div>
+        <div class="meta-item">
+          <dt>Dirección IP</dt>
+          <dd>{{ log.ip || '—' }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Autorización supervisor</dt>
+          <dd>
+            {{
+              log.authorizationId !== undefined && log.authorizationId !== null
+                ? '#' + log.authorizationId
+                : '—'
+            }}
+          </dd>
+        </div>
+        <div class="meta-item meta-item--wide">
+          <dt>Motivo</dt>
+          <dd>{{ log.reason || '—' }}</dd>
+        </div>
+        <div class="meta-item">
+          <dt>Trace ID</dt>
+          <dd>
+            <code class="mono">{{ log.traceId || '—' }}</code>
+          </dd>
+        </div>
+        <div class="meta-item meta-item--wide">
+          <dt>Hash SHA-256</dt>
+          <dd>
+            <code class="mono hash-value">{{ log.hash || '—' }}</code>
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="changes-section" aria-label="Comparación antes y después">
+      <h3>Cambios registrados (antes / después)</h3>
+
+      @if (oldJson() === null && newJson() === null) {
+        <p class="empty-state" role="status">
+          Este evento no registró valores anteriores ni posteriores.
+        </p>
+      } @else {
+        @if (diffEntries().length > 0) {
+          <div class="diff-table-wrapper">
+            <table class="diff-table" aria-label="Diferencias campo por campo">
+              <thead>
+                <tr>
+                  <th scope="col">Campo</th>
+                  <th scope="col">Antes</th>
+                  <th scope="col">Después</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (item of diffEntries(); track item.field) {
+                  <tr [class]="'diff-row diff-row--' + item.status">
+                    <td>
+                      <code>{{ item.field }}</code>
+                    </td>
+                    <td class="diff-cell--old">{{ item.oldText }}</td>
+                    <td class="diff-cell--new">{{ item.newText }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <div class="json-panels">
+          <div class="json-panel">
+            <h4>Valor anterior</h4>
+            @if (oldJson(); as oldText) {
+              <pre class="json-block">{{ oldText }}</pre>
+            } @else {
+              <p class="empty-state">Sin valor anterior</p>
+            }
+          </div>
+          <div class="json-panel">
+            <h4>Valor posterior</h4>
+            @if (newJson(); as newText) {
+              <pre class="json-block">{{ newText }}</pre>
+            } @else {
+              <p class="empty-state">Sin valor posterior</p>
+            }
+          </div>
+        </div>
+      }
+    </section>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="true">Cerrar</button>
+</mat-dialog-actions>

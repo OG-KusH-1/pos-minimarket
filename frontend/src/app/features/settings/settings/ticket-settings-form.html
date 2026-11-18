@@ -1,0 +1,261 @@
+<div class="ticket-layout">
+  <mat-card appearance="outlined" class="ticket-card">
+    <mat-card-header>
+      <mat-card-title>Formato de ticket</mat-card-title>
+      <mat-card-subtitle>
+        @if (form.controls.scope.value === 'STORE' && storeName()) {
+          Configuración para {{ storeName() }} (prioridad sobre global)
+        } @else {
+          Configuración global predeterminada
+        }
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (serverError(); as err) {
+        <p class="alert alert--error" role="alert">{{ err }}</p>
+      }
+
+      @if (hasAnyStoreOverride() && form.controls.scope.value === 'STORE') {
+        <p class="override-info" role="status">
+          <mat-icon aria-hidden="true">layers</mat-icon>
+          <span>Este local tiene personalizaciones propias sobre la configuración global.</span>
+        </p>
+      }
+
+      <form [formGroup]="form" (ngSubmit)="submit()" class="ticket-form" novalidate>
+        <div class="top-controls">
+          <mat-form-field appearance="outline">
+            <mat-label>Alcance a editar</mat-label>
+            <mat-select formControlName="scope">
+              <mat-option value="STORE" [disabled]="storeId() === null">
+                Este local{{ storeName() ? ' (' + storeName() + ')' : '' }}
+              </mat-option>
+              <mat-option value="GLOBAL" [disabled]="!canUpdateGlobal()">
+                Global (todos los locales)
+              </mat-option>
+            </mat-select>
+            @if (!canUpdateGlobal()) {
+              <mat-hint>Solo administradores pueden editar el alcance global.</mat-hint>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Ancho de papel (mm)</mat-label>
+            <input
+              matInput
+              type="number"
+              formControlName="paperWidthMm"
+              min="58"
+              max="80"
+              step="1"
+            />
+            <mat-hint>Permitido entre 58 mm y 80 mm (ej. 58 u 80).</mat-hint>
+            @if (form.controls.paperWidthMm.hasError('required')) {
+              <mat-error>El ancho de papel es obligatorio.</mat-error>
+            } @else if (
+              form.controls.paperWidthMm.hasError('min') ||
+              form.controls.paperWidthMm.hasError('max')
+            ) {
+              <mat-error>Debe estar entre 58 y 80 mm.</mat-error>
+            } @else if (form.controls.paperWidthMm.hasError('integer')) {
+              <mat-error>Debe ser un número entero.</mat-error>
+            } @else if (form.controls.paperWidthMm.hasError('server')) {
+              <mat-error>{{ form.controls.paperWidthMm.getError('server') }}</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="width-presets">
+          <span class="presets-label">Preajustes rápidos:</span>
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="!canEditCurrentScope()"
+            (click)="setPaperWidth(58)"
+          >
+            58 mm
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            [disabled]="!canEditCurrentScope()"
+            (click)="setPaperWidth(80)"
+          >
+            80 mm
+          </button>
+        </div>
+
+        <mat-slide-toggle formControlName="showTaxBreakdown" color="primary">
+          Mostrar desglose de neto, exento e impuestos en el ticket
+        </mat-slide-toggle>
+
+        <section class="lines-section" aria-label="Líneas de encabezado del ticket">
+          <div class="lines-header">
+            <div>
+              <h3>Líneas de encabezado</h3>
+              <p class="lines-hint">
+                Hasta {{ maxLines }} líneas de máximo {{ maxLineLength }} caracteres cada una.
+              </p>
+            </div>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="!canEditCurrentScope() || headerLines.length >= maxLines"
+              (click)="addHeaderLine()"
+            >
+              <mat-icon>add</mat-icon>
+              Agregar línea
+            </button>
+          </div>
+
+          @if (headerLines.length === 0) {
+            <p class="empty-lines">Sin líneas adicionales de encabezado.</p>
+          }
+
+          @for (ctrl of headerLines.controls; track $index) {
+            <div class="line-row">
+              <mat-form-field appearance="outline" class="line-field">
+                <mat-label>Encabezado línea {{ $index + 1 }}</mat-label>
+                <input matInput [formControl]="ctrl" maxlength="100" autocomplete="off" />
+                <mat-hint align="end">{{ ctrl.value.length }} / {{ maxLineLength }}</mat-hint>
+                @if (ctrl.hasError('maxlength')) {
+                  <mat-error>Máximo {{ maxLineLength }} caracteres por línea.</mat-error>
+                }
+              </mat-form-field>
+              <button
+                mat-icon-button
+                type="button"
+                [disabled]="!canEditCurrentScope()"
+                [attr.aria-label]="'Eliminar línea de encabezado ' + ($index + 1)"
+                (click)="removeHeaderLine($index)"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </section>
+
+        <section class="lines-section" aria-label="Líneas de pie del ticket">
+          <div class="lines-header">
+            <div>
+              <h3>Líneas de pie de ticket</h3>
+              <p class="lines-hint">
+                Hasta {{ maxLines }} líneas de máximo {{ maxLineLength }} caracteres cada una.
+              </p>
+            </div>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="!canEditCurrentScope() || footerLines.length >= maxLines"
+              (click)="addFooterLine()"
+            >
+              <mat-icon>add</mat-icon>
+              Agregar línea
+            </button>
+          </div>
+
+          @if (footerLines.length === 0) {
+            <p class="empty-lines">Sin líneas de pie configuradas.</p>
+          }
+
+          @for (ctrl of footerLines.controls; track $index) {
+            <div class="line-row">
+              <mat-form-field appearance="outline" class="line-field">
+                <mat-label>Pie línea {{ $index + 1 }}</mat-label>
+                <input matInput [formControl]="ctrl" maxlength="100" autocomplete="off" />
+                <mat-hint align="end">{{ ctrl.value.length }} / {{ maxLineLength }}</mat-hint>
+                @if (ctrl.hasError('maxlength')) {
+                  <mat-error>Máximo {{ maxLineLength }} caracteres por línea.</mat-error>
+                }
+              </mat-form-field>
+              <button
+                mat-icon-button
+                type="button"
+                [disabled]="!canEditCurrentScope()"
+                [attr.aria-label]="'Eliminar línea de pie ' + ($index + 1)"
+                (click)="removeFooterLine($index)"
+              >
+                <mat-icon>delete_outline</mat-icon>
+              </button>
+            </div>
+          }
+        </section>
+
+        <div class="form-actions">
+          <button mat-flat-button type="submit" [disabled]="!canEditCurrentScope() || saving()">
+            <mat-icon>save</mat-icon>
+            {{ saving() ? 'Guardando...' : 'Guardar formato de ticket' }}
+          </button>
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card appearance="outlined" class="preview-card">
+    <mat-card-header>
+      <mat-card-title
+        >Vista previa ({{ form.controls.paperWidthMm.value || 80 }} mm)</mat-card-title
+      >
+      <mat-card-subtitle>Simulación de impresión térmica</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div
+        class="thermal-preview"
+        [class.thermal-preview--narrow]="(form.controls.paperWidthMm.value || 80) <= 64"
+        aria-label="Vista previa del ticket térmico"
+      >
+        <div class="thermal-center">
+          <strong>{{ company()?.tradeName || 'Mi Minimarket' }}</strong>
+          <span>RUT: {{ (company()?.rut | rut) || '76.123.456-0' }}</span>
+          <span>{{ company()?.businessActivity || 'Minimarket y abarrotes' }}</span>
+          @if (storeName()) {
+            <span>Local: {{ storeName() }}</span>
+          }
+          @for (line of headerLines.getRawValue(); track $index) {
+            @if (line) {
+              <span>{{ line }}</span>
+            }
+          }
+        </div>
+
+        <hr class="thermal-sep" />
+        <div class="thermal-row">
+          <span>2x Bebida 1.5L</span>
+          <span>$3.580</span>
+        </div>
+        <div class="thermal-row">
+          <span>1x Pan Hallulla 0.5 kg</span>
+          <span>$1.190</span>
+        </div>
+        <hr class="thermal-sep" />
+
+        @if (form.controls.showTaxBreakdown.value) {
+          <div class="thermal-row thermal-muted">
+            <span>Neto</span>
+            <span>$4.008</span>
+          </div>
+          <div class="thermal-row thermal-muted">
+            <span>IVA (19%)</span>
+            <span>$762</span>
+          </div>
+        }
+        <div class="thermal-row">
+          <strong>TOTAL</strong>
+          <strong>$4.770</strong>
+        </div>
+
+        @if (footerLines.getRawValue().length > 0) {
+          <hr class="thermal-sep" />
+          <div class="thermal-center">
+            @for (line of footerLines.getRawValue(); track $index) {
+              @if (line) {
+                <span>{{ line }}</span>
+              }
+            }
+          </div>
+        }
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

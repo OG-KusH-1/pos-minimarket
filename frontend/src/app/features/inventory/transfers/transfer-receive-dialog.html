@@ -1,0 +1,120 @@
+<h2 mat-dialog-title>Recepcionar transferencia {{ transfer.number }}</h2>
+@if (saving()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Registrando recepción de transferencia" />
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="content">
+    <div class="header-bar">
+      <div class="route-summary">
+        <span><strong>Origen:</strong> {{ originLabel }}</span>
+        <span><strong>Destino:</strong> {{ destinationLabel }}</span>
+      </div>
+      <button mat-stroked-button type="button" (click)="receiveAllFull()" [disabled]="saving()">
+        <mat-icon aria-hidden="true">done_all</mat-icon>
+        Recibir todo completo
+      </button>
+    </div>
+
+    @if (summary().differenceLines > 0) {
+      <div class="diff-warning" role="status">
+        <mat-icon aria-hidden="true">warning_amber</mat-icon>
+        <span>
+          Se registran <strong>{{ summary().differenceLines }}</strong> línea(s) con faltante (total
+          faltante: <strong>{{ summary().totalMissing | qty }}</strong>). La diferencia generará una
+          merma sistémica (<code>TRANSFER_DIFFERENCE</code>) pendiente de aprobación.
+        </span>
+      </div>
+    }
+
+    @if (serverError(); as err) {
+      <p class="server-error" role="alert">{{ err }}</p>
+    }
+
+    <div formArrayName="lines" class="lines-list">
+      @for (meta of lineMetas; track meta.lineId; let i = $index) {
+        @let group = lineGroupAt(i);
+        @let missing = lineMissingAt(i);
+        <div class="line-card" [class.line-card--diff]="missing > 0" [formGroupName]="i">
+          <div class="line-info">
+            <div class="line-title">
+              <span class="sku">{{ meta.sku }}</span>
+              <strong>{{ meta.name }}</strong>
+            </div>
+            <div class="line-meta">
+              @if (meta.lotNumber) {
+                <span>Lote: {{ meta.lotNumber }}</span>
+                <span>Vence: {{ formatExpiry(meta.expiryDate) }}</span>
+              } @else {
+                <span>Sin lote asociado</span>
+              }
+              <span
+                >Enviada: <strong>{{ meta.qtySent | qty }}</strong></span
+              >
+              @if (missing > 0) {
+                <span class="missing-pill">Faltante: {{ missing | qty }}</span>
+              }
+            </div>
+          </div>
+
+          <div class="line-inputs">
+            <mat-form-field appearance="outline" class="qty-field">
+              <mat-label>Cantidad recibida</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="qtyReceived"
+                min="0"
+                [max]="meta.qtySent"
+                step="any"
+                autocomplete="off"
+              />
+              @if (group.controls.qtyReceived.hasError('required')) {
+                <mat-error>Obligatorio.</mat-error>
+              } @else if (group.controls.qtyReceived.hasError('min')) {
+                <mat-error>No puede ser negativa.</mat-error>
+              } @else if (group.controls.qtyReceived.hasError('max')) {
+                <mat-error>No puede superar lo enviado ({{ meta.qtySent | qty }}).</mat-error>
+              } @else if (group.controls.qtyReceived.hasError('server')) {
+                <mat-error>{{ group.controls.qtyReceived.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="reason-field">
+              <mat-label>
+                Motivo de diferencia
+                @if (hasDifferenceAt(i)) {
+                  (obligatorio)
+                } @else {
+                  (opcional)
+                }
+              </mat-label>
+              <input
+                matInput
+                formControlName="differenceReason"
+                maxlength="250"
+                placeholder="Ej. Caja dañada en traslado, envase roto"
+              />
+              @if (group.controls.differenceReason.hasError('differenceRequired')) {
+                <mat-error>
+                  Debes indicar el motivo cuando lo recibido es menor a lo enviado.
+                </mat-error>
+              } @else if (group.controls.differenceReason.hasError('maxlength')) {
+                <mat-error>Máximo 250 caracteres.</mat-error>
+              } @else if (group.controls.differenceReason.hasError('server')) {
+                <mat-error>{{ group.controls.differenceReason.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="undefined" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="saving()">Confirmar recepción</button>
+  </mat-dialog-actions>
+</form>

@@ -1,0 +1,82 @@
+<div class="search-wrapper">
+  <mat-form-field appearance="outline" subscriptSizing="dynamic" class="scan-field">
+    <mat-label>Escanear código o buscar producto (F2)</mat-label>
+    <mat-icon matPrefix>qr_code_scanner</mat-icon>
+    <input
+      #scanInput
+      matInput
+      type="text"
+      autocomplete="off"
+      data-pos-scan-input="true"
+      [formControl]="queryControl"
+      placeholder="Código de barras, balanza, atajo (ej. PAN) o nombre..."
+      (keydown)="onInputKeydown($event)"
+    />
+    @if (queryControl.value) {
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        aria-label="Limpiar búsqueda"
+        (click)="clearAndFocus()"
+      >
+        <mat-icon>close</mat-icon>
+      </button>
+    }
+  </mat-form-field>
+
+  @if (searching() || resolving()) {
+    <mat-progress-bar mode="indeterminate" class="loading-bar" />
+  }
+
+  @if (feedbackError(); as errMsg) {
+    <div class="scan-error" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ errMsg }}</span>
+    </div>
+  }
+
+  @if (dropdownOpen()) {
+    <div class="results-panel" role="listbox" aria-label="Resultados de búsqueda POS">
+      @if (results().length === 0 && !searching()) {
+        <div class="empty-results">Sin coincidencias activas para tu búsqueda.</div>
+      } @else {
+        @for (item of results(); track item.productId; let idx = $index) {
+          <button
+            type="button"
+            class="result-row"
+            role="option"
+            [attr.aria-selected]="idx === highlightedIndex()"
+            [class.result-row--highlighted]="idx === highlightedIndex()"
+            (click)="selectProduct(item)"
+          >
+            <div class="result-main">
+              <span class="result-name">{{ item.name }}</span>
+              <span class="result-meta">
+                SKU: {{ item.sku }}
+                @if (item.shortcutCode) {
+                  · Atajo: <strong>{{ item.shortcutCode }}</strong>
+                }
+                @if (item.restricted) {
+                  · <span class="tag-restricted">+18</span>
+                }
+              </span>
+            </div>
+            <div class="result-right">
+              <span class="result-price">
+                {{ item.priceGross | clp }}
+                @if (item.saleType === 'WEIGHT') {
+                  / kg
+                }
+              </span>
+              <span class="result-stock" [class.result-stock--zero]="(item.stockOnHand ?? 0) <= 0">
+                Stock:
+                {{ item.stockOnHand | qty: (item.unitOfMeasure === 'KG' ? 'kg' : 'u') }}
+              </span>
+            </div>
+          </button>
+        }
+      }
+    </div>
+  }
+</div>

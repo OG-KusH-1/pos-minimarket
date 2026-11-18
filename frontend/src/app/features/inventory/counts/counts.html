@@ -1,0 +1,125 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Tomas de inventario</h1>
+      <p class="subtitle">
+        Conteos físicos totales o cíclicos y conciliación de existencias en {{ activeStoreName() }}.
+      </p>
+    </div>
+
+    @if (canManage()) {
+      <button mat-flat-button type="button" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Nueva toma
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Alcance</mat-label>
+      <mat-select formControlName="countType">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of typeOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de tomas de inventario"
+    emptyMessage="No hay tomas de inventario registradas para los filtros seleccionados."
+  />
+
+  <ng-template #numberTpl let-row>
+    <button mat-button type="button" class="number-link" (click)="openDetail(row)">
+      {{ row.number || '#' + row.id }}
+    </button>
+  </ng-template>
+
+  <ng-template #scopeTpl let-row>
+    <div class="scope-cell">
+      <span class="scope-type">{{ typeLabel(row.countType) }}</span>
+      @if (row.countType === 'CYCLIC' && row.category?.name) {
+        <span class="scope-category">{{ row.category.name }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #blindTpl let-row>
+    <span class="mode-chip" [class.mode-chip--blind]="row.blind">
+      {{ row.blind ? 'Ciega' : 'Con teórico' }}
+    </span>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--open]="row.status === 'OPEN'"
+      [class.badge--submitted]="row.status === 'SUBMITTED'"
+      [class.badge--approved]="row.status === 'APPROVED'"
+      [class.badge--rejected]="row.status === 'REJECTED'"
+      [class.badge--cancelled]="row.status === 'CANCELLED'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #progressTpl let-row>
+    <div class="progress-cell">
+      <span class="progress-text">
+        {{ row.progress?.countedLines ?? 0 }} / {{ row.progress?.totalLines ?? 0 }} ({{
+          progressPercent(row)
+        }}%)
+      </span>
+      <div class="progress-track" aria-hidden="true">
+        <div class="progress-fill" [style.width.%]="progressPercent(row)"></div>
+      </div>
+    </div>
+  </ng-template>
+
+  <ng-template #startedTpl let-row>
+    <div class="started-cell">
+      <span>{{ row.startedBy?.fullName || '—' }}</span>
+      <span class="started-date">{{ formatDate(row.startedAt) }}</span>
+    </div>
+  </ng-template>
+
+  <ng-template #diffTpl let-row>
+    @if (canShowDiff(row) && row.differenceSummary) {
+      <div class="diff-cell">
+        <span class="diff-net">{{ netDifference(row) | clp }}</span>
+        <span class="diff-meta">{{ row.differenceSummary.lines ?? 0 }} c/dif.</span>
+      </div>
+    } @else if (row.blind) {
+      <span class="muted">Oculto (ciega)</span>
+    } @else {
+      <span class="muted">—</span>
+    }
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button mat-stroked-button type="button" (click)="openDetail(row)">
+      <mat-icon>{{ row.status === 'OPEN' ? 'edit_note' : 'visibility' }}</mat-icon>
+      {{ row.status === 'OPEN' ? 'Contar' : 'Ver detalle' }}
+    </button>
+  </ng-template>
+</section>

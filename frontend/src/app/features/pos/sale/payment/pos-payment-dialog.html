@@ -1,0 +1,262 @@
+<h2 mat-dialog-title>Cobrar venta</h2>
+
+<mat-dialog-content class="payment-dialog-content">
+  <section class="payment-summary" aria-label="Totales del cobro">
+    <div class="summary-item">
+      <span>Subtotal venta</span>
+      <strong>{{ breakdown().totalGross | clp }}</strong>
+    </div>
+    @if (nonCashTotal() > 0) {
+      <div class="summary-item">
+        <span>Pagos electrónicos</span>
+        <strong>-{{ nonCashTotal() | clp }}</strong>
+      </div>
+    }
+    @if (breakdown().roundingAdjustment !== 0) {
+      <div class="summary-item summary-item--rounding" data-testid="payment-rounding-row">
+        <span>Redondeo efectivo (Ley 20.956)</span>
+        <strong>{{ breakdown().roundingAdjustment | clp }}</strong>
+      </div>
+    }
+    <div class="summary-item summary-item--payable">
+      <span>Total a pagar</span>
+      <strong data-testid="payment-total-payable">{{ breakdown().totalPayable | clp }}</strong>
+    </div>
+  </section>
+
+  @if (errorMessage(); as error) {
+    <div class="payment-error" role="alert" data-testid="payment-error-banner">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  @if (authorizedCards().length > 0 || transfers().length > 0) {
+    <section class="added-payments" aria-label="Pagos agregados">
+      <h3>Pagos registrados</h3>
+      <ul class="added-payments-list">
+        @for (card of authorizedCards(); track card.id) {
+          <li class="added-payment-row" data-testid="added-card-payment">
+            <div class="added-payment-info">
+              <strong>{{ methodLabel(card.method) }}</strong>
+              <span class="muted">
+                {{ card.cardBrand ?? 'Tarjeta' }}
+                @if (card.last4) {
+                  •••• {{ card.last4 }}
+                }
+                @if (card.authorizationCode) {
+                  · Aut. {{ card.authorizationCode }}
+                }
+              </span>
+            </div>
+            <div class="added-payment-actions">
+              <strong class="amount">{{ card.amount | clp }}</strong>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="busyAction() !== null"
+                data-testid="void-card-btn"
+                (click)="voidCard(card)"
+              >
+                Anular
+              </button>
+            </div>
+          </li>
+        }
+
+        @for (tr of transfers(); track tr.localId) {
+          <li class="added-payment-row" data-testid="added-transfer-payment">
+            <div class="added-payment-info">
+              <strong>Transferencia</strong>
+              <span class="muted">Ref. {{ tr.transferReference }}</span>
+            </div>
+            <div class="added-payment-actions">
+              <strong class="amount">{{ tr.amount | clp }}</strong>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="busyAction() !== null"
+                data-testid="remove-transfer-btn"
+                (click)="removeTransfer(tr.localId)"
+              >
+                Quitar
+              </button>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (breakdown().cashDue > 0) {
+    <section class="electronic-section" aria-label="Agregar pago electrónico">
+      <h3>Agregar tarjeta o transferencia (pago mixto)</h3>
+      <form
+        [formGroup]="electronicForm"
+        class="electronic-form"
+        (ngSubmit)="addElectronicPayment()"
+      >
+        <mat-button-toggle-group
+          formControlName="method"
+          aria-label="Medio de pago electrónico"
+          (change)="onElectronicMethodChange($event.value)"
+        >
+          <mat-button-toggle value="DEBIT">Débito</mat-button-toggle>
+          <mat-button-toggle value="CREDIT">Crédito</mat-button-toggle>
+          <mat-button-toggle value="TRANSFER">Transferencia</mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <div class="electronic-fields">
+          <mat-form-field appearance="outline" class="amount-field">
+            <mat-label>Monto ($)</mat-label>
+            <input
+              matInput
+              type="number"
+              min="1"
+              step="1"
+              formControlName="amount"
+              data-testid="electronic-amount-input"
+            />
+            @if (electronicForm.controls.amount.hasError('min')) {
+              <mat-error>Debe ser mayor a $0.</mat-error>
+            } @else if (electronicForm.controls.amount.hasError('wholeAmount')) {
+              <mat-error>Ingresa un monto entero en pesos.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (electronicMethod() === 'TRANSFER') {
+            <mat-form-field appearance="outline" class="ref-field">
+              <mat-label>Referencia de transferencia</mat-label>
+              <input
+                matInput
+                formControlName="transferReference"
+                maxlength="100"
+                data-testid="transfer-ref-input"
+              />
+              @if (electronicForm.controls.transferReference.hasError('required')) {
+                <mat-error>Ingresa el número o referencia de transferencia.</mat-error>
+              }
+            </mat-form-field>
+          }
+
+          <button
+            mat-stroked-button
+            type="submit"
+            [disabled]="busyAction() !== null || electronicForm.invalid"
+            data-testid="add-electronic-payment-btn"
+          >
+            @if (busyAction() === 'card') {
+              <mat-spinner diameter="18" />
+            } @else {
+              <mat-icon aria-hidden="true">
+                {{ electronicMethod() === 'TRANSFER' ? 'account_balance' : 'credit_card' }}
+              </mat-icon>
+            }
+            {{ electronicMethod() === 'TRANSFER' ? 'Agregar transferencia' : 'Autorizar tarjeta' }}
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <mat-divider />
+
+    <section class="cash-section" aria-label="Pago en efectivo">
+      <div class="cash-header">
+        <h3>Efectivo</h3>
+        <span class="cash-due-pill" data-testid="cash-payable-pill">
+          Efectivo a cobrar: <strong>{{ breakdown().cashPayable | clp }}</strong>
+        </span>
+      </div>
+
+      @if (hasInvalidZeroRoundedCash()) {
+        <p class="cash-warning" role="alert">
+          El saldo en efectivo ({{ breakdown().cashDue | clp }}) se redondea a $0. Ajusta los pagos
+          electrónicos para cubrir el total completo o dejar al menos $6 en efectivo.
+        </p>
+      } @else {
+        <mat-form-field appearance="outline" class="cash-input-field">
+          <mat-label>Efectivo entregado ($)</mat-label>
+          <input
+            matInput
+            type="number"
+            min="0"
+            step="1"
+            cdkFocusInitial
+            [formControl]="cashTenderedControl"
+            data-testid="cash-tendered-input"
+            (keydown.enter)="$event.preventDefault(); confirmSale()"
+          />
+          @if (cashTenderedControl.hasError('wholeAmount')) {
+            <mat-error>Ingresa un monto entero en pesos.</mat-error>
+          }
+        </mat-form-field>
+
+        <div class="quick-bills" aria-label="Montos rápidos de efectivo">
+          <button mat-stroked-button type="button" (click)="setExactCash()">
+            Exacto ({{ breakdown().cashPayable | clp }})
+          </button>
+          @for (bill of quickBills; track bill) {
+            <button mat-stroked-button type="button" (click)="setQuickCash(bill)">
+              {{ bill | clp }}
+            </button>
+          }
+        </div>
+
+        <div class="change-box" [class.change-box--short]="breakdown().shortfall > 0">
+          @if (breakdown().shortfall > 0) {
+            <span>Falta efectivo</span>
+            <strong data-testid="payment-shortfall">{{ breakdown().shortfall | clp }}</strong>
+          } @else {
+            <span>Vuelto</span>
+            <strong data-testid="payment-change">{{ breakdown().changeAmount | clp }}</strong>
+          }
+        </div>
+      }
+    </section>
+  } @else {
+    <div class="covered-box" data-testid="payment-fully-covered">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+      <span>El total de la venta quedó cubierto con medios electrónicos.</span>
+    </div>
+  }
+
+  <mat-form-field appearance="outline" class="email-field">
+    <mat-label>Enviar comprobante por correo (opcional)</mat-label>
+    <input
+      matInput
+      type="email"
+      [formControl]="emailControl"
+      placeholder="cliente@ejemplo.cl"
+      data-testid="payment-email-input"
+    />
+    @if (emailControl.hasError('email')) {
+      <mat-error>Ingresa un correo electrónico válido.</mat-error>
+    }
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button
+    mat-button
+    type="button"
+    [disabled]="busyAction() === 'sale' || busyAction() === 'card'"
+    data-testid="cancel-payment-btn"
+    (click)="cancel()"
+  >
+    {{ authorizedCards().length > 0 ? 'Cancelar y anular tarjetas (Esc)' : 'Cancelar (Esc)' }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    [disabled]="!canConfirmSale()"
+    data-testid="confirm-payment-btn"
+    (click)="confirmSale()"
+  >
+    @if (busyAction() === 'sale') {
+      <mat-spinner diameter="18" />
+    } @else {
+      <mat-icon aria-hidden="true">receipt_long</mat-icon>
+    }
+    Finalizar e imprimir (F12)
+  </button>
+</mat-dialog-actions>

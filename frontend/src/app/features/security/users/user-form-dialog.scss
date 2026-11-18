@@ -1,0 +1,32 @@
+.form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 480px;
+  padding-top: 8px;
+}
+
+.two-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.server-error {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 0.875rem;
+}
+
+@media (max-width: 600px) {
+  .form-grid {
+    min-width: auto;
+  }
+
+  .two-cols {
+    grid-template-columns: 1fr;
+  }
+}

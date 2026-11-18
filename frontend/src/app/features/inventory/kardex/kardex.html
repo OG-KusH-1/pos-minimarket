@@ -1,0 +1,129 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Kardex</h1>
+      <p class="subtitle">
+        Historial inmutable de movimientos de stock en {{ activeStoreName() }} (solo lectura).
+      </p>
+    </div>
+  </header>
+
+  <section class="product-picker" aria-label="Selección de producto">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-search-field">
+      <mat-label>Producto</mat-label>
+      <input
+        matInput
+        [formControl]="productSearchControl"
+        [matAutocomplete]="productAuto"
+        placeholder="Busca por nombre o SKU..."
+      />
+      <mat-icon matPrefix>search</mat-icon>
+      @if (selectedProduct()) {
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          aria-label="Limpiar producto seleccionado"
+          (click)="clearProduct()"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      }
+      <mat-autocomplete
+        #productAuto="matAutocomplete"
+        [displayWith]="displayProductOption"
+        (optionSelected)="onProductSelected($event)"
+      >
+        @for (option of productOptions(); track option.id) {
+          <mat-option [value]="option">
+            <span>{{ option.sku }} — {{ option.name }}</span>
+          </mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+
+    @if (selectedProduct(); as prod) {
+      <div class="selected-banner" role="status">
+        <span class="selected-sku">{{ prod.sku }}</span>
+        <strong class="selected-name">{{ prod.name }}</strong>
+        <span class="selected-unit"
+          >Unidad: {{ prod.unit === 'kg' ? 'Kilogramos' : 'Unidades' }}</span
+        >
+      </div>
+    }
+  </section>
+
+  @if (selectedProduct()) {
+    <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Desde</mat-label>
+        <input matInput type="date" formControlName="from" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Hasta</mat-label>
+        <input matInput type="date" formControlName="to" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Tipo de movimiento</mat-label>
+        <mat-select formControlName="movementType">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (opt of movementOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="lot-field">
+        <mat-label>ID Lote (opcional)</mat-label>
+        <input matInput type="number" min="1" formControlName="lotId" />
+      </mat-form-field>
+
+      <div class="filter-actions">
+        <button mat-stroked-button type="submit">Filtrar</button>
+        <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+      </div>
+    </form>
+
+    <pos-paginated-table
+      [dataSource]="dataSource"
+      [columns]="columns()"
+      label="Movimientos de kardex del producto"
+      emptyMessage="El producto no registra movimientos con los filtros seleccionados."
+    />
+  } @else {
+    <div class="empty-prompt" role="status">
+      <mat-icon aria-hidden="true">history</mat-icon>
+      <p>Busca y selecciona un producto para consultar sus movimientos de kardex.</p>
+    </div>
+  }
+
+  <ng-template #typeTpl let-row>
+    <span
+      class="badge"
+      [class.badge--in]="(row.quantityDelta ?? 0) > 0"
+      [class.badge--out]="(row.quantityDelta ?? 0) < 0"
+    >
+      {{ typeLabel(row.movementType) }}
+    </span>
+  </ng-template>
+
+  <ng-template #deltaTpl let-row>
+    <span
+      class="delta"
+      [class.delta--in]="(row.quantityDelta ?? 0) > 0"
+      [class.delta--out]="(row.quantityDelta ?? 0) < 0"
+    >
+      {{ (row.quantityDelta ?? 0) > 0 ? '+' : '' }}{{ row.quantityDelta | qty: selectedUnit() }}
+    </span>
+  </ng-template>
+
+  <ng-template #balanceTpl let-row>
+    <strong>{{ row.balanceAfter | qty: selectedUnit() }}</strong>
+  </ng-template>
+
+  <ng-template #unitCostTpl let-row>
+    {{ formatCost(row.unitCost) }}
+  </ng-template>
+</section>

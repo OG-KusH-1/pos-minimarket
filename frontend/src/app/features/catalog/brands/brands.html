@@ -1,0 +1,74 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Marcas</h1>
+      <p class="subtitle">Administración de marcas del catálogo de productos.</p>
+    </div>
+    @if (canManage()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nueva marca
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Nombre de la marca" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option [value]="true">Activas</mat-option>
+        <mat-option [value]="false">Inactivas</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de marcas"
+    emptyMessage="No hay marcas que coincidan con los filtros."
+  />
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--active]="row.active !== false"
+      [class.badge--inactive]="row.active === false"
+    >
+      {{ row.active !== false ? 'Activa' : 'Inactiva' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="brandMenu"
+      [attr.aria-label]="'Acciones para ' + row.name"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #brandMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openEdit(row)">
+        <mat-icon>edit</mat-icon>
+        <span>Editar</span>
+      </button>
+      <button mat-menu-item type="button" (click)="toggleActive(row)">
+        <mat-icon>{{ row.active !== false ? 'block' : 'check_circle' }}</mat-icon>
+        <span>{{ row.active !== false ? 'Desactivar' : 'Activar' }}</span>
+      </button>
+    </mat-menu>
+  </ng-template>
+</section>

@@ -1,0 +1,204 @@
+@let t = ticket();
+
+<article
+  class="ticket-sheet"
+  [attr.data-paper-width-mm]="t.paperWidthMm ?? 80"
+  data-testid="ticket-sheet"
+>
+  <header class="ticket-center">
+    @if (t.copyLabel) {
+      <div class="ticket-copy-banner" data-testid="ticket-copy-label">
+        {{ t.copyLabel }}
+      </div>
+    }
+
+    @if (t.company; as company) {
+      @if (company.tradeName || company.legalName) {
+        <div class="ticket-bold">{{ company.tradeName ?? company.legalName }}</div>
+      }
+      @if (company.rut) {
+        <div>RUT: {{ company.rut | rut }}</div>
+      }
+      @if (company.address) {
+        <div>{{ company.address }}</div>
+      }
+      @if (company.commune || company.city) {
+        <div>{{ formatLocation(company.commune, company.city) }}</div>
+      }
+      @if (company.phone) {
+        <div>Tel: {{ company.phone }}</div>
+      }
+    }
+    @if (t.store; as store) {
+      @if (store.name) {
+        <div class="ticket-bold">{{ store.name }}</div>
+      }
+    }
+  </header>
+
+  @if (t.headerLines?.length) {
+    <hr class="ticket-divider" />
+    <section class="ticket-note-list">
+      @for (line of t.headerLines; track $index) {
+        <div>{{ line }}</div>
+      }
+    </section>
+  }
+
+  <hr class="ticket-divider" />
+
+  <section aria-label="Metadatos del comprobante">
+    <div class="ticket-meta-row">
+      <span>Comprobante</span>
+      <span class="ticket-bold" data-testid="ticket-number">{{ t.number ?? '—' }}</span>
+    </div>
+    @if (t.soldAt) {
+      <div class="ticket-meta-row">
+        <span>Fecha</span>
+        <span>{{ t.soldAt | date: 'dd-MM-yyyy HH:mm' }}</span>
+      </div>
+    }
+    @if (t.terminal) {
+      <div class="ticket-meta-row">
+        <span>Terminal</span>
+        <span>{{ t.terminal.name ?? t.terminal.code ?? '#' + t.terminal.id }}</span>
+      </div>
+    }
+    @if (t.cashier) {
+      <div class="ticket-meta-row">
+        <span>Cajero</span>
+        <span>{{ t.cashier.fullName ?? t.cashier.username }}</span>
+      </div>
+    }
+    @if ((t.reprintCount ?? 0) > 0) {
+      <div class="ticket-meta-row">
+        <span>Reimpresiones</span>
+        <span>{{ t.reprintCount }}</span>
+      </div>
+    }
+  </section>
+
+  <hr class="ticket-divider" />
+
+  <section class="ticket-lines" aria-label="Detalle de productos">
+    @for (line of t.lines ?? []; track $index) {
+      <div class="ticket-line">
+        <div class="ticket-line-name">{{ line.name ?? 'Producto' }}</div>
+        <div class="ticket-line-detail">
+          <span>{{ line.quantity ?? 0 | qty }} x {{ line.unitPrice ?? 0 | clp }}</span>
+          <span class="ticket-bold">{{ line.total ?? 0 | clp }}</span>
+        </div>
+        @if ((line.discount ?? 0) > 0) {
+          <div class="ticket-line-discount">
+            <span>Descuento</span>
+            <span>-{{ line.discount ?? 0 | clp }}</span>
+          </div>
+        }
+      </div>
+    }
+  </section>
+
+  <hr class="ticket-divider" />
+
+  <section aria-label="Totales del comprobante">
+    @if (t.totals; as totals) {
+      @if (totals.subtotalGross !== undefined) {
+        <div class="ticket-total-row">
+          <span>Subtotal</span>
+          <span>{{ totals.subtotalGross | clp }}</span>
+        </div>
+      }
+      @if ((totals.discountTotal ?? 0) > 0) {
+        <div class="ticket-total-row">
+          <span>Descuentos</span>
+          <span>-{{ totals.discountTotal ?? 0 | clp }}</span>
+        </div>
+      }
+      @if (totals.totalGross !== undefined) {
+        <div class="ticket-total-row">
+          <span>Total bruto</span>
+          <span>{{ totals.totalGross | clp }}</span>
+        </div>
+      }
+    }
+    @if ((t.rounding ?? 0) !== 0) {
+      <div class="ticket-total-row" data-testid="ticket-rounding">
+        <span>Redondeo Ley 20.956</span>
+        <span>{{ (t.rounding ?? 0) > 0 ? '+' : '' }}{{ t.rounding ?? 0 | clp }}</span>
+      </div>
+    }
+    <div class="ticket-total-row ticket-total-grand" data-testid="ticket-total-payable">
+      <span>TOTAL A PAGAR</span>
+      <span>{{ t.totals?.totalPayable ?? t.totals?.totalGross ?? 0 | clp }}</span>
+    </div>
+  </section>
+
+  @if (t.showTaxBreakdown && t.totals) {
+    <hr class="ticket-divider" />
+    <section aria-label="Desglose de impuestos">
+      @if (t.totals.netTotal !== undefined) {
+        <div class="ticket-tax-row">
+          <span>Neto</span>
+          <span>{{ t.totals.netTotal | clp }}</span>
+        </div>
+      }
+      @if (t.totals.taxTotal !== undefined) {
+        <div class="ticket-tax-row">
+          <span>IVA</span>
+          <span>{{ t.totals.taxTotal | clp }}</span>
+        </div>
+      }
+      @if ((t.totals.exemptTotal ?? 0) > 0) {
+        <div class="ticket-tax-row">
+          <span>Exento</span>
+          <span>{{ t.totals.exemptTotal | clp }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  @if (t.payments?.length) {
+    <hr class="ticket-divider" />
+    <section aria-label="Medios de pago">
+      @for (payment of t.payments; track $index) {
+        <div class="ticket-payment-row">
+          <span>
+            {{ methodLabel(payment) }}
+            @if (payment.last4) {
+              <span> ·••• {{ payment.last4 }}</span>
+            }
+            @if (payment.authorizationCode) {
+              <span> (Aut. {{ payment.authorizationCode }})</span>
+            }
+            @if (payment.transferReference) {
+              <span> (Ref. {{ payment.transferReference }})</span>
+            }
+          </span>
+          <span>{{ payment.amount ?? 0 | clp }}</span>
+        </div>
+        @if (payment.method === 'CASH' && payment.tenderedAmount !== undefined) {
+          <div class="ticket-line-discount">
+            <span>Entregado</span>
+            <span>{{ payment.tenderedAmount | clp }}</span>
+          </div>
+        }
+      }
+
+      @if ((t.change ?? 0) > 0) {
+        <div class="ticket-total-row ticket-bold" data-testid="ticket-change">
+          <span>VUELTO</span>
+          <span>{{ t.change ?? 0 | clp }}</span>
+        </div>
+      }
+    </section>
+  }
+
+  @if (t.footerLines?.length) {
+    <hr class="ticket-divider" />
+    <footer class="ticket-note-list">
+      @for (line of t.footerLines; track $index) {
+        <div>{{ line }}</div>
+      }
+    </footer>
+  }
+</article>

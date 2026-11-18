@@ -1,0 +1,28 @@
+# Perfil test: pruebas de integración (*IT) con Testcontainers (T16).
+# No define datasource: la conexión la aporta el contenedor (@ServiceConnection o
+# @DynamicPropertySource). Los valores de abajo son constantes de prueba, sin valor real.
+
+spring:
+  flyway:
+    # Mismo esquema que producción; sin db/demo ni out-of-order.
+    # El placeholder admin_password_hash NO se define aquí: su única fuente es la constante
+    # AbstractIntegrationIT.TEST_ADMIN_PASSWORD_HASH (también la usa la BD aislada de la semilla).
+    locations: classpath:db/migration
+  mail:
+    host: localhost
+    port: 3025
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: false
+
+pos:
+  security:
+    jwt:
+      secret: test-only-jwt-secret-0123456789abcdef0123456789abcdef
+    refresh-cookie:
+      secure: false
+  files:
+    root: ${java.io.tmpdir}/pos-test-files

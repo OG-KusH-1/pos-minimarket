@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<!--
+  Layout base de los PDF (ADR-07). Renderizado por PdfRenderer (cl.minimarket.pos.shared.export).
+
+  REQUISITOS
+  - Debe ser XHTML bien formado (OpenHTMLtoPDF lo parsea como XML): etiquetas cerradas
+    (<br/>, <meta .../>), atributos entre comillas, sin entidades HTML como &nbsp; (use &#160;).
+  - Los datos de usuario se escriben siempre con th:text (escapa HTML), nunca con th:utext.
+  - Fuentes: las estándar de PDF (Helvetica); cubren tildes y ñ.
+
+  USO (en otra plantilla de templates/pdf/, por ejemplo purchase-order.html):
+
+    <html xmlns:th="http://www.thymeleaf.org"
+          th:replace="~{base :: layout(title=${title}, body=~{::main})}">
+    <body>
+      <main>
+        <table class="data">
+          <thead><tr><th>Producto</th><th class="num">Cantidad</th></tr></thead>
+          <tbody><tr th:each="l : ${lines}"><td th:text="${l.name}">x</td>
+                 <td class="num" th:text="${l.qty}">1</td></tr></tbody>
+        </table>
+      </main>
+    </body>
+    </html>
+
+  VARIABLES DE MODELO
+  - title (parámetro del fragmento): título del documento, aparece en el encabezado.
+  - company (modelo, opcional): nombre de la empresa en el encabezado.
+  - generatedAt: la agrega PdfRenderer (dd-MM-yyyy HH:mm, America/Santiago) si no se define.
+
+  CLASES CSS DISPONIBLES: table.data (tabla con encabezado repetido por página), td.num / th.num
+  (alineado a la derecha, para montos y cantidades), .total (fila de totales), .muted, h2.section.
+  Encabezado y pie se repiten en cada página; el pie muestra "Página X de Y" y la fecha.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      lang="es" th:fragment="layout(title, body)">
+<head>
+  <meta charset="UTF-8"/>
+  <title th:text="${title}">Documento</title>
+  <style th:inline="text">
+    @page {
+      size: A4;
+      margin: 2.8cm 1.5cm 2cm 1.5cm;
+      @top-center { content: element(pageHeader); }
+      @bottom-left { content: "Generado: [[${generatedAt}]]"; font-size: 8pt; color: #555555; }
+      @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 8pt; color: #555555; }
+    }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 10pt; color: #222222; }
+    #pageHeader { position: running(pageHeader); border-bottom: 1.5pt solid #1f3a5f; padding-bottom: 4pt; width: 100%; }
+    #pageHeader .company { font-size: 14pt; font-weight: bold; color: #1f3a5f; }
+    #pageHeader .doc-title { font-size: 11pt; color: #333333; margin-top: 2pt; }
+    h2.section { font-size: 11pt; color: #1f3a5f; margin: 12pt 0 4pt 0; }
+    .muted { color: #666666; }
+    table.data { width: 100%; border-collapse: collapse; margin-top: 6pt; }
+    table.data thead { display: table-header-group; }
+    table.data th { background-color: #1f3a5f; color: #ffffff; text-align: left; padding: 4pt 5pt; font-size: 9pt; }
+    table.data td { padding: 3pt 5pt; border-bottom: 0.5pt solid #cccccc; font-size: 9pt; }
+    table.data tr { page-break-inside: avoid; }
+    table.data tbody tr:nth-child(even) td { background-color: #f4f6f9; }
+    table.data .num { text-align: right; }
+    table.data tr.total td { font-weight: bold; border-top: 1pt solid #1f3a5f; background-color: #ffffff; }
+  </style>
+</head>
+<body>
+  <div id="pageHeader">
+    <div class="company" th:text="${company} ?: ''">Minimarket</div>
+    <div class="doc-title" th:text="${title}">Título del documento</div>
+  </div>
+  <main th:replace="${body}">Contenido</main>
+</body>
+</html>

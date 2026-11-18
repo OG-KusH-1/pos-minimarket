@@ -1,0 +1,61 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Roles y permisos</h1>
+      <p class="subtitle">
+        Definición de roles, permisos granulares por módulo y límites operativos.
+      </p>
+    </div>
+    @if (canManageRoles()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nuevo rol
+      </button>
+    }
+  </header>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de roles"
+    emptyMessage="No hay roles registrados."
+  />
+
+  <ng-template #typeTpl let-row>
+    <span class="badge" [class.badge--system]="row.system">
+      {{ row.system ? 'Sistema' : 'Personalizado' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="roleMenu"
+      [attr.aria-label]="'Acciones para ' + row.name"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #roleMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openPermissionsAndLimits(row)">
+        <mat-icon>tune</mat-icon>
+        <span>Permisos y límites</span>
+      </button>
+      @if (canManageRoles()) {
+        <button mat-menu-item type="button" (click)="openEdit(row)">
+          <mat-icon>edit</mat-icon>
+          <span>Editar</span>
+        </button>
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="row.system || (row.userCount ?? 0) > 0"
+          (click)="deleteRole(row)"
+        >
+          <mat-icon>delete</mat-icon>
+          <span>Eliminar</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

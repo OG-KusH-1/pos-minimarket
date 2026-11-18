@@ -1,0 +1,150 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Usuarios</h1>
+      <p class="subtitle">Gestión de cuentas, roles, locales asignados y sesiones activas.</p>
+    </div>
+    @if (canCreate()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon>person_add</mat-icon>
+        Nuevo usuario
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Usuario o nombre" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Rol</mat-label>
+      <mat-select formControlName="roleId">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (role of roles(); track role.id) {
+          <mat-option [value]="role.id">{{ role.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Local</mat-label>
+      <mat-select formControlName="storeId">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (store of stores(); track store.id) {
+          <mat-option [value]="store.id">{{ store.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Bloqueo</mat-label>
+      <mat-select formControlName="locked">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Bloqueados</mat-option>
+        <mat-option [value]="false">Sin bloqueo</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de usuarios"
+    emptyMessage="No hay usuarios que coincidan con los filtros."
+  />
+
+  <ng-template #rolesTpl let-row>
+    <div class="chips">
+      @for (code of row.roleCodes ?? []; track code) {
+        <span class="badge">{{ code }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <div class="chips">
+      @if (row.active !== false) {
+        <span class="badge badge--active">Activo</span>
+      } @else {
+        <span class="badge badge--inactive">Inactivo</span>
+      }
+      @if (row.locked) {
+        <span class="badge badge--locked">Bloqueado</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="userMenu"
+      [attr.aria-label]="'Acciones para ' + row.username"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #userMenu="matMenu">
+      @if (canUpdate()) {
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="row.id === currentUserId()"
+          (click)="openEdit(row)"
+        >
+          <mat-icon>edit</mat-icon>
+          <span>Editar</span>
+        </button>
+      }
+      @if (canRevokeSessions()) {
+        <button mat-menu-item type="button" (click)="openSessions(row)">
+          <mat-icon>devices</mat-icon>
+          <span>Sesiones activas</span>
+        </button>
+      }
+      @if (canResetCredentials()) {
+        <button mat-menu-item type="button" (click)="resetPassword(row)">
+          <mat-icon>lock_reset</mat-icon>
+          <span>Restablecer contraseña</span>
+        </button>
+        <button mat-menu-item type="button" (click)="resetPin(row)">
+          <mat-icon>pin</mat-icon>
+          <span>Restablecer PIN</span>
+        </button>
+        @if (row.locked) {
+          <button mat-menu-item type="button" (click)="unlock(row)">
+            <mat-icon>lock_open</mat-icon>
+            <span>Desbloquear cuenta</span>
+          </button>
+        }
+      }
+      @if (canDisable()) {
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="row.id === currentUserId()"
+          (click)="toggleActive(row)"
+        >
+          <mat-icon>{{ row.active !== false ? 'person_off' : 'person' }}</mat-icon>
+          <span>{{ row.active !== false ? 'Desactivar' : 'Activar' }}</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

@@ -1,0 +1,88 @@
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
+.ticket-sheet {
+  width: 76mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 12px 10px;
+  background: #ffffff;
+  color: #111827;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  border: 1px dashed var(--mat-sys-outline-variant, #cbd5e1);
+  border-radius: 6px;
+}
+
+.ticket-center {
+  text-align: center;
+}
+
+.ticket-bold {
+  font-weight: 700;
+}
+
+.ticket-copy-banner {
+  margin: 4px 0 8px;
+  padding: 3px 6px;
+  border: 1px dashed #111827;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.ticket-divider {
+  border: 0;
+  border-top: 1px dashed #94a3b8;
+  margin: 8px 0;
+}
+
+.ticket-meta-row,
+.ticket-total-row,
+.ticket-payment-row,
+.ticket-tax-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ticket-total-grand {
+  margin-top: 4px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ticket-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ticket-line-name {
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.ticket-line-detail {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.ticket-line-discount {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #475569;
+}
+
+.ticket-note-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: center;
+}

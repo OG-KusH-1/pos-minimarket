@@ -1,0 +1,273 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Empresa</h1>
+      <p class="subtitle">
+        Datos tributarios, razón social, dirección y logo mostrados en boletas y documentos.
+      </p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando datos de la empresa" />
+  }
+
+  @if (loadError(); as err) {
+    <div class="alert alert--error" role="alert">
+      <span>{{ err }}</span>
+      <button mat-button type="button" (click)="loadCompany()">Reintentar</button>
+    </div>
+  }
+
+  <div class="company-layout">
+    <mat-card appearance="outlined" class="company-card">
+      <mat-card-header>
+        <mat-card-title>Información de la empresa</mat-card-title>
+        <mat-card-subtitle>
+          El RUT se valida con módulo 11 y los cambios quedan registrados en auditoría.
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        @if (serverError(); as err) {
+          <p class="alert alert--error" role="alert">{{ err }}</p>
+        }
+
+        <form [formGroup]="form" (ngSubmit)="submit()" class="company-form" novalidate>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>RUT</mat-label>
+              <input
+                matInput
+                formControlName="rut"
+                placeholder="76.123.456-0"
+                autocomplete="off"
+                (blur)="onRutBlur()"
+              />
+              <mat-hint>Formato chileno con dígito verificador.</mat-hint>
+              @if (form.controls.rut.hasError('required')) {
+                <mat-error>El RUT es obligatorio.</mat-error>
+              } @else if (form.controls.rut.hasError('rut')) {
+                <mat-error>El RUT ingresado no es válido.</mat-error>
+              } @else if (form.controls.rut.hasError('maxlength')) {
+                <mat-error>Máximo 15 caracteres.</mat-error>
+              } @else if (form.controls.rut.hasError('server')) {
+                <mat-error>{{ form.controls.rut.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Zona horaria (IANA)</mat-label>
+              <mat-select formControlName="timezone">
+                @for (tz of timezoneOptions(); track tz) {
+                  <mat-option [value]="tz">{{ tz }}</mat-option>
+                }
+              </mat-select>
+              @if (form.controls.timezone.hasError('required')) {
+                <mat-error>La zona horaria es obligatoria.</mat-error>
+              } @else if (form.controls.timezone.hasError('server')) {
+                <mat-error>{{ form.controls.timezone.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="span-2">
+              <mat-label>Razón social</mat-label>
+              <input matInput formControlName="legalName" autocomplete="organization" />
+              @if (form.controls.legalName.hasError('required')) {
+                <mat-error>La razón social es obligatoria.</mat-error>
+              } @else if (form.controls.legalName.hasError('minlength')) {
+                <mat-error>Mínimo 2 caracteres.</mat-error>
+              } @else if (form.controls.legalName.hasError('maxlength')) {
+                <mat-error>Máximo 200 caracteres.</mat-error>
+              } @else if (form.controls.legalName.hasError('server')) {
+                <mat-error>{{ form.controls.legalName.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nombre de fantasía</mat-label>
+              <input matInput formControlName="tradeName" autocomplete="off" />
+              @if (form.controls.tradeName.hasError('required')) {
+                <mat-error>El nombre de fantasía es obligatorio.</mat-error>
+              } @else if (form.controls.tradeName.hasError('minlength')) {
+                <mat-error>Mínimo 2 caracteres.</mat-error>
+              } @else if (form.controls.tradeName.hasError('maxlength')) {
+                <mat-error>Máximo 200 caracteres.</mat-error>
+              } @else if (form.controls.tradeName.hasError('server')) {
+                <mat-error>{{ form.controls.tradeName.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Giro</mat-label>
+              <input matInput formControlName="businessActivity" autocomplete="off" />
+              @if (form.controls.businessActivity.hasError('required')) {
+                <mat-error>El giro es obligatorio.</mat-error>
+              } @else if (form.controls.businessActivity.hasError('minlength')) {
+                <mat-error>Mínimo 2 caracteres.</mat-error>
+              } @else if (form.controls.businessActivity.hasError('maxlength')) {
+                <mat-error>Máximo 200 caracteres.</mat-error>
+              } @else if (form.controls.businessActivity.hasError('server')) {
+                <mat-error>{{ form.controls.businessActivity.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="span-2">
+              <mat-label>Dirección</mat-label>
+              <input matInput formControlName="address" autocomplete="street-address" />
+              @if (form.controls.address.hasError('required')) {
+                <mat-error>La dirección es obligatoria.</mat-error>
+              } @else if (form.controls.address.hasError('maxlength')) {
+                <mat-error>Máximo 250 caracteres.</mat-error>
+              } @else if (form.controls.address.hasError('server')) {
+                <mat-error>{{ form.controls.address.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Comuna</mat-label>
+              <input matInput formControlName="commune" autocomplete="address-level3" />
+              @if (form.controls.commune.hasError('required')) {
+                <mat-error>La comuna es obligatoria.</mat-error>
+              } @else if (form.controls.commune.hasError('maxlength')) {
+                <mat-error>Máximo 100 caracteres.</mat-error>
+              } @else if (form.controls.commune.hasError('server')) {
+                <mat-error>{{ form.controls.commune.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Ciudad</mat-label>
+              <input matInput formControlName="city" autocomplete="address-level2" />
+              @if (form.controls.city.hasError('required')) {
+                <mat-error>La ciudad es obligatoria.</mat-error>
+              } @else if (form.controls.city.hasError('maxlength')) {
+                <mat-error>Máximo 100 caracteres.</mat-error>
+              } @else if (form.controls.city.hasError('server')) {
+                <mat-error>{{ form.controls.city.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Teléfono</mat-label>
+              <input matInput formControlName="phone" type="tel" autocomplete="tel" />
+              @if (form.controls.phone.hasError('maxlength')) {
+                <mat-error>Máximo 30 caracteres.</mat-error>
+              } @else if (form.controls.phone.hasError('server')) {
+                <mat-error>{{ form.controls.phone.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Correo electrónico</mat-label>
+              <input matInput formControlName="email" type="email" autocomplete="email" />
+              @if (form.controls.email.hasError('email')) {
+                <mat-error>Ingresa un correo válido.</mat-error>
+              } @else if (form.controls.email.hasError('maxlength')) {
+                <mat-error>Máximo 254 caracteres.</mat-error>
+              } @else if (form.controls.email.hasError('server')) {
+                <mat-error>{{ form.controls.email.getError('server') }}</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="logo-section">
+            <div class="logo-preview">
+              @if (logoPreviewUrl(); as url) {
+                <img [src]="url" alt="Logo actual de la empresa" class="logo-img" />
+              } @else {
+                <div class="logo-placeholder" aria-hidden="true">
+                  <mat-icon>storefront</mat-icon>
+                  <span>Sin logo</span>
+                </div>
+              }
+            </div>
+            <div class="logo-actions">
+              <h3 class="logo-title">Logo de la empresa</h3>
+              <p class="logo-hint">
+                Opcional. Se recomienda PNG o JPG (máx. 2 MB) para boletas y reportes PDF.
+              </p>
+              <input
+                #logoInput
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="visually-hidden"
+                aria-label="Seleccionar archivo de logo"
+                (change)="onLogoFileSelected($event)"
+              />
+              <div class="logo-buttons">
+                <button
+                  mat-stroked-button
+                  type="button"
+                  [disabled]="!canUpdate() || uploadingLogo() || saving()"
+                  (click)="logoInput.click()"
+                >
+                  <mat-icon>upload</mat-icon>
+                  {{ uploadingLogo() ? 'Subiendo...' : 'Subir logo' }}
+                </button>
+                @if (form.controls.logoFileId.value !== null) {
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="!canUpdate() || uploadingLogo() || saving()"
+                    (click)="removeLogo()"
+                  >
+                    <mat-icon>delete_outline</mat-icon>
+                    Quitar logo
+                  </button>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button
+              mat-button
+              type="button"
+              [disabled]="loading() || saving()"
+              (click)="loadCompany()"
+            >
+              Recargar
+            </button>
+            <button
+              mat-flat-button
+              type="submit"
+              [disabled]="!canUpdate() || loading() || saving() || uploadingLogo()"
+            >
+              <mat-icon>save</mat-icon>
+              {{ saving() ? 'Guardando...' : 'Guardar empresa' }}
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="preview-card">
+      <mat-card-header>
+        <mat-card-title>Vista previa en ticket</mat-card-title>
+        <mat-card-subtitle>Encabezado impreso en cada venta</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="ticket-header-preview" aria-label="Vista previa del encabezado del ticket">
+          @if (logoPreviewUrl(); as url) {
+            <img [src]="url" alt="Logo en ticket" class="ticket-logo" />
+          }
+          <strong class="ticket-trade">{{
+            form.controls.tradeName.value || 'Mi Minimarket'
+          }}</strong>
+          <span>{{ form.controls.legalName.value || 'Razón social' }}</span>
+          <span>RUT: {{ (form.controls.rut.value | rut) || '—' }}</span>
+          <span>{{ form.controls.businessActivity.value || 'Giro comercial' }}</span>
+          <span>
+            {{ form.controls.address.value || 'Dirección' }},
+            {{ form.controls.commune.value || 'Comuna' }},
+            {{ form.controls.city.value || 'Ciudad' }}
+          </span>
+          @if (form.controls.phone.value) {
+            <span>Tel: {{ form.controls.phone.value }}</span>
+          }
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</section>

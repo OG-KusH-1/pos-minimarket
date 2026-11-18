@@ -1,0 +1,48 @@
+# Perfil dev: desarrollo local (API fuera de Docker; PostgreSQL y Mailpit en docker-compose).
+# Los defaults de este archivo son SOLO de desarrollo y evidentemente inseguros: nunca usarlos
+# fuera de la máquina del desarrollador.
+
+spring:
+  datasource:
+    url: ${POS_DB_URL:jdbc:postgresql://localhost:5432/pos}
+    username: ${POS_DB_USER:pos_app}
+    password: ${POS_DB_PASSWORD:dev-only-pos-app-password}
+  flyway:
+    # Permite que varias ramas con migraciones de versión distinta convivan en una misma BD local.
+    out-of-order: true
+    url: ${POS_FLYWAY_URL:${POS_DB_URL:jdbc:postgresql://localhost:5432/pos}}
+    user: ${POS_FLYWAY_USER:pos_owner}
+    password: ${POS_FLYWAY_PASSWORD:dev-only-pos-owner-password}
+    placeholders:
+      # BCrypt (costo 12) de la contraseña de desarrollo "DevAdmin#2026" para el usuario admin.
+      admin_password_hash: ${POS_ADMIN_PASSWORD_HASH:$2a$12$Fj3xg5frDtXewHsfrPyoN.NjY1S4PsPRELMXPjHaoQcF95y0fq2D.}
+  mail:
+    # Mailpit local: SMTP en 1025, interfaz web en 8025.
+    host: localhost
+    port: 1025
+
+server:
+  error:
+    include-message: always
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    cl.minimarket.pos: DEBUG
+
+pos:
+  security:
+    jwt:
+      secret: ${POS_JWT_SECRET:dev-only-jwt-secret-change-me-0123456789abcdef}
+    refresh-cookie:
+      # En http://localhost la cookie Secure no se enviaría.
+      secure: false
+  cors:
+    allowed-origins: ${POS_CORS_ALLOWED_ORIGINS:http://localhost:4200}
+  files:
+    root: ${POS_FILES_ROOT:./data/files}

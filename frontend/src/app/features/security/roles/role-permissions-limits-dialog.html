@@ -1,0 +1,133 @@
+<h2 mat-dialog-title>Permisos y límites — {{ data.role.name }} ({{ data.role.code }})</h2>
+
+@if (loading()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-dialog-content class="dialog-content">
+  <mat-tab-group animationDuration="0ms">
+    <mat-tab label="Permisos">
+      <div class="tab-body">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+          <mat-label>Filtrar permisos</mat-label>
+          <input
+            matInput
+            [value]="permissionSearch()"
+            (input)="permissionSearch.set($any($event.target).value)"
+            placeholder="Código, módulo o descripción"
+          />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <div class="modules-list">
+          @for (group of groupedPermissions(); track group.module) {
+            <section class="module-card">
+              <div class="module-header">
+                <mat-checkbox
+                  [checked]="isModuleAllSelected(group)"
+                  [disabled]="!canManagePermissions()"
+                  (change)="toggleModule(group, $event.checked)"
+                >
+                  <strong>{{ group.module }}</strong>
+                </mat-checkbox>
+              </div>
+              <div class="permission-items">
+                @for (perm of group.permissions; track perm.code) {
+                  <div class="permission-item">
+                    <mat-checkbox
+                      [checked]="isPermissionSelected(perm.code)"
+                      [disabled]="!canManagePermissions()"
+                      (change)="togglePermission(perm.code, $event.checked)"
+                    >
+                      <span class="perm-code">{{ perm.code }}</span>
+                      @if (perm.sensitive) {
+                        <span class="sensitive-badge">Sensible</span>
+                      }
+                    </mat-checkbox>
+                    @if (perm.description) {
+                      <span class="perm-desc">{{ perm.description }}</span>
+                    }
+                  </div>
+                }
+              </div>
+            </section>
+          } @empty {
+            <p class="empty">No hay permisos que coincidan con el filtro.</p>
+          }
+        </div>
+
+        @if (canManagePermissions()) {
+          <div class="tab-actions">
+            <button
+              mat-flat-button
+              type="button"
+              [disabled]="loading() || savingPermissions()"
+              (click)="savePermissions()"
+            >
+              Guardar permisos
+            </button>
+          </div>
+        }
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Límites">
+      <form [formGroup]="limitsForm" (ngSubmit)="saveLimits()" class="tab-body">
+        <p class="limits-hint">
+          Marca «Sin límite (∞)» para permitir cualquier monto o porcentaje; un valor en 0 bloquea
+          la operación sin autorización.
+        </p>
+
+        <div formArrayName="limits" class="limits-list">
+          @for (def of limitDefinitions; track def.code; let i = $index) {
+            <div [formGroupName]="i" class="limit-row">
+              <div class="limit-info">
+                <span class="limit-label">{{ def.label }}</span>
+                <span class="limit-preview" [attr.data-testid]="'limit-preview-' + def.code">
+                  {{ displayLimitValue(i, def) }}
+                </span>
+              </div>
+
+              <div class="limit-controls">
+                <mat-checkbox formControlName="unlimited">Sin límite (∞)</mat-checkbox>
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="limit-input">
+                  <mat-label>Valor ({{ def.unit }})</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="value"
+                    min="0"
+                    [max]="def.max ?? null"
+                  />
+                  @if (limitsArray.at(i).controls.value.hasError('required')) {
+                    <mat-error>Obligatorio</mat-error>
+                  } @else if (limitsArray.at(i).controls.value.hasError('min')) {
+                    <mat-error>Debe ser ≥ 0</mat-error>
+                  } @else if (limitsArray.at(i).controls.value.hasError('max')) {
+                    <mat-error>Máximo {{ def.max }}</mat-error>
+                  }
+                </mat-form-field>
+              </div>
+            </div>
+          }
+        </div>
+
+        @if (canManageLimits()) {
+          <div class="tab-actions">
+            <button
+              mat-flat-button
+              type="submit"
+              [disabled]="loading() || savingLimits() || limitsForm.invalid"
+            >
+              Guardar límites
+            </button>
+          </div>
+        }
+      </form>
+    </mat-tab>
+  </mat-tab-group>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="true">Cerrar</button>
+</mat-dialog-actions>

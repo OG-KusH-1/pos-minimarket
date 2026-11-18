@@ -1,0 +1,223 @@
+<div class="auth-page">
+  <mat-card class="auth-card" appearance="outlined">
+    <mat-card-header>
+      <mat-icon mat-card-avatar fontSet="material-symbols-outlined" aria-hidden="true">
+        storefront
+      </mat-icon>
+      <mat-card-title>
+        <h1 class="auth-title">Iniciar sesión</h1>
+      </mat-card-title>
+      <mat-card-subtitle>
+        @switch (step()) {
+          @case ('credentials') {
+            POS Minimarket
+          }
+          @case ('store') {
+            Seleccionar local
+          }
+          @case ('terminal') {
+            Seleccionar terminal
+          }
+        }
+      </mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      @if (errorMessage(); as error) {
+        <div class="auth-error" role="alert">
+          <mat-icon fontSet="material-symbols-outlined" aria-hidden="true">error</mat-icon>
+          <span>{{ error }}</span>
+        </div>
+      }
+
+      @switch (step()) {
+        @case ('credentials') {
+          <form [formGroup]="credentialsForm" (ngSubmit)="submitCredentials()" class="auth-form">
+            <mat-form-field appearance="outline">
+              <mat-label>Usuario</mat-label>
+              <input
+                matInput
+                formControlName="username"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+              />
+              @if (credentialsForm.controls.username.hasError('required')) {
+                <mat-error>Ingresa tu nombre de usuario.</mat-error>
+              } @else if (credentialsForm.controls.username.hasError('minlength')) {
+                <mat-error>El usuario debe tener al menos 3 caracteres.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Contraseña</mat-label>
+              <input
+                matInput
+                formControlName="password"
+                [type]="hidePassword() ? 'password' : 'text'"
+                autocomplete="current-password"
+              />
+              <button
+                type="button"
+                mat-icon-button
+                matSuffix
+                [attr.aria-label]="hidePassword() ? 'Mostrar contraseña' : 'Ocultar contraseña'"
+                [attr.aria-pressed]="!hidePassword()"
+                (click)="togglePasswordVisibility()"
+              >
+                <mat-icon fontSet="material-symbols-outlined">
+                  {{ hidePassword() ? 'visibility' : 'visibility_off' }}
+                </mat-icon>
+              </button>
+              @if (credentialsForm.controls.password.hasError('required')) {
+                <mat-error>Ingresa tu contraseña.</mat-error>
+              }
+            </mat-form-field>
+
+            <button type="submit" mat-flat-button class="submit-button" [disabled]="loading()">
+              @if (loading()) {
+                <mat-spinner diameter="20" aria-label="Iniciando sesión" />
+              } @else {
+                Ingresar
+              }
+            </button>
+          </form>
+        }
+
+        @case ('store') {
+          @if (stores().length > 0) {
+            <form (submit)="$event.preventDefault(); confirmStore()" class="auth-form">
+              <p class="step-hint">Elige el local en el que vas a operar:</p>
+
+              <mat-radio-group
+                aria-label="Locales disponibles"
+                class="option-list"
+                [value]="selectedStoreId()"
+                (change)="selectedStoreId.set($event.value)"
+              >
+                @for (store of stores(); track store.id) {
+                  <mat-radio-button class="option-item" [value]="store.id">
+                    <span class="option-title">{{ store.name }}</span>
+                    @if (store.code) {
+                      <span class="option-code">({{ store.code }})</span>
+                    }
+                  </mat-radio-button>
+                }
+              </mat-radio-group>
+
+              <div class="step-actions">
+                <button
+                  type="button"
+                  mat-stroked-button
+                  [disabled]="loading()"
+                  (click)="cancelSession()"
+                >
+                  Cambiar usuario
+                </button>
+                <button
+                  type="submit"
+                  mat-flat-button
+                  [disabled]="loading() || selectedStoreId() === null"
+                >
+                  @if (loading()) {
+                    <mat-spinner diameter="20" aria-label="Cargando terminales" />
+                  } @else {
+                    Continuar
+                  }
+                </button>
+              </div>
+            </form>
+          } @else {
+            <div class="step-actions">
+              <button type="button" mat-stroked-button (click)="cancelSession()">
+                Volver al inicio de sesión
+              </button>
+            </div>
+          }
+        }
+
+        @case ('terminal') {
+          @if (selectedStore(); as store) {
+            <p class="step-context">
+              Local activo: <strong>{{ store.name }}</strong>
+            </p>
+          }
+
+          @if (terminals().length > 0) {
+            <form (submit)="$event.preventDefault(); confirmTerminal()" class="auth-form">
+              <p class="step-hint">Selecciona la terminal de trabajo:</p>
+
+              <mat-radio-group
+                aria-label="Terminales disponibles"
+                class="option-list"
+                [value]="selectedTerminalId()"
+                (change)="selectedTerminalId.set($event.value)"
+              >
+                @for (terminal of terminals(); track terminal.id) {
+                  <mat-radio-button class="option-item" [value]="terminal.id">
+                    <span class="option-title">{{ terminal.name }}</span>
+                    @if (terminal.code) {
+                      <span class="option-code">({{ terminal.code }})</span>
+                    }
+                    @if (terminal.hasOpenSession) {
+                      <span class="option-badge">Turno abierto</span>
+                    }
+                  </mat-radio-button>
+                }
+              </mat-radio-group>
+
+              <div class="step-actions">
+                @if (stores().length > 1) {
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    [disabled]="loading()"
+                    (click)="backToStores()"
+                  >
+                    Cambiar local
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    mat-stroked-button
+                    [disabled]="loading()"
+                    (click)="cancelSession()"
+                  >
+                    Cambiar usuario
+                  </button>
+                }
+                <button
+                  type="submit"
+                  mat-flat-button
+                  [disabled]="loading() || selectedTerminalId() === null"
+                >
+                  @if (loading()) {
+                    <mat-spinner diameter="20" aria-label="Confirmando terminal" />
+                  } @else {
+                    Entrar
+                  }
+                </button>
+              </div>
+            </form>
+          } @else {
+            <p class="step-hint">Este local no tiene terminales activas configuradas.</p>
+            <div class="step-actions">
+              @if (stores().length > 1) {
+                <button type="button" mat-stroked-button (click)="backToStores()">
+                  Cambiar local
+                </button>
+              } @else {
+                <button type="button" mat-stroked-button (click)="cancelSession()">
+                  Cambiar usuario
+                </button>
+              }
+              <button type="button" mat-flat-button (click)="continueWithoutTerminal()">
+                Continuar sin terminal
+              </button>
+            </div>
+          }
+        }
+      }
+    </mat-card-content>
+  </mat-card>
+</div>

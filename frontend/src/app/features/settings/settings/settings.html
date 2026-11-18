@@ -1,0 +1,190 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Parámetros</h1>
+      <p class="subtitle">
+        Configuración de ticket por local, reglas operativas del POS, alertas y seguridad.
+      </p>
+    </div>
+
+    <div class="store-selector">
+      <mat-form-field appearance="outline" class="store-field">
+        <mat-label>Local seleccionado</mat-label>
+        <mat-select [value]="selectedStoreId()" (valueChange)="onStoreChange($event)">
+          @for (store of stores(); track store.id) {
+            <mat-option [value]="store.id ?? null">
+              {{ store.name }} ({{ store.code }})
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando parámetros de configuración" />
+  }
+
+  @if (loadError(); as err) {
+    <div class="alert alert--error" role="alert">
+      <span>{{ err }}</span>
+      <button mat-button type="button" (click)="reloadAll()">Reintentar</button>
+    </div>
+  }
+
+  <mat-tab-group animationDuration="0ms">
+    <mat-tab label="Ticket por local">
+      <pos-ticket-settings-form
+        [storeId]="selectedStoreId()"
+        [storeName]="selectedStoreName()"
+        [settings]="settings()"
+        [effectiveValues]="effectiveValues()"
+        [canUpdateStore]="canUpdateSettings()"
+        [canUpdateGlobal]="canUpdateGlobal()"
+        [company]="company()"
+        (saved)="reloadSettings()"
+      />
+    </mat-tab>
+
+    <mat-tab label="Operación y caja">
+      <div class="tab-content">
+        @for (def of operationDefinitions; track def.key) {
+          @let row = rowFor(def.key);
+          <mat-card appearance="outlined" class="setting-card" [formGroup]="row.form">
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-title-row">
+                  <strong class="setting-label">{{ def.label }}</strong>
+                  <code class="setting-key">{{ def.key }}</code>
+                  <span class="badge" [class.badge--store]="hasStoreOverride(def.key)">
+                    {{ hasStoreOverride(def.key) ? 'Personalizado en local' : 'Global' }}
+                  </span>
+                </div>
+                <p class="setting-desc">{{ def.description }}</p>
+              </div>
+
+              <div class="setting-controls">
+                @if (def.valueType === 'BOOLEAN') {
+                  <mat-slide-toggle formControlName="booleanValue" color="primary">
+                    {{ row.form.controls.booleanValue.value ? 'Activado' : 'Desactivado' }}
+                  </mat-slide-toggle>
+                } @else {
+                  <mat-form-field appearance="outline" class="value-field">
+                    <mat-label>Valor{{ def.unit ? ' (' + def.unit + ')' : '' }}</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      formControlName="numberValue"
+                      [attr.min]="def.min ?? null"
+                      [attr.max]="def.max ?? null"
+                      step="1"
+                    />
+                    @if (def.min !== undefined && def.max !== undefined) {
+                      <mat-hint>Rango: {{ def.min }} a {{ def.max }}</mat-hint>
+                    }
+                    @if (row.form.controls.numberValue.hasError('required')) {
+                      <mat-error>Obligatorio.</mat-error>
+                    } @else if (
+                      row.form.controls.numberValue.hasError('min') ||
+                      row.form.controls.numberValue.hasError('max')
+                    ) {
+                      <mat-error>Fuera de rango ({{ def.min }}–{{ def.max }}).</mat-error>
+                    } @else if (row.form.controls.numberValue.hasError('integer')) {
+                      <mat-error>Debe ser entero.</mat-error>
+                    } @else if (row.form.controls.numberValue.hasError('server')) {
+                      <mat-error>{{ row.form.controls.numberValue.getError('server') }}</mat-error>
+                    }
+                  </mat-form-field>
+                }
+
+                <mat-form-field appearance="outline" class="scope-field">
+                  <mat-label>Alcance</mat-label>
+                  <mat-select formControlName="scope">
+                    <mat-option value="STORE" [disabled]="selectedStoreId() === null">
+                      Este local
+                    </mat-option>
+                    <mat-option value="GLOBAL" [disabled]="!canUpdateGlobal()"> Global </mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <button
+                  mat-flat-button
+                  type="button"
+                  [disabled]="!canSaveRow(def) || savingKey() === def.key"
+                  (click)="saveRow(def)"
+                >
+                  {{ savingKey() === def.key ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </div>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Seguridad (Global)">
+      <div class="tab-content">
+        @if (!canUpdateGlobal()) {
+          <p class="alert alert--info" role="status">
+            Los parámetros de seguridad aplican a toda la empresa (alcance GLOBAL) y solo pueden ser
+            modificados por un administrador con acceso global.
+          </p>
+        }
+
+        @for (def of securityDefinitions; track def.key) {
+          @let row = rowFor(def.key);
+          <mat-card appearance="outlined" class="setting-card" [formGroup]="row.form">
+            <div class="setting-row">
+              <div class="setting-info">
+                <div class="setting-title-row">
+                  <strong class="setting-label">{{ def.label }}</strong>
+                  <code class="setting-key">{{ def.key }}</code>
+                  <span class="badge">Solo Global</span>
+                </div>
+                <p class="setting-desc">{{ def.description }}</p>
+              </div>
+
+              <div class="setting-controls">
+                <mat-form-field appearance="outline" class="value-field">
+                  <mat-label>Valor{{ def.unit ? ' (' + def.unit + ')' : '' }}</mat-label>
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="numberValue"
+                    [attr.min]="def.min ?? null"
+                    [attr.max]="def.max ?? null"
+                    step="1"
+                  />
+                  @if (def.min !== undefined && def.max !== undefined) {
+                    <mat-hint>Rango: {{ def.min }} a {{ def.max }}</mat-hint>
+                  }
+                  @if (row.form.controls.numberValue.hasError('required')) {
+                    <mat-error>Obligatorio.</mat-error>
+                  } @else if (
+                    row.form.controls.numberValue.hasError('min') ||
+                    row.form.controls.numberValue.hasError('max')
+                  ) {
+                    <mat-error>Fuera de rango ({{ def.min }}–{{ def.max }}).</mat-error>
+                  } @else if (row.form.controls.numberValue.hasError('integer')) {
+                    <mat-error>Debe ser entero.</mat-error>
+                  } @else if (row.form.controls.numberValue.hasError('server')) {
+                    <mat-error>{{ row.form.controls.numberValue.getError('server') }}</mat-error>
+                  }
+                </mat-form-field>
+
+                <button
+                  mat-flat-button
+                  type="button"
+                  [disabled]="!canSaveRow(def) || savingKey() === def.key"
+                  (click)="saveRow(def)"
+                >
+                  {{ savingKey() === def.key ? 'Guardando...' : 'Guardar' }}
+                </button>
+              </div>
+            </div>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</section>

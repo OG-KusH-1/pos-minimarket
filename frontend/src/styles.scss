@@ -1,0 +1,42 @@
+@use '@angular/material' as mat;
+@use 'theme-colors' as colors;
+
+// Tema Material 3 en modo claro con la paleta propia del proyecto (verde y ámbar), generada con
+// `ng generate @angular/material:m3-theme` (ver `_theme-colors.scss`).
+// Para añadir modo oscuro: `color-scheme: light dark` y paletas con `theme-type: color-scheme`.
+html {
+  color-scheme: light;
+  @include mat.theme(
+    (
+      color: (
+        primary: colors.$primary-palette,
+        tertiary: colors.$tertiary-palette,
+      ),
+      typography: Roboto,
+      density: 0,
+    )
+  );
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+  background-color: var(--mat-sys-surface);
+  color: var(--mat-sys-on-surface);
+}
+
+// Íconos Material Symbols servidos localmente (@fontsource, sin CDN: el POS debe funcionar sin
+// internet). Se usan con `<mat-icon fontSet="material-symbols-outlined">`.
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}

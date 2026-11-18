@@ -1,0 +1,130 @@
+.search-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scan-field {
+  width: 100%;
+}
+
+.loading-bar {
+  border-radius: 4px;
+}
+
+.scan-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+.results-panel {
+  position: absolute;
+  top: 58px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
+  background: var(--mat-sys-surface-container-lowest);
+  border: 1px solid var(--mat-sys-outline-variant);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+}
+
+.empty-results {
+  padding: 14px 16px;
+  color: var(--mat-sys-on-surface-variant);
+  font-size: 0.9rem;
+}
+
+.result-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:hover,
+  &--highlighted {
+    background: var(--mat-sys-secondary-container);
+    color: var(--mat-sys-on-secondary-container);
+  }
+}
+
+.result-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.result-name {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.result-meta {
+  font-size: 0.8rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.tag-restricted {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.result-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.result-price {
+  font-weight: 600;
+}
+
+.result-stock {
+  font-size: 0.78rem;
+  color: var(--mat-sys-on-surface-variant);
+
+  &--zero {
+    color: var(--mat-sys-error);
+    font-weight: 600;
+  }
+}

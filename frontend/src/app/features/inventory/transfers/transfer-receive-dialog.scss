@@ -1,0 +1,131 @@
+.content {
+  min-width: 680px;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 8px;
+}
+
+.header-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-low);
+  border: 1px solid var(--mat-sys-outline-variant);
+}
+
+.route-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 0.9rem;
+}
+
+.diff-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-tertiary-container);
+  color: var(--mat-sys-on-tertiary-container);
+  font-size: 0.88rem;
+}
+
+.server-error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 0.875rem;
+}
+
+.lines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.line-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface);
+
+  &--diff {
+    border-color: var(--mat-sys-error);
+    background: var(--mat-sys-surface-container-lowest);
+  }
+}
+
+.line-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.line-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.sku {
+  font-family: monospace;
+  font-size: 0.82rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.line-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  font-size: 0.85rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.missing-pill {
+  display: inline-flex;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.line-inputs {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.qty-field {
+  width: 100%;
+}
+
+.reason-field {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .content {
+    min-width: 0;
+  }
+
+  .line-inputs {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

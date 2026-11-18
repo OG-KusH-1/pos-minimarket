@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base :: layout(title=${title}, body=~{::main})}">
+<body>
+<main>
+  <table class="data" style="margin-top: 0;">
+    <tbody>
+      <tr>
+        <td><strong>Orden N°:</strong> <span th:text="${orderNumber}">OC-0001</span></td>
+        <td><strong>Estado:</strong> <span th:text="${statusLabel}">Borrador</span></td>
+      </tr>
+      <tr>
+        <td><strong>RUT Empresa:</strong> <span th:text="${companyRut}">-</span></td>
+        <td><strong>Local:</strong> <span th:text="${storeName}">Local</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><strong>Dirección de entrega:</strong> <span th:text="${storeAddress}">-</span></td>
+      </tr>
+      <tr>
+        <td><strong>Proveedor:</strong> <span th:text="${supplierName}">Proveedor</span></td>
+        <td><strong>RUT Proveedor:</strong> <span th:text="${supplierRut}">-</span></td>
+      </tr>
+      <tr>
+        <td><strong>Correo Proveedor:</strong> <span th:text="${supplierEmail}">-</span></td>
+        <td><strong>Fecha esperada:</strong> <span th:text="${expectedDate}">-</span></td>
+      </tr>
+      <tr>
+        <td colspan="2"><strong>Fecha de emisión/envío:</strong> <span th:text="${sentAt}">-</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section">Detalle de productos</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>SKU</th>
+        <th>Producto</th>
+        <th>Unidad compra</th>
+        <th class="num">Cant. compra</th>
+        <th class="num">Unid./compra</th>
+        <th class="num">Cant. base</th>
+        <th class="num" th:if="${showCosts}">Costo unit. neto</th>
+        <th class="num" th:if="${showCosts}">Total neto línea</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="l : ${lines}">
+        <td th:text="${l.sku}">SKU</td>
+        <td th:text="${l.name}">Producto</td>
+        <td th:text="${l.purchaseUnitName}">Unidad</td>
+        <td class="num" th:text="${l.qtyPurchaseUnits}">1</td>
+        <td class="num" th:text="${l.unitsPerPurchaseUnit}">1</td>
+        <td class="num" th:text="${l.qtyOrdered}">1</td>
+        <td class="num" th:if="${showCosts}" th:text="${l.unitCostNet}">$ 0</td>
+        <td class="num" th:if="${showCosts}" th:text="${l.lineNetTotal}">$ 0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <table class="data" th:if="${showCosts}" style="width: 45%; margin-left: auto; margin-top: 12pt;">
+    <tbody>
+      <tr>
+        <td><strong>Neto</strong></td>
+        <td class="num" th:text="${netTotal}">$ 0</td>
+      </tr>
+      <tr>
+        <td><strong>IVA</strong></td>
+        <td class="num" th:text="${taxTotal}">$ 0</td>
+      </tr>
+      <tr class="total">
+        <td>Total</td>
+        <td class="num" th:text="${total}">$ 0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div th:if="${notes != null}" style="margin-top: 12pt;">
+    <h2 class="section">Observaciones</h2>
+    <p th:text="${notes}">-</p>
+  </div>
+</main>
+</body>
+</html>

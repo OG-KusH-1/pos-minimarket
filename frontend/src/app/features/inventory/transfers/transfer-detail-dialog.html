@@ -1,0 +1,171 @@
+<div mat-dialog-title class="dialog-title">
+  <div class="title-main">
+    <span>Transferencia {{ transfer.number }}</span>
+    <span
+      class="badge"
+      [class.badge--draft]="transfer.status === 'DRAFT'"
+      [class.badge--sent]="transfer.status === 'SENT'"
+      [class.badge--received]="transfer.status === 'RECEIVED'"
+      [class.badge--cancelled]="transfer.status === 'CANCELLED'"
+    >
+      {{ statusLabel() }}
+    </span>
+    @if (directionLabel() !== '—') {
+      <span class="direction-chip">{{ directionLabel() }}</span>
+    }
+  </div>
+</div>
+
+<mat-dialog-content class="content">
+  @if (data.justDispatched) {
+    <div class="info-banner info-banner--success" role="status">
+      <mat-icon aria-hidden="true">local_shipping</mat-icon>
+      <span>
+        Transferencia despachada desde origen. Se muestran las líneas reales descontadas del stock
+        (con asignación FEFO por lote cuando aplica).
+      </span>
+    </div>
+  }
+
+  @if (data.justReceived) {
+    <div class="info-banner info-banner--success" role="status">
+      <mat-icon aria-hidden="true">inventory</mat-icon>
+      <span>
+        Transferencia recepcionada en {{ destinationLabel() }}.
+        @if (hasDifferences) {
+          Se registraron diferencias faltantes como merma sistémica pendiente de aprobación.
+        }
+      </span>
+    </div>
+  }
+
+  @if (transfer.status === 'SENT' && isOrigin() && !isDestination()) {
+    <div class="info-banner" role="status">
+      <mat-icon aria-hidden="true">info</mat-icon>
+      <span>
+        En tránsito hacia {{ destinationLabel() }}. La recepción solo puede registrarse desde el
+        local de destino.
+      </span>
+    </div>
+  }
+
+  <div class="meta-grid">
+    <div class="meta-card">
+      <span class="meta-label">Local de origen</span>
+      <strong>{{ originLabel() }}</strong>
+    </div>
+    <div class="meta-card">
+      <span class="meta-label">Local de destino</span>
+      <strong>{{ destinationLabel() }}</strong>
+    </div>
+    <div class="meta-card">
+      <span class="meta-label">Despacho</span>
+      <strong>{{ sentAtLabel() }}</strong>
+      <span class="meta-sub">{{ sentByLabel() }}</span>
+    </div>
+    <div class="meta-card">
+      <span class="meta-label">Recepción</span>
+      <strong>{{ receivedAtLabel() }}</strong>
+      <span class="meta-sub">{{ receivedByLabel() }}</span>
+    </div>
+  </div>
+
+  @if (transfer.notes) {
+    <div class="notes-box">
+      <span class="meta-label">Observaciones</span>
+      <p class="notes-text">{{ transfer.notes }}</p>
+    </div>
+  }
+
+  <div class="lines-section">
+    <h3 class="section-title">Líneas de la transferencia ({{ lines.length }})</h3>
+
+    @if (lines.length === 0) {
+      <p class="empty" role="status">Esta transferencia no registra líneas.</p>
+    } @else {
+      <div class="table-wrap">
+        <table
+          mat-table
+          [dataSource]="lines"
+          class="lines-table"
+          aria-label="Detalle de líneas de la transferencia"
+        >
+          <ng-container matColumnDef="sku">
+            <th mat-header-cell *matHeaderCellDef>SKU</th>
+            <td mat-cell *matCellDef="let line">{{ line.sku || '—' }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="name">
+            <th mat-header-cell *matHeaderCellDef>Producto</th>
+            <td mat-cell *matCellDef="let line">{{ line.name }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="lotNumber">
+            <th mat-header-cell *matHeaderCellDef>Lote</th>
+            <td mat-cell *matCellDef="let line">{{ lotLabel(line) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="expiryDate">
+            <th mat-header-cell *matHeaderCellDef>Vencimiento</th>
+            <td mat-cell *matCellDef="let line">{{ formatExpiry(line.expiryDate) }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="qtySent">
+            <th mat-header-cell *matHeaderCellDef class="align-end">Enviada</th>
+            <td mat-cell *matCellDef="let line" class="align-end">
+              <strong>{{ line.qtySent | qty }}</strong>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="qtyReceived">
+            <th mat-header-cell *matHeaderCellDef class="align-end">Recibida</th>
+            <td mat-cell *matCellDef="let line" class="align-end">
+              {{
+                line.qtyReceived !== undefined && line.qtyReceived !== null
+                  ? (line.qtyReceived | qty)
+                  : '—'
+              }}
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="missing">
+            <th mat-header-cell *matHeaderCellDef class="align-end">Faltante</th>
+            <td mat-cell *matCellDef="let line" class="align-end">
+              @if (missingOf(line) > 0) {
+                <span class="missing-badge">{{ missingOf(line) | qty }}</span>
+              } @else {
+                <span>0</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="differenceReason">
+            <th mat-header-cell *matHeaderCellDef>Motivo diferencia</th>
+            <td mat-cell *matCellDef="let line">{{ line.differenceReason || '—' }}</td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+        </table>
+      </div>
+    }
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (canCancel()) {
+    <button mat-button type="button" class="destructive-text" (click)="triggerAction('cancel')">
+      Cancelar borrador
+    </button>
+  }
+  @if (canEdit()) {
+    <button mat-stroked-button type="button" (click)="triggerAction('edit')">Editar</button>
+  }
+  @if (canDispatch()) {
+    <button mat-flat-button type="button" (click)="triggerAction('send')">Despachar</button>
+  }
+  @if (canReceive()) {
+    <button mat-flat-button type="button" (click)="triggerAction('receive')">Recepcionar</button>
+  }
+  <button mat-button type="button" [mat-dialog-close]="undefined">Cerrar</button>
+</mat-dialog-actions>

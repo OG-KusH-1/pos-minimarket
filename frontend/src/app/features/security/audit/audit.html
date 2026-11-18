@@ -1,0 +1,240 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Auditoría</h1>
+      <p class="subtitle">
+        Bitácora inmutable de eventos del sistema y verificación de integridad criptográfica.
+      </p>
+    </div>
+  </header>
+
+  @if (canVerify()) {
+    <mat-card appearance="outlined" class="verify-card" aria-label="Verificación de cadena de hash">
+      <div class="verify-header">
+        <div class="verify-title">
+          <mat-icon aria-hidden="true">verified_user</mat-icon>
+          <div>
+            <h2>Verificación de cadena de hash SHA-256</h2>
+            <p class="verify-description">
+              Comprueba que ningún registro haya sido alterado ni eliminado. Deja el rango vacío
+              para verificar toda la bitácora.
+            </p>
+          </div>
+        </div>
+
+        <form class="verify-form" [formGroup]="verifyForm" (ngSubmit)="verifyChain()">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="verify-id-field">
+            <mat-label>ID desde (opcional)</mat-label>
+            <input matInput type="number" min="1" formControlName="fromId" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic" class="verify-id-field">
+            <mat-label>ID hasta (opcional)</mat-label>
+            <input matInput type="number" min="1" formControlName="toId" />
+          </mat-form-field>
+
+          <div class="verify-actions">
+            <button mat-flat-button type="submit" [disabled]="verifying()">
+              <mat-icon aria-hidden="true">fact_check</mat-icon>
+              Verificar cadena
+            </button>
+            @if (verifyResult() || verifyError()) {
+              <button
+                mat-button
+                type="button"
+                [disabled]="verifying()"
+                (click)="clearVerification()"
+              >
+                Limpiar
+              </button>
+            }
+          </div>
+        </form>
+      </div>
+
+      @if (verifying()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Verificando cadena de auditoría" />
+      }
+
+      @if (verifyError(); as errMsg) {
+        <div class="verify-banner verify-banner--error" role="alert" data-testid="verify-error">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ errMsg }}</span>
+        </div>
+      }
+
+      @if (verifyResult(); as result) {
+        @if (result.valid) {
+          <div
+            class="verify-banner verify-banner--valid"
+            role="status"
+            data-testid="verify-status-valid"
+          >
+            <mat-icon aria-hidden="true">check_circle</mat-icon>
+            <div>
+              <strong>Cadena íntegra</strong>
+              <p>
+                @if ((result.checked ?? 0) === 0) {
+                  No se encontraron registros en el rango indicado (0 verificados).
+                } @else {
+                  Se verificaron {{ result.checked }} registros consecutivos sin anomalías.
+                }
+              </p>
+            </div>
+          </div>
+        } @else {
+          <div
+            class="verify-banner verify-banner--broken"
+            role="alert"
+            data-testid="verify-status-broken"
+          >
+            <mat-icon aria-hidden="true">gpp_bad</mat-icon>
+            <div class="verify-broken-body">
+              <div>
+                <strong>Anomalía detectada en la cadena</strong>
+                <p>
+                  Se inspeccionaron {{ result.checked ?? 0 }} registros. Primer registro
+                  inconsistente: <strong>#{{ result.firstBrokenId }}</strong
+                  >.
+                </p>
+              </div>
+              @if (result.firstBrokenId !== undefined && result.firstBrokenId !== null) {
+                <button mat-stroked-button type="button" (click)="openDetail(result.firstBrokenId)">
+                  Inspeccionar #{{ result.firstBrokenId }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+      }
+    </mat-card>
+  }
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-wide">
+      <mat-label>Acción</mat-label>
+      <input
+        matInput
+        formControlName="action"
+        [matAutocomplete]="actionAuto"
+        placeholder="Ej. USER_CREATED"
+      />
+      <mat-autocomplete #actionAuto="matAutocomplete">
+        @for (opt of filteredActionOptions(); track opt.value) {
+          <mat-option [value]="opt.value">
+            <span>{{ opt.label }}</span>
+            <small class="option-code"> ({{ opt.value }})</small>
+          </mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo de entidad</mat-label>
+      <input
+        matInput
+        formControlName="entityType"
+        [matAutocomplete]="entityAuto"
+        placeholder="Ej. sale, user"
+      />
+      <mat-autocomplete #entityAuto="matAutocomplete">
+        @for (opt of filteredEntityTypeOptions(); track opt.value) {
+          <mat-option [value]="opt.value">
+            <span>{{ opt.label }}</span>
+            <small class="option-code"> ({{ opt.value }})</small>
+          </mat-option>
+        }
+      </mat-autocomplete>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-short">
+      <mat-label>ID entidad</mat-label>
+      <input matInput formControlName="entityId" placeholder="Ej. 42" />
+    </mat-form-field>
+
+    @if (canReadUsers() && users().length > 0) {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Usuario</mat-label>
+        <mat-select formControlName="userId">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (user of users(); track user.id) {
+            <mat-option [value]="user.id">
+              {{ user.username }}{{ user.fullName ? ' — ' + user.fullName : '' }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    } @else {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-short">
+        <mat-label>ID usuario</mat-label>
+        <input matInput type="number" min="1" formControlName="userId" />
+      </mat-form-field>
+    }
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Local</mat-label>
+      <mat-select formControlName="storeId">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (store of stores(); track store.id) {
+          <mat-option [value]="store.id">{{ store.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (filterError(); as rangeErr) {
+    <p class="filter-error" role="alert">{{ rangeErr }}</p>
+  }
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Bitácora de auditoría"
+    emptyMessage="No hay registros de auditoría que coincidan con los filtros."
+  />
+
+  <ng-template #actionTpl let-row>
+    <div class="action-cell">
+      <span class="badge">{{ actionLabel(row.action) }}</span>
+      @if (row.action && actionLabel(row.action) !== row.action) {
+        <code class="sub-code">{{ row.action }}</code>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #entityTpl let-row>
+    <div class="entity-cell">
+      <span>{{ entityTypeLabel(row.entityType) }}</span>
+      @if (row.entityId) {
+        <code class="sub-code">#{{ row.entityId }}</code>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      matTooltip="Ver detalle del evento"
+      [attr.aria-label]="'Ver detalle del evento ' + (row.id ?? '')"
+      (click)="openDetail(row.id)"
+    >
+      <mat-icon aria-hidden="true">visibility</mat-icon>
+    </button>
+  </ng-template>
+</section>

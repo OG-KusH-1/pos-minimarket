@@ -1,0 +1,29 @@
+:host {
+  display: block;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+}
+
+.align-end {
+  text-align: end;
+}
+
+.state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 24px 16px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.state-error {
+  color: var(--mat-sys-error);
+}

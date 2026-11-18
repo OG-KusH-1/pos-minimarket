@@ -1,0 +1,59 @@
+.ticket-dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-chip {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: var(--mat-sys-tertiary-container, #fef3c7);
+  color: var(--mat-sys-on-tertiary-container, #92400e);
+}
+
+.ticket-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: min(400px, 88vw);
+}
+
+.ticket-preview-scroll {
+  max-height: 62vh;
+  overflow: auto;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--mat-sys-surface-container-low, #f8fafc);
+}
+
+.loading-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 16px;
+  color: var(--mat-sys-on-surface-variant, #475569);
+}
+
+.inline-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.inline-alert--error {
+  background: var(--mat-sys-error-container, #fee2e2);
+  color: var(--mat-sys-on-error-container, #991b1b);
+}
+
+.inline-alert--info {
+  background: var(--mat-sys-primary-container, #dbeafe);
+  color: var(--mat-sys-on-primary-container, #1e40af);
+}

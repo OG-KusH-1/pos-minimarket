@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Configuración de logging.
+    - prod: JSON de una línea por evento (logstash-logback-encoder), apto para agregadores.
+    - resto de perfiles: texto legible con el MDC del plan (traceId, userId, storeId, terminalId).
+
+  El MDC (traceId, userId, storeId, terminalId) lo puebla un filtro de shared. LogstashEncoder
+  incluye todo el MDC como campos JSON por defecto.
+  Nunca se registran contraseñas, PIN, tokens ni datos completos de tarjeta (A.5 "Logging").
+  Los niveles por paquete se configuran en application*.yml (logging.level.*).
+-->
+<configuration>
+  <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+  <springProfile name="!prod">
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%d{HH:mm:ss.SSS} %-5level [%X{traceId:-}|u=%X{userId:-}|s=%X{storeId:-}|t=%X{terminalId:-}] %logger{36} - %msg%n"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+    <root level="INFO">
+      <appender-ref ref="CONSOLE"/>
+    </root>
+  </springProfile>
+
+  <springProfile name="prod">
+    <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+      <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+        <customFields>{"app":"pos-minimarket"}</customFields>
+      </encoder>
+    </appender>
+    <root level="INFO">
+      <appender-ref ref="JSON"/>
+    </root>
+  </springProfile>
+</configuration>

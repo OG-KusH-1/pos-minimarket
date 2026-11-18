@@ -1,0 +1,132 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Productos</h1>
+      <p class="subtitle">
+        Catálogo maestro, códigos de barras, packs, impuestos, precios y control de costos.
+      </p>
+    </div>
+    @if (canCreate()) {
+      <a mat-flat-button routerLink="/catalogo/productos/nuevo">
+        <mat-icon>add</mat-icon>
+        Nuevo producto
+      </a>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Nombre, SKU, código de barras o atajo" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Categoría</mat-label>
+      <mat-select formControlName="categoryId">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (cat of categories(); track cat.id) {
+          <mat-option [value]="cat.id">{{ cat.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Marca</mat-label>
+      <mat-select formControlName="brandId">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (brand of brands(); track brand.id) {
+          <mat-option [value]="brand.id">{{ brand.name }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo de venta</mat-label>
+      <mat-select formControlName="saleType">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option value="UNIT">Unidad</mat-option>
+        <mat-option value="WEIGHT">Pesable (kg)</mat-option>
+        <mat-option value="PACK">Pack</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Restricción</mat-label>
+      <mat-select formControlName="restricted">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option [value]="true">Restringidos</mat-option>
+        <mat-option [value]="false">Sin restricción</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Lotes</mat-label>
+      <mat-select formControlName="lotControlled">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Con lotes</mat-option>
+        <mat-option [value]="false">Sin lotes</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de productos"
+    emptyMessage="No hay productos que coincidan con los filtros."
+  />
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--active]="row.active !== false"
+      [class.badge--inactive]="row.active === false"
+    >
+      {{ row.active !== false ? 'Activo' : 'Inactivo' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="productMenu"
+      [attr.aria-label]="'Acciones para ' + row.name"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #productMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openDetail(row)">
+        <mat-icon>{{ canUpdate() ? 'edit' : 'visibility' }}</mat-icon>
+        <span>{{ canUpdate() ? 'Ver / Editar ficha' : 'Ver ficha' }}</span>
+      </button>
+      @if (canUpdatePrice()) {
+        <button mat-menu-item type="button" (click)="openChangePrice(row)">
+          <mat-icon>sell</mat-icon>
+          <span>Cambiar precio</span>
+        </button>
+      }
+      @if (canDeactivate()) {
+        <button mat-menu-item type="button" (click)="toggleActive(row)">
+          <mat-icon>{{ row.active !== false ? 'block' : 'check_circle' }}</mat-icon>
+          <span>{{ row.active !== false ? 'Desactivar' : 'Activar' }}</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

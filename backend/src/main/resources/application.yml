@@ -1,0 +1,168 @@
+# Configuración base del backend. Dueña única: T3 (T95 consolida al final).
+#
+# Reglas:
+#  - Ningún secreto en claro: los valores sensibles llegan por variables de entorno (${VAR}).
+#    Solo application-dev.yml trae defaults evidentemente de desarrollo.
+#  - Las tareas posteriores leen sus propiedades con @ConfigurationProperties (prefijo pos.*)
+#    con defaults en código y reportan las nuevas; no editan este archivo.
+#  - Este archivo tiene dos documentos YAML: el primero es común; el segundo (conexión a la BD)
+#    se desactiva en el perfil test, donde Testcontainers aporta la conexión.
+
+spring:
+  application:
+    name: pos-minimarket
+
+  servlet:
+    multipart:
+      # Tope global de subida: el mayor caso de uso son las importaciones (20 MB). Las imágenes se
+      # limitan a 5 MB en FileValidator, que es el control fino; este es solo el techo del servidor.
+      # Superarlo responde 422 FILE_INVALID (GlobalExceptionHandler).
+      max-file-size: 20MB
+      # Un poco mayor que el archivo para dar cabida a los campos del formulario multipart.
+      max-request-size: 21MB
+
+  jpa:
+    # Las entidades se cargan dentro de la transacción del caso de uso; nunca en la vista.
+    open-in-view: false
+    hibernate:
+      # El esquema lo crea Flyway; Hibernate solo valida que coincida con las entidades.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        # Todo timestamptz se guarda en UTC (A.5 "Fechas").
+        jdbc:
+          time_zone: UTC
+
+  transaction:
+    # Timeout por defecto de las transacciones (T11). pos.idempotency.in-progress-timeout debe ser
+    # mayor: se valida al arrancar (IdempotencyService).
+    default-timeout: 60s
+
+  flyway:
+    enabled: true
+    # Los scripts de demo (db/demo) se agregan solo en el perfil demo.
+    locations: classpath:db/migration
+    # Fallar si la BD tiene migraciones aplicadas que ya no existen en el código.
+    validate-on-migrate: true
+    placeholders:
+      # Hash BCrypt (costo 12) de la contraseña inicial del administrador; lo consume la
+      # semilla base como ${admin_password_hash}. Sin default: dev lo define en su perfil.
+      admin_password_hash: ${POS_ADMIN_PASSWORD_HASH}
+
+  mail:
+    host: ${POS_MAIL_HOST:localhost}
+    port: ${POS_MAIL_PORT:1025}
+    username: ${POS_MAIL_USER:}
+    password: ${POS_MAIL_PASSWORD:}
+    properties:
+      "[mail.smtp.auth]": ${POS_MAIL_AUTH:false}
+      "[mail.smtp.starttls.enable]": ${POS_MAIL_STARTTLS:false}
+
+server:
+  port: ${POS_SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    # Las respuestas nunca incluyen stack traces (A.5 "Errores").
+    include-stacktrace: never
+    include-message: never
+    include-binding-errors: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # Actuator expone solo health e info (A.5 "Logging").
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  writer-with-order-by-keys: true
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    root: INFO
+    cl.minimarket.pos: INFO
+
+# ---------------------------------------------------------------------------------------------
+# Propiedades propias del proyecto (prefijo pos.*)
+# ---------------------------------------------------------------------------------------------
+pos:
+  # Zona de negocio (company.timezone): business_date, jobs y agregados se calculan con ella.
+  # La JVM corre en UTC; esta es solo la zona de negocio.
+  business-zone: America/Santiago
+
+  security:
+    # Habilita la SecurityFilterChain de producción (SecurityConfig). Default true; solo las pruebas
+    # sonda (ProbeConfiguration.permitAllSecurity) la desactivan con false para usar su propia cadena.
+    chain-enabled: true
+    jwt:
+      # Secreto HS256 de al menos 256 bits (32 bytes). Sin default fuera de dev.
+      secret: ${POS_JWT_SECRET}
+      issuer: pos-minimarket
+      access-token-ttl: 15m
+    refresh-cookie:
+      name: pos_refresh
+      path: /api/v1/auth
+      # HttpOnly y SameSite=Strict son fijos en código (ADR-20); Secure solo se relaja en dev.
+      secure: true
+    # ADR-21: bloqueo de cuenta tras N fallos durante M minutos.
+    lockout:
+      max-failed-attempts: 5
+      duration: 15m
+    # ADR-21: Bucket4j en memoria en /auth/login, /auth/overrides y /auth/pin-login.
+    rate-limit:
+      per-ip-per-minute: 10
+      per-user-per-minute: 5
+
+  cors:
+    # Orígenes permitidos separados por coma. Vacío = ninguno (el front lo sirve nginx en el
+    # mismo origen). En dev se permite el servidor de Angular.
+    allowed-origins: ${POS_CORS_ALLOWED_ORIGINS:}
+    allowed-methods: GET,POST,PUT,PATCH,DELETE,OPTIONS
+    allowed-headers: Authorization,Content-Type,Idempotency-Key,X-Store-Id,X-Terminal-Id,X-Override-Token,X-Requested-With
+    exposed-headers: Content-Disposition
+    allow-credentials: true
+    max-age: 1h
+
+  mail:
+    from: ${POS_MAIL_FROM:no-reply@minimarket.local}
+
+  files:
+    # Raíz del adaptador LocalFileSystemStorage (volumen Docker en contenedor).
+    root: ${POS_FILES_ROOT:/data/files}
+
+  idempotency:
+    # TTL de las claves de idempotencia (A.5).
+    ttl: 24h
+
+  jobs:
+    # ADR-31: jobs @Scheduled en una sola instancia; las expresiones cron usan business-zone.
+    daily-aggregates-cron: "0 0 2 * * *"
+    email-outbox-fixed-delay: 1m
+
+---
+# Conexión a la BD: dos roles distintos. La app usa pos_app (DML sin permisos de DDL y solo
+# INSERT/SELECT sobre audit_log); Flyway usa pos_owner (dueño del esquema).
+# En el perfil test no aplica: Testcontainers entrega la conexión (T16).
+spring:
+  config:
+    activate:
+      on-profile: "!test"
+  datasource:
+    url: ${POS_DB_URL}
+    username: ${POS_DB_USER}
+    password: ${POS_DB_PASSWORD}
+    hikari:
+      maximum-pool-size: ${POS_DB_POOL_SIZE:10}
+      connection-timeout: 10000
+  flyway:
+    url: ${POS_FLYWAY_URL:${POS_DB_URL}}
+    user: ${POS_FLYWAY_USER}
+    password: ${POS_FLYWAY_PASSWORD}

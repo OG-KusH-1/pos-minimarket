@@ -1,0 +1,85 @@
+<h2 mat-dialog-title>Cambiar cajero con PIN</h2>
+
+<mat-dialog-content>
+  @if (currentUser(); as user) {
+    <p class="current-user">
+      Cajero actual: <strong>{{ user.fullName }}</strong>
+    </p>
+  }
+
+  @if (!hasTerminal()) {
+    <div class="dialog-error" role="alert">
+      <mat-icon fontSet="material-symbols-outlined" aria-hidden="true">warning</mat-icon>
+      <span>No hay una terminal activa asociada a esta sesión.</span>
+    </div>
+  }
+
+  @if (errorMessage(); as error) {
+    <div class="dialog-error" role="alert">
+      <mat-icon fontSet="material-symbols-outlined" aria-hidden="true">error</mat-icon>
+      <span>{{ error }}</span>
+    </div>
+  }
+
+  <form id="pin-switch-form" [formGroup]="form" (ngSubmit)="submit()" class="dialog-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Usuario del cajero</mat-label>
+      <input
+        matInput
+        formControlName="username"
+        autocomplete="off"
+        autocapitalize="none"
+        spellcheck="false"
+      />
+      @if (form.controls.username.hasError('required')) {
+        <mat-error>Ingresa el nombre de usuario.</mat-error>
+      } @else if (form.controls.username.hasError('minlength')) {
+        <mat-error>El usuario debe tener al menos 3 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>PIN (4 a 6 dígitos)</mat-label>
+      <input
+        matInput
+        formControlName="pin"
+        [type]="hidePin() ? 'password' : 'text'"
+        inputmode="numeric"
+        maxlength="6"
+        autocomplete="off"
+      />
+      <button
+        type="button"
+        mat-icon-button
+        matSuffix
+        [attr.aria-label]="hidePin() ? 'Mostrar PIN' : 'Ocultar PIN'"
+        (click)="hidePin.set(!hidePin())"
+      >
+        <mat-icon fontSet="material-symbols-outlined">
+          {{ hidePin() ? 'visibility' : 'visibility_off' }}
+        </mat-icon>
+      </button>
+      @if (form.controls.pin.hasError('required')) {
+        <mat-error>Ingresa el PIN.</mat-error>
+      } @else if (form.controls.pin.hasError('pattern')) {
+        <mat-error>El PIN debe tener entre 4 y 6 dígitos numéricos.</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button type="button" mat-button mat-dialog-close [disabled]="submitting()">Cancelar</button>
+  <button
+    type="submit"
+    form="pin-switch-form"
+    mat-flat-button
+    [disabled]="submitting() || !hasTerminal()"
+  >
+    @if (submitting()) {
+      <mat-spinner diameter="20" aria-label="Cambiando cajero" />
+    } @else {
+      Cambiar cajero
+    }
+  </button>
+</mat-dialog-actions>

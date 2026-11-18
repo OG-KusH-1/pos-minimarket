@@ -1,0 +1,122 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Stock</h1>
+      <p class="subtitle">
+        Existencias, alertas y límites por producto en {{ activeStoreName() }}.
+      </p>
+    </div>
+  </header>
+
+  <pos-stock-alerts
+    (filterStatus)="filterByAlertStatus($event)"
+    (editLimits)="openEditLimits($event)"
+    (viewKardex)="goToKardex($event)"
+  />
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Nombre o SKU" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Categoría</mat-label>
+      <mat-select formControlName="categoryId">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (cat of categories(); track cat.id) {
+          <mat-option [value]="cat.id">{{ cat.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Control de lote</mat-label>
+      <mat-select formControlName="lotControlled">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Con lote</mat-option>
+        <mat-option [value]="false">Sin lote</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de stock del local"
+    emptyMessage="No hay productos que coincidan con los filtros."
+  />
+
+  <ng-template #quantityTpl let-row>
+    <span class="qty-value">{{ row.quantity | qty: unitFor(row) }}</span>
+  </ng-template>
+
+  <ng-template #limitsTpl let-row>
+    <span class="limits-text">
+      {{ row.minQty !== undefined && row.minQty !== null ? (row.minQty | qty: unitFor(row)) : '—' }}
+      /
+      {{ row.maxQty !== undefined && row.maxQty !== null ? (row.maxQty | qty: unitFor(row)) : '—' }}
+    </span>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--ok]="row.status === 'OK'"
+      [class.badge--below-min]="row.status === 'BELOW_MIN'"
+      [class.badge--zero]="row.status === 'ZERO'"
+      [class.badge--above-max]="row.status === 'ABOVE_MAX'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #valuationTpl let-row>
+    {{ row.valuation !== undefined && row.valuation !== null ? (row.valuation | clp) : '—' }}
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="stockMenu"
+      [attr.aria-label]="'Acciones para ' + row.name"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #stockMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openByStore(row)">
+        <mat-icon>store</mat-icon>
+        <span>Ver por local</span>
+      </button>
+      @if (canReadKardex()) {
+        <button mat-menu-item type="button" (click)="goToKardex(row.productId)">
+          <mat-icon>history</mat-icon>
+          <span>Ver kardex</span>
+        </button>
+      }
+      @if (canUpdateLimits()) {
+        <button mat-menu-item type="button" (click)="openEditLimits(row)">
+          <mat-icon>tune</mat-icon>
+          <span>Editar límites</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

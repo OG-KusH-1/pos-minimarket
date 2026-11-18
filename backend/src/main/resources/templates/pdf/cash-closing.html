@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base :: layout(title=${title}, body=~{::main})}">
+<body>
+<main>
+  <table class="data" style="margin-top: 0;">
+    <tbody>
+      <tr>
+        <td><strong>Turno N°:</strong> <span th:text="${sessionNumber}">TU-0001</span></td>
+        <td><strong>Fecha de negocio:</strong> <span th:text="${businessDate}">01-01-2026</span></td>
+      </tr>
+      <tr>
+        <td><strong>Local:</strong> <span th:text="${storeName}">L01</span></td>
+        <td><strong>Terminal:</strong> <span th:text="${terminalName}">T01</span></td>
+      </tr>
+      <tr>
+        <td><strong>RUT Empresa:</strong> <span th:text="${companyRut}">-</span></td>
+        <td><strong>Dirección:</strong> <span th:text="${storeAddress}">-</span></td>
+      </tr>
+      <tr>
+        <td><strong>Cajero:</strong> <span th:text="${cashierName}">cajero</span></td>
+        <td><strong>Cerrado por:</strong> <span th:text="${closedByName}">cajero</span></td>
+      </tr>
+      <tr>
+        <td><strong>Apertura:</strong> <span th:text="${openedAt}">01-01-2026 08:00</span></td>
+        <td><strong>Cierre:</strong> <span th:text="${closedAt}">01-01-2026 20:00</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section">Resumen de efectivo en caja</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Concepto</th>
+        <th class="num">Monto (CLP)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Monto inicial de apertura</td>
+        <td class="num" th:text="${openingAmount}">$0</td>
+      </tr>
+      <tr>
+        <td>(+) Ingresos manuales de efectivo</td>
+        <td class="num" th:text="${cashIn}">$0</td>
+      </tr>
+      <tr>
+        <td>(-) Retiros manuales de efectivo</td>
+        <td class="num" th:text="${cashOut}">$0</td>
+      </tr>
+      <tr class="total">
+        <td>Efectivo esperado en caja</td>
+        <td class="num" th:text="${expectedCash}">$0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section">Arqueo por medio de pago</h2>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Medio de pago</th>
+        <th class="num">Esperado</th>
+        <th class="num">Contado</th>
+        <th class="num">Diferencia</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr th:each="c : ${counts}">
+        <td th:text="${c.method}">Efectivo</td>
+        <td class="num" th:text="${c.expected}">$0</td>
+        <td class="num" th:text="${c.counted}">$0</td>
+        <td class="num" th:text="${c.difference}">$0</td>
+      </tr>
+      <tr class="total">
+        <td>Total arqueo</td>
+        <td class="num" th:text="${expectedTotal}">$0</td>
+        <td class="num" th:text="${countedTotal}">$0</td>
+        <td class="num" th:text="${differenceTotal}">$0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2 class="section">Operaciones del turno</h2>
+  <table class="data">
+    <tbody>
+      <tr>
+        <td>Ventas realizadas: <strong th:text="${salesCount}">0</strong></td>
+        <td>Anulaciones: <strong th:text="${voidCount}">0</strong></td>
+        <td>Devoluciones: <strong th:text="${returnCount}">0</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div th:if="${differenceApprovedByName != null or requiresDifferenceApproval}" style="margin-top: 10pt;">
+    <h2 class="section">Control de diferencias</h2>
+    <p th:if="${differenceApprovedByName != null}">
+      Diferencia aprobada por: <strong th:text="${differenceApprovedByName}">Supervisor</strong>
+    </p>
+    <p th:if="${requiresDifferenceApproval and differenceApprovedByName == null}">
+      <strong>Estado:</strong> Pendiente de aprobación por supervisor.
+    </p>
+  </div>
+
+  <div th:if="${closingNotes != null}" style="margin-top: 8pt;">
+    <p><strong>Observaciones de cierre:</strong> <span th:text="${closingNotes}">-</span></p>
+  </div>
+
+  <table style="width: 100%; margin-top: 36pt; border-collapse: collapse;">
+    <tr>
+      <td style="width: 45%; text-align: center; border-top: 1pt solid #333333; padding-top: 4pt;">
+        Firma Cajero<br/>
+        <span class="muted" th:text="${cashierName}">Cajero</span>
+      </td>
+      <td style="width: 10%;"></td>
+      <td style="width: 45%; text-align: center; border-top: 1pt solid #333333; padding-top: 4pt;">
+        Firma Supervisor<br/>
+        <span class="muted" th:text="${differenceApprovedByName} ?: 'V°B° Supervisión'">Supervisor</span>
+      </td>
+    </tr>
+  </table>
+</main>
+</body>
+</html>

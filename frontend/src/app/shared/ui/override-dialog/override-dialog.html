@@ -1,0 +1,80 @@
+<h2 mat-dialog-title>Autorización de supervisor</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <mat-dialog-content>
+    <p class="intro">Esta operación requiere la autorización de un supervisor.</p>
+    <p class="action">
+      <strong>{{ actionLabel }}</strong>
+    </p>
+    @if (contextLines.length > 0) {
+      <dl class="context">
+        @for (line of contextLines; track line.label) {
+          <dt>{{ line.label }}</dt>
+          <dd>{{ line.value }}</dd>
+        }
+      </dl>
+    }
+
+    <mat-form-field class="field">
+      <mat-label>Usuario del supervisor</mat-label>
+      <input
+        matInput
+        formControlName="supervisorUsername"
+        autocomplete="off"
+        autocapitalize="off"
+        cdkFocusInitial
+      />
+      @if (form.controls.supervisorUsername.hasError('required')) {
+        <mat-error>Ingresa el usuario del supervisor.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-button-toggle-group
+      class="method"
+      formControlName="method"
+      aria-label="Tipo de credencial"
+      (change)="onMethodChange($event.value)"
+    >
+      <mat-button-toggle value="PIN">PIN</mat-button-toggle>
+      <mat-button-toggle value="PASSWORD">Clave</mat-button-toggle>
+    </mat-button-toggle-group>
+
+    <mat-form-field class="field">
+      <mat-label>{{ secretLabel() }}</mat-label>
+      <input
+        matInput
+        type="password"
+        formControlName="secret"
+        autocomplete="off"
+        [attr.inputmode]="form.controls.method.value === 'PIN' ? 'numeric' : null"
+      />
+      @if (form.controls.secret.hasError('required')) {
+        <mat-error>Ingresa la credencial.</mat-error>
+      } @else if (form.controls.secret.hasError('pattern')) {
+        <mat-error>El PIN son de 4 a 6 dígitos.</mat-error>
+      } @else if (form.controls.secret.hasError('maxlength')) {
+        <mat-error>Máximo 128 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field class="field">
+      <mat-label>Motivo (opcional)</mat-label>
+      <textarea matInput formControlName="reason" rows="2" maxlength="250"></textarea>
+    </mat-form-field>
+
+    @if (errorMessage(); as message) {
+      <p class="error" role="alert">{{ message }}</p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [disabled]="submitting()" (click)="cancel()">Cancelar</button>
+    <button mat-flat-button type="submit" [disabled]="submitting()">
+      @if (submitting()) {
+        <mat-spinner diameter="18" aria-label="Validando" />
+      } @else {
+        Autorizar
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

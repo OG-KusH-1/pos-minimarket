@@ -1,0 +1,137 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Transferencias</h1>
+      <p class="subtitle">
+        Despacho y recepción de mercadería entre locales desde {{ activeStoreName() }}.
+      </p>
+    </div>
+
+    @if (canSend()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Nueva transferencia
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Dirección</mat-label>
+      <mat-select formControlName="direction">
+        <mat-option [value]="null">Todas</mat-option>
+        @for (opt of directionOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (filterError(); as rangeErr) {
+    <p class="filter-error" role="alert">{{ rangeErr }}</p>
+  }
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de transferencias entre locales"
+    emptyMessage="No hay transferencias que coincidan con los filtros."
+  />
+
+  <ng-template #directionTpl let-row>
+    <span
+      class="direction-badge"
+      [class.direction-badge--out]="isOriginRow(row)"
+      [class.direction-badge--in]="!isOriginRow(row)"
+    >
+      {{ directionLabel(row) }}
+    </span>
+  </ng-template>
+
+  <ng-template #linesTpl let-row>
+    <div class="lines-cell">
+      <span>{{ row.lines?.length ?? 0 }}</span>
+      @if (hasDifferences(row)) {
+        <span class="diff-dot" title="Con diferencias en recepción">Con diferencia</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--draft]="row.status === 'DRAFT'"
+      [class.badge--sent]="row.status === 'SENT'"
+      [class.badge--received]="row.status === 'RECEIVED'"
+      [class.badge--cancelled]="row.status === 'CANCELLED'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="transferMenu"
+      [attr.aria-label]="'Acciones para transferencia ' + (row.number ?? row.id ?? '')"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #transferMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openDetail(row)">
+        <mat-icon>visibility</mat-icon>
+        <span>Ver detalle</span>
+      </button>
+      @if (canEditRow(row)) {
+        <button mat-menu-item type="button" (click)="openEdit(row)">
+          <mat-icon>edit</mat-icon>
+          <span>Editar borrador</span>
+        </button>
+      }
+      @if (canSendRow(row)) {
+        <button mat-menu-item type="button" (click)="confirmAndSend(row)">
+          <mat-icon>local_shipping</mat-icon>
+          <span>Despachar</span>
+        </button>
+      }
+      @if (canReceiveRow(row)) {
+        <button mat-menu-item type="button" (click)="openReceive(row)">
+          <mat-icon>inventory</mat-icon>
+          <span>Recepcionar</span>
+        </button>
+      }
+      @if (canCancelRow(row)) {
+        <button mat-menu-item type="button" (click)="openCancel(row)">
+          <mat-icon>cancel</mat-icon>
+          <span>Cancelar borrador</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

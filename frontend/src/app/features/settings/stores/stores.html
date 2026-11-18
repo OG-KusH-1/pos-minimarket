@@ -1,0 +1,170 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Locales y terminales</h1>
+      <p class="subtitle">Administración de sucursales y cajas POS asociadas a cada local.</p>
+    </div>
+    @if (canManageStores()) {
+      <button mat-flat-button type="button" (click)="openCreateStore()">
+        <mat-icon>add</mat-icon>
+        Nuevo local
+      </button>
+    }
+  </header>
+
+  <div class="filters-bar">
+    <mat-form-field appearance="outline" class="status-filter">
+      <mat-label>Estado</mat-label>
+      <mat-select [value]="activeFilter()" (valueChange)="onActiveFilterChange($event)">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de locales"
+    emptyMessage="No hay locales registrados."
+  />
+
+  <ng-template #storeStatusTpl let-row>
+    <span class="badge" [class.badge--inactive]="!row.active">
+      {{ row.active ? 'Activo' : 'Inactivo' }}
+    </span>
+  </ng-template>
+
+  <ng-template #storeActionsTpl let-row>
+    <div class="row-actions">
+      <button
+        mat-stroked-button
+        type="button"
+        [attr.aria-label]="'Ver terminales de ' + row.name"
+        (click)="selectStore(row)"
+      >
+        <mat-icon>point_of_sale</mat-icon>
+        Terminales
+      </button>
+      @if (canManageStores()) {
+        <button
+          mat-icon-button
+          type="button"
+          [matMenuTriggerFor]="storeMenu"
+          [attr.aria-label]="'Acciones para local ' + row.name"
+        >
+          <mat-icon>more_vert</mat-icon>
+        </button>
+        <mat-menu #storeMenu="matMenu">
+          <button mat-menu-item type="button" (click)="openEditStore(row)">
+            <mat-icon>edit</mat-icon>
+            <span>Editar local</span>
+          </button>
+          <button mat-menu-item type="button" (click)="toggleStoreActive(row)">
+            <mat-icon>{{ row.active ? 'block' : 'check_circle' }}</mat-icon>
+            <span>{{ row.active ? 'Desactivar local' : 'Activar local' }}</span>
+          </button>
+        </mat-menu>
+      }
+    </div>
+  </ng-template>
+
+  @if (selectedStore(); as store) {
+    <mat-card appearance="outlined" class="terminals-card">
+      <mat-card-header class="terminals-header">
+        <div>
+          <mat-card-title> Terminales de {{ store.name }} ({{ store.code }}) </mat-card-title>
+          <mat-card-subtitle>
+            {{ store.address }}, {{ store.commune }}, {{ store.city }}
+          </mat-card-subtitle>
+        </div>
+        @if (canManageTerminals()) {
+          <button mat-flat-button type="button" (click)="openCreateTerminal()">
+            <mat-icon>add</mat-icon>
+            Nueva terminal
+          </button>
+        }
+      </mat-card-header>
+
+      <mat-card-content>
+        @if (terminalsLoading()) {
+          <mat-progress-bar mode="indeterminate" aria-label="Cargando terminales del local" />
+        }
+
+        @if (terminalsError(); as err) {
+          <p class="alert alert--error" role="alert">{{ err }}</p>
+        } @else if (!terminalsLoading() && terminals().length === 0) {
+          <p class="empty-state" role="status">Este local aún no tiene terminales registradas.</p>
+        } @else if (terminals().length > 0) {
+          <table
+            mat-table
+            [dataSource]="terminals()"
+            aria-label="Terminales del local seleccionado"
+            class="terminals-table"
+          >
+            <ng-container matColumnDef="code">
+              <th mat-header-cell *matHeaderCellDef>Código</th>
+              <td mat-cell *matCellDef="let term">{{ term.code }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Nombre</th>
+              <td mat-cell *matCellDef="let term">{{ term.name }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Estado</th>
+              <td mat-cell *matCellDef="let term">
+                <div class="status-badges">
+                  <span class="badge" [class.badge--inactive]="!term.active">
+                    {{ term.active ? 'Activa' : 'Inactiva' }}
+                  </span>
+                  @if (term.hasOpenSession) {
+                    <span class="badge badge--warn">Turno abierto</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="lastSeenAt">
+              <th mat-header-cell *matHeaderCellDef>Última actividad</th>
+              <td mat-cell *matCellDef="let term">
+                {{ term.lastSeenAt ? (term.lastSeenAt | date: 'dd/MM/yyyy HH:mm') : 'Sin uso' }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef class="align-end">Acciones</th>
+              <td mat-cell *matCellDef="let term" class="align-end">
+                @if (canManageTerminals()) {
+                  <button
+                    mat-icon-button
+                    type="button"
+                    [matMenuTriggerFor]="termMenu"
+                    [attr.aria-label]="'Acciones para terminal ' + term.code"
+                  >
+                    <mat-icon>more_vert</mat-icon>
+                  </button>
+                  <mat-menu #termMenu="matMenu">
+                    <button mat-menu-item type="button" (click)="openEditTerminal(term)">
+                      <mat-icon>edit</mat-icon>
+                      <span>Editar</span>
+                    </button>
+                    <button mat-menu-item type="button" (click)="toggleTerminalActive(term)">
+                      <mat-icon>{{ term.active ? 'block' : 'check_circle' }}</mat-icon>
+                      <span>{{ term.active ? 'Desactivar' : 'Activar' }}</span>
+                    </button>
+                  </mat-menu>
+                }
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="terminalColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: terminalColumns"></tr>
+          </table>
+        }
+      </mat-card-content>
+    </mat-card>
+  }
+</section>

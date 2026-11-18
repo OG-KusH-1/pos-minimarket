@@ -1,0 +1,51 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.shell-toolbar {
+  flex: 0 0 auto;
+  gap: 8px;
+  background-color: var(--mat-sys-primary);
+  color: var(--mat-sys-on-primary);
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.store-name,
+.user-name {
+  font-size: 0.875rem;
+}
+
+.user-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 16px;
+}
+
+.shell-container {
+  flex: 1 1 auto;
+}
+
+.shell-sidenav {
+  width: 260px;
+}
+
+.group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.active-link {
+  font-weight: 500;
+  background-color: var(--mat-sys-secondary-container);
+}
+
+.shell-content main {
+  padding: 24px;
+}

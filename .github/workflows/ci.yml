@@ -1,0 +1,123 @@
+# Integración continua del POS Minimarket.
+# Dueños de este archivo: T8 (jobs base) y T95 (endurecimiento y escaneos de seguridad).
+# Los comandos de cada job son los mismos que se ejecutan en local; si cambias
+# uno aquí, cámbialo también en docs/ y viceversa.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Mínimo privilegio: los jobs solo necesitan leer el código.
+permissions:
+  contents: read
+
+# Una sola corrida activa por rama o PR: una corrida nueva cancela la anterior.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (mvnw verify)
+    runs-on: ubuntu-latest
+    # Tope de seguridad: los IT con Testcontainers levantan PostgreSQL y son lentos.
+    timeout-minutes: 30
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      # Java 21 (ADR 0001). El caché de Maven se indexa por los pom.xml.
+      - name: Configurar JDK 21 (Temurin) con caché de Maven
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      # Compila, ejecuta las pruebas unitarias (surefire, *Test) y las de
+      # integración (failsafe, *IT). Los IT usan Testcontainers, que se apoya
+      # en el Docker ya instalado en el runner ubuntu-latest.
+      # OpenApiExportIT regenera frontend/openapi/openapi.json durante verify.
+      - name: Compilar y ejecutar pruebas (verify)
+        working-directory: backend
+        # chmod +x: el wrapper puede perder el bit de ejecución si se versionó desde Windows.
+        run: |
+          chmod +x mvnw
+          ./mvnw -q -B verify
+
+      # git status --porcelain detecta también archivos nuevos sin versionar,
+      # que git diff ignoraría.
+      # El contrato OpenAPI versionado debe coincidir con el que genera el código.
+      # Si hay diferencias, alguien cambió la API sin regenerar el contrato.
+      - name: Comprobar que el contrato OpenAPI está al día
+        run: |
+          if [ -n "$(git status --porcelain -- frontend/openapi/openapi.json)" ]; then
+            git status --short -- frontend/openapi/openapi.json
+            git --no-pager diff --stat -- frontend/openapi/openapi.json
+            echo "::error::frontend/openapi/openapi.json está desactualizado: regenera el contrato y el cliente: ejecuta verify y npm run api:gen, y sube los cambios."
+            exit 1
+          fi
+
+      # Solo si algo falló: conserva los reportes para diagnosticar sin reejecutar.
+      - name: Subir reportes de pruebas (solo si falla)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reportes-pruebas-backend
+          path: |
+            backend/target/surefire-reports/
+            backend/target/failsafe-reports/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  frontend:
+    name: Frontend (format, lint, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v7
+
+      # Angular 22 exige Node ^22.22.3 || ^24.15.0 || >=26; se usa Node 24 LTS.
+      - name: Configurar Node 24 con caché de npm
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Instalación reproducible a partir de package-lock.json.
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Verificar formato (Prettier)
+        run: npm run format:check
+
+      - name: Lint (ESLint / angular-eslint)
+        run: npm run lint
+
+      # --watch=false evita el modo interactivo y deja el proceso terminar.
+      - name: Pruebas unitarias (Vitest vía ng test)
+        run: npm test -- --watch=false
+
+      - name: Build de producción
+        run: npm run build
+
+      # Regenera el cliente desde frontend/openapi/openapi.json y verifica que
+      # lo versionado en src/app/api coincida (removeStaleFiles borra sobrantes).
+      - name: Regenerar el cliente API y comprobar que está al día
+        run: |
+          npm run api:gen
+          if [ -n "$(git status --porcelain -- src/app/api)" ]; then
+            git status --short -- src/app/api
+            git --no-pager diff --stat -- src/app/api
+            echo "::error::El cliente generado en frontend/src/app/api está desactualizado: ejecuta verify y npm run api:gen, y sube los cambios."
+            exit 1
+          fi

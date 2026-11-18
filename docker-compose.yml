@@ -1,0 +1,109 @@
+# Infraestructura local del POS Minimarket (ADR-32).
+#
+# Uso habitual en desarrollo (api y web se ejecutan fuera de Docker):
+#   docker compose up -d postgres mailpit
+#
+# Stack completo (construye backend/ y frontend/, que deben existir):
+#   docker compose --profile app up -d --build
+#
+# Todos los secretos y parametros salen de `.env` (no versionado; plantilla en
+# `.env.example`). Los `${VAR:?...}` hacen fallar `compose` si falta un secreto,
+# en lugar de arrancar con una contrasena vacia.
+name: pos-minimarket
+
+services:
+  # PostgreSQL 17 con los roles y extensiones definidos en docker/postgres/init.
+  postgres:
+    image: postgres:17.12
+    restart: unless-stopped
+    environment:
+      # Superusuario del cluster: solo lo usan los scripts de init y el
+      # administrador local. La aplicacion NUNCA se conecta con el.
+      POSTGRES_USER: ${POSTGRES_SUPERUSER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?defina POSTGRES_SUPERUSER_PASSWORD en .env}
+      POSTGRES_DB: ${POS_DB_NAME:-pos}
+      # Leidas por docker/postgres/init/01-roles-y-extensiones.sh
+      POS_OWNER_PASSWORD: ${POS_FLYWAY_PASSWORD:?defina POS_FLYWAY_PASSWORD en .env}
+      POS_APP_PASSWORD: ${POS_DB_PASSWORD:?defina POS_DB_PASSWORD en .env}
+    ports:
+      # Solo loopback: la BD no debe quedar expuesta a la red local.
+      - "127.0.0.1:${POS_POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pos_pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      # -h 127.0.0.1 fuerza TCP: el servidor temporal que levanta el init de la imagen
+      # solo escucha por socket unix, así no se marca healthy antes de terminar el init.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # Servidor SMTP de pruebas (ADR-10). Captura el correo sin enviarlo.
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${POS_MAILPIT_SMTP_PORT:-1025}:1025"
+      - "127.0.0.1:${POS_MAILPIT_UI_PORT:-8025}:8025"
+    healthcheck:
+      # `mailpit readyz` consulta /readyz de la propia UI (la imagen no trae curl).
+      test: ["CMD", "/mailpit", "readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # API Spring Boot. Profile `app`: no se levanta con `up postgres mailpit`.
+  api:
+    profiles: ["app"]
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mailpit:
+        condition: service_healthy
+    environment:
+      # Perfil propio del contenedor: no hereda SPRING_PROFILES_ACTIVE del host (que
+      # suele ser `dev` para correr la api fuera de Docker).
+      SPRING_PROFILES_ACTIVE: ${POS_API_PROFILE:-prod}
+      TZ: UTC
+      # Usuario de runtime (pos_app: solo DML).
+      POS_DB_URL: jdbc:postgresql://postgres:5432/${POS_DB_NAME:-pos}
+      POS_DB_USER: ${POS_DB_USER:-pos_app}
+      POS_DB_PASSWORD: ${POS_DB_PASSWORD:?defina POS_DB_PASSWORD en .env}
+      # Usuario de migraciones (pos_owner: dueno del esquema, usado por Flyway).
+      POS_FLYWAY_USER: ${POS_FLYWAY_USER:-pos_owner}
+      POS_FLYWAY_PASSWORD: ${POS_FLYWAY_PASSWORD:?defina POS_FLYWAY_PASSWORD en .env}
+      POS_JWT_SECRET: ${POS_JWT_SECRET:?defina POS_JWT_SECRET en .env}
+      # Hash BCrypt (costo 12) del administrador inicial; exigido en demo/prod.
+      POS_ADMIN_PASSWORD_HASH: ${POS_ADMIN_PASSWORD_HASH:?defina POS_ADMIN_PASSWORD_HASH en .env}
+      # Correo hacia Mailpit.
+      POS_MAIL_HOST: mailpit
+      POS_MAIL_PORT: "1025"
+      POS_FILES_ROOT: /data/files
+    volumes:
+      # Adaptador LocalFileSystemStorage (ADR-09, root=/data/files).
+      - pos_files:/data/files
+    expose:
+      - "8080"
+
+  # Angular compilado servido por nginx, con proxy de /api hacia la api.
+  web:
+    profiles: ["app"]
+    build:
+      context: ./frontend
+      # Permite al Dockerfile copiar docker/nginx/default.conf (fuera del contexto).
+      additional_contexts:
+        nginx_conf: ./docker/nginx
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:${POS_WEB_PORT:-8080}:8080"
+
+volumes:
+  pos_pgdata:
+  pos_files:

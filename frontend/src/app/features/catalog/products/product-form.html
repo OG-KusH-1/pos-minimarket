@@ -1,0 +1,981 @@
+<section class="page">
+  <header class="page-header">
+    <div class="header-title">
+      <a
+        mat-icon-button
+        routerLink="/catalogo/productos"
+        aria-label="Volver al listado de productos"
+      >
+        <mat-icon>arrow_back</mat-icon>
+      </a>
+      <div>
+        <h1>{{ isEdit() ? (product()?.name ?? 'Ficha de producto') : 'Nuevo producto' }}</h1>
+        @if (isEdit() && product(); as current) {
+          <p class="subtitle">
+            SKU: <code>{{ current.sku }}</code>
+            · Estado:
+            <span
+              class="badge"
+              [class.badge--active]="current.active !== false"
+              [class.badge--inactive]="current.active === false"
+            >
+              {{ current.active !== false ? 'Activo' : 'Inactivo' }}
+            </span>
+          </p>
+        } @else {
+          <p class="subtitle">
+            Registra un nuevo producto en el catálogo, su precio inicial, impuestos y códigos de
+            barras.
+          </p>
+        }
+      </div>
+    </div>
+
+    @if (isEdit() && product(); as current) {
+      <div class="header-actions">
+        @if (canDeactivate()) {
+          <button
+            mat-stroked-button
+            type="button"
+            [color]="current.active !== false ? 'warn' : 'primary'"
+            (click)="toggleProductActive()"
+          >
+            <mat-icon>{{ current.active !== false ? 'block' : 'check_circle' }}</mat-icon>
+            {{ current.active !== false ? 'Desactivar' : 'Reactivar' }}
+          </button>
+        }
+      </div>
+    }
+  </header>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando producto" />
+  }
+
+  @if (loadError(); as err) {
+    <div class="error-banner" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ err }}</span>
+      <button mat-button type="button" (click)="loadProduct()">Reintentar</button>
+    </div>
+  }
+
+  @if (!isEdit()) {
+    <form class="create-layout" [formGroup]="generalForm" (ngSubmit)="saveGeneral()">
+      @if (generalError(); as err) {
+        <div class="error-banner" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ err }}</span>
+        </div>
+      }
+
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Datos generales</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>SKU</mat-label>
+              <input matInput formControlName="sku" autocomplete="off" />
+              @if (generalForm.controls.sku.hasError('required')) {
+                <mat-error>El SKU es obligatorio.</mat-error>
+              } @else if (generalForm.controls.sku.hasError('pattern')) {
+                <mat-error>Solo letras, números, puntos, guiones y guion bajo (máx. 40).</mat-error>
+              } @else if (generalForm.controls.sku.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" autocomplete="off" />
+              @if (generalForm.controls.name.hasError('required')) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              } @else if (generalForm.controls.name.hasError('minlength')) {
+                <mat-error>Debe tener al menos 2 caracteres.</mat-error>
+              } @else if (generalForm.controls.name.hasError('maxlength')) {
+                <mat-error>No puede superar 200 caracteres.</mat-error>
+              } @else if (generalForm.controls.name.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Categoría</mat-label>
+              <mat-select formControlName="categoryId">
+                @for (cat of categories(); track cat.id) {
+                  <mat-option [value]="cat.id" [disabled]="!cat.active">
+                    {{ cat.label }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (generalForm.controls.categoryId.hasError('required')) {
+                <mat-error>Selecciona una categoría.</mat-error>
+              } @else if (generalForm.controls.categoryId.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Marca</mat-label>
+              <mat-select formControlName="brandId">
+                <mat-option [value]="null">Sin marca</mat-option>
+                @for (brand of brands(); track brand.id) {
+                  <mat-option [value]="brand.id" [disabled]="brand.active === false">
+                    {{ brand.name }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (generalForm.controls.brandId.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo de venta</mat-label>
+              <mat-select formControlName="saleType">
+                <mat-option value="UNIT">{{ saleTypeLabels.UNIT }}</mat-option>
+                <mat-option value="WEIGHT">{{ saleTypeLabels.WEIGHT }}</mat-option>
+                <mat-option value="PACK">{{ saleTypeLabels.PACK }}</mat-option>
+              </mat-select>
+              @if (generalForm.controls.saleType.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Unidad de medida</mat-label>
+              <mat-select formControlName="unitOfMeasure">
+                <mat-option value="UNIT">Unidad (u)</mat-option>
+                <mat-option value="KG">Kilogramo (kg)</mat-option>
+              </mat-select>
+              @if (generalForm.controls.unitOfMeasure.hasError('uomMismatch')) {
+                <mat-error>La unidad debe coincidir con el tipo de venta.</mat-error>
+              } @else if (generalForm.controls.unitOfMeasure.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Restricción de venta</mat-label>
+              <mat-select formControlName="restrictedType">
+                <mat-option [value]="null">Sin restricción</mat-option>
+                <mat-option value="ALCOHOL">{{ restrictedTypeLabels.ALCOHOL }}</mat-option>
+                <mat-option value="TOBACCO">{{ restrictedTypeLabels.TOBACCO }}</mat-option>
+                <mat-option value="OTHER">{{ restrictedTypeLabels.OTHER }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Código de atajo POS</mat-label>
+              <input matInput formControlName="shortcutCode" autocomplete="off" />
+              <mat-hint>Opcional: A–Z y 0–9 (máx. 10).</mat-hint>
+              @if (generalForm.controls.shortcutCode.hasError('pattern')) {
+                <mat-error>Usa solo letras mayúsculas y números (1 a 10).</mat-error>
+              } @else if (generalForm.controls.shortcutCode.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Vida útil (días)</mat-label>
+              <input matInput type="number" min="1" max="3650" formControlName="shelfLifeDays" />
+              @if (generalForm.controls.shelfLifeDays.hasError('min')) {
+                <mat-error>Mínimo 1 día.</mat-error>
+              } @else if (generalForm.controls.shelfLifeDays.hasError('max')) {
+                <mat-error>Máximo 3650 días.</mat-error>
+              } @else if (generalForm.controls.shelfLifeDays.hasError('integer')) {
+                <mat-error>Debe ser un número entero.</mat-error>
+              }
+            </mat-form-field>
+
+            @if (canUpdatePrice()) {
+              <mat-form-field appearance="outline">
+                <mat-label>Precio inicial bruto (CLP)</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="0"
+                  step="1"
+                  formControlName="initialPriceGross"
+                />
+                <mat-hint>0 deja el producto sin precio hasta configurarlo.</mat-hint>
+                @if (generalForm.controls.initialPriceGross.hasError('min')) {
+                  <mat-error>No puede ser negativo.</mat-error>
+                } @else if (generalForm.controls.initialPriceGross.hasError('integer')) {
+                  <mat-error>El precio CLP debe ser entero.</mat-error>
+                } @else if (
+                  generalForm.controls.initialPriceGross.errors?.['server'];
+                  as serverErr
+                ) {
+                  <mat-error>{{ serverErr }}</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            <mat-form-field appearance="outline" class="span-2">
+              <mat-label>Descripción</mat-label>
+              <textarea matInput rows="2" formControlName="description"></textarea>
+              @if (generalForm.controls.description.hasError('maxlength')) {
+                <mat-error>Máximo 2000 caracteres.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+
+          <div class="toggles-row">
+            <mat-slide-toggle formControlName="lotControlled">
+              Controlado por lotes y vencimientos
+            </mat-slide-toggle>
+            <mat-slide-toggle formControlName="allowManualDiscount">
+              Permitir descuento manual en caja
+            </mat-slide-toggle>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      @if (selectedSaleType() === 'PACK') {
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Configuración de pack</mat-card-title>
+          </mat-card-header>
+          <mat-card-content [formGroup]="packForm">
+            <div class="pack-search-row">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+                <mat-label>Buscar producto base (por unidad)</mat-label>
+                <input
+                  matInput
+                  [formControl]="baseSearchControl"
+                  placeholder="Nombre o SKU del producto base"
+                />
+              </mat-form-field>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="loadingBaseProducts()"
+                (click)="searchBaseProducts()"
+              >
+                Buscar
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Producto base</mat-label>
+                <mat-select formControlName="baseProductId">
+                  @for (opt of baseProductOptions(); track opt.id) {
+                    <mat-option [value]="opt.id">{{ opt.sku }} — {{ opt.name }}</mat-option>
+                  }
+                </mat-select>
+                @if (packForm.controls.baseProductId.hasError('required')) {
+                  <mat-error>Selecciona el producto base del pack.</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Factor (unidades por pack)</mat-label>
+                <input matInput type="number" min="2" max="1000" formControlName="factor" />
+                @if (packForm.controls.factor.hasError('required')) {
+                  <mat-error>El factor es obligatorio.</mat-error>
+                } @else if (packForm.controls.factor.hasError('min')) {
+                  <mat-error>El factor mínimo es 2.</mat-error>
+                } @else if (packForm.controls.factor.hasError('max')) {
+                  <mat-error>El factor máximo es 1000.</mat-error>
+                } @else if (packForm.controls.factor.hasError('integer')) {
+                  <mat-error>Debe ser un número entero.</mat-error>
+                }
+              </mat-form-field>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      }
+
+      @if (canManageTaxes()) {
+        <mat-card appearance="outlined">
+          <mat-card-header>
+            <mat-card-title>Impuestos iniciales</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="taxes-header">
+              <mat-checkbox
+                [checked]="taxesForm.controls.vatExempt.value"
+                (change)="onVatExemptChange($event.checked)"
+              >
+                Producto exento de IVA
+              </mat-checkbox>
+            </div>
+            <div class="taxes-list">
+              @for (tax of taxes(); track tax.id) {
+                <mat-checkbox
+                  [checked]="isTaxSelected(tax.id)"
+                  [disabled]="isTaxDisabled(tax)"
+                  (change)="toggleTax(tax, $event.checked)"
+                >
+                  {{ tax.name }} ({{ tax.rate }}% · {{ tax.taxType }})
+                </mat-checkbox>
+              }
+            </div>
+            @if (taxesValidationError(); as taxErr) {
+              <p class="inline-error" role="alert">{{ taxErr }}</p>
+            }
+          </mat-card-content>
+        </mat-card>
+      }
+
+      <mat-card appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Códigos de barras iniciales</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (barcodeError(); as bErr) {
+            <div class="error-banner" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ bErr }}</span>
+            </div>
+          }
+
+          <div class="barcode-entry-row" [formGroup]="barcodeForm">
+            <mat-form-field appearance="outline" class="grow">
+              <mat-label>Código de barras</mat-label>
+              <input matInput formControlName="code" autocomplete="off" />
+              @if (barcodeForm.controls.code.hasError('required')) {
+                <mat-error>Ingresa un código.</mat-error>
+              } @else if (barcodeForm.controls.code.hasError('barcodeFormat')) {
+                <mat-error>Formato inválido (3 a 20 caracteres alfanuméricos).</mat-error>
+              } @else if (barcodeForm.controls.code.hasError('ean13Invalid')) {
+                <mat-error>EAN-13 inválido o dígito verificador incorrecto.</mat-error>
+              } @else if (barcodeForm.controls.code.hasError('ean8Invalid')) {
+                <mat-error>EAN-8 inválido o dígito verificador incorrecto.</mat-error>
+              } @else if (barcodeForm.controls.code.hasError('upcaInvalid')) {
+                <mat-error>UPC-A inválido o dígito verificador incorrecto.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo</mat-label>
+              <mat-select formControlName="barcodeType">
+                @for (type of barcodeTypes; track type) {
+                  <mat-option [value]="type">{{ barcodeTypeLabels[type] }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-checkbox formControlName="isPrimary">Principal</mat-checkbox>
+
+            <button mat-stroked-button type="button" (click)="addBarcodeEntry()">
+              <mat-icon>add</mat-icon>
+              Agregar código
+            </button>
+          </div>
+
+          @if (pendingBarcodes().length > 0) {
+            <ul class="barcode-list">
+              @for (item of pendingBarcodes(); track item.code + '-' + item.barcodeType) {
+                <li class="barcode-item">
+                  <div class="barcode-info">
+                    <code>{{ item.code }}</code>
+                    <span class="chip">{{ barcodeTypeLabels[item.barcodeType] }}</span>
+                    @if (item.isPrimary) {
+                      <span class="chip chip--primary">Principal</span>
+                    }
+                  </div>
+                  <div class="barcode-actions">
+                    @if (!item.isPrimary) {
+                      <button mat-button type="button" (click)="markPendingBarcodePrimary($index)">
+                        Marcar principal
+                      </button>
+                    }
+                    <button
+                      mat-icon-button
+                      type="button"
+                      aria-label="Quitar código de barras"
+                      (click)="removePendingBarcode($index)"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-hint">Aún no agregas códigos de barras iniciales (opcional).</p>
+          }
+        </mat-card-content>
+      </mat-card>
+
+      <div class="form-footer">
+        <a mat-button routerLink="/catalogo/productos">Cancelar</a>
+        <button mat-flat-button type="submit" [disabled]="!canCreate() || savingGeneral()">
+          {{ savingGeneral() ? 'Guardando...' : 'Crear producto' }}
+        </button>
+      </div>
+    </form>
+  } @else if (product(); as current) {
+    <mat-tab-group>
+      <mat-tab label="Datos generales">
+        <form class="tab-panel" [formGroup]="generalForm" (ngSubmit)="saveGeneral()">
+          @if (generalError(); as err) {
+            <div class="error-banner" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ err }}</span>
+            </div>
+          }
+
+          <div class="form-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>SKU</mat-label>
+              <input matInput formControlName="sku" autocomplete="off" />
+              @if (generalForm.controls.sku.hasError('required')) {
+                <mat-error>El SKU es obligatorio.</mat-error>
+              } @else if (generalForm.controls.sku.hasError('pattern')) {
+                <mat-error>Solo letras, números, puntos, guiones y guion bajo (máx. 40).</mat-error>
+              } @else if (generalForm.controls.sku.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Nombre</mat-label>
+              <input matInput formControlName="name" autocomplete="off" />
+              @if (generalForm.controls.name.hasError('required')) {
+                <mat-error>El nombre es obligatorio.</mat-error>
+              } @else if (generalForm.controls.name.hasError('minlength')) {
+                <mat-error>Debe tener al menos 2 caracteres.</mat-error>
+              } @else if (generalForm.controls.name.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Categoría</mat-label>
+              <mat-select formControlName="categoryId">
+                @for (cat of categories(); track cat.id) {
+                  <mat-option [value]="cat.id" [disabled]="!cat.active">
+                    {{ cat.label }}
+                  </mat-option>
+                }
+              </mat-select>
+              @if (generalForm.controls.categoryId.hasError('required')) {
+                <mat-error>Selecciona una categoría.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Marca</mat-label>
+              <mat-select formControlName="brandId">
+                <mat-option [value]="null">Sin marca</mat-option>
+                @for (brand of brands(); track brand.id) {
+                  <mat-option [value]="brand.id" [disabled]="brand.active === false">
+                    {{ brand.name }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Tipo de venta</mat-label>
+              <mat-select formControlName="saleType">
+                <mat-option value="UNIT">{{ saleTypeLabels.UNIT }}</mat-option>
+                <mat-option value="WEIGHT">{{ saleTypeLabels.WEIGHT }}</mat-option>
+                <mat-option value="PACK">{{ saleTypeLabels.PACK }}</mat-option>
+              </mat-select>
+              @if (generalForm.controls.saleType.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Unidad de medida</mat-label>
+              <mat-select formControlName="unitOfMeasure">
+                <mat-option value="UNIT">Unidad (u)</mat-option>
+                <mat-option value="KG">Kilogramo (kg)</mat-option>
+              </mat-select>
+              @if (generalForm.controls.unitOfMeasure.hasError('uomMismatch')) {
+                <mat-error>La unidad debe coincidir con el tipo de venta.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Restricción de venta</mat-label>
+              <mat-select formControlName="restrictedType">
+                <mat-option [value]="null">Sin restricción</mat-option>
+                <mat-option value="ALCOHOL">{{ restrictedTypeLabels.ALCOHOL }}</mat-option>
+                <mat-option value="TOBACCO">{{ restrictedTypeLabels.TOBACCO }}</mat-option>
+                <mat-option value="OTHER">{{ restrictedTypeLabels.OTHER }}</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Código de atajo POS</mat-label>
+              <input matInput formControlName="shortcutCode" autocomplete="off" />
+              @if (generalForm.controls.shortcutCode.hasError('pattern')) {
+                <mat-error>Usa solo letras mayúsculas y números (1 a 10).</mat-error>
+              } @else if (generalForm.controls.shortcutCode.errors?.['server']; as serverErr) {
+                <mat-error>{{ serverErr }}</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Vida útil (días)</mat-label>
+              <input matInput type="number" min="1" max="3650" formControlName="shelfLifeDays" />
+              @if (generalForm.controls.shelfLifeDays.hasError('min')) {
+                <mat-error>Mínimo 1 día.</mat-error>
+              } @else if (generalForm.controls.shelfLifeDays.hasError('max')) {
+                <mat-error>Máximo 3650 días.</mat-error>
+              } @else if (generalForm.controls.shelfLifeDays.hasError('integer')) {
+                <mat-error>Debe ser un número entero.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="span-2">
+              <mat-label>Descripción</mat-label>
+              <textarea matInput rows="2" formControlName="description"></textarea>
+            </mat-form-field>
+          </div>
+
+          <div class="toggles-row">
+            <mat-slide-toggle formControlName="lotControlled">
+              Controlado por lotes y vencimientos
+            </mat-slide-toggle>
+            <mat-slide-toggle formControlName="allowManualDiscount">
+              Permitir descuento manual en caja
+            </mat-slide-toggle>
+          </div>
+
+          @if (canUpdate()) {
+            <div class="form-footer">
+              <button mat-flat-button type="submit" [disabled]="savingGeneral()">
+                {{ savingGeneral() ? 'Guardando...' : 'Guardar cambios' }}
+              </button>
+            </div>
+          }
+        </form>
+      </mat-tab>
+
+      <mat-tab label="Códigos de barras">
+        <div class="tab-panel">
+          @if (barcodeError(); as bErr) {
+            <div class="error-banner" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ bErr }}</span>
+            </div>
+          }
+
+          @if (canUpdate()) {
+            <form
+              class="barcode-entry-row"
+              [formGroup]="barcodeForm"
+              (ngSubmit)="addBarcodeEntry()"
+            >
+              <mat-form-field appearance="outline" class="grow">
+                <mat-label>Nuevo código de barras</mat-label>
+                <input matInput formControlName="code" autocomplete="off" />
+                @if (barcodeForm.controls.code.hasError('required')) {
+                  <mat-error>Ingresa un código.</mat-error>
+                } @else if (barcodeForm.controls.code.hasError('barcodeFormat')) {
+                  <mat-error>Formato inválido (3 a 20 caracteres alfanuméricos).</mat-error>
+                } @else if (barcodeForm.controls.code.hasError('ean13Invalid')) {
+                  <mat-error>EAN-13 inválido o dígito verificador incorrecto.</mat-error>
+                } @else if (barcodeForm.controls.code.hasError('ean8Invalid')) {
+                  <mat-error>EAN-8 inválido o dígito verificador incorrecto.</mat-error>
+                } @else if (barcodeForm.controls.code.hasError('upcaInvalid')) {
+                  <mat-error>UPC-A inválido o dígito verificador incorrecto.</mat-error>
+                } @else if (barcodeForm.controls.code.errors?.['server']; as serverErr) {
+                  <mat-error>{{ serverErr }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Tipo</mat-label>
+                <mat-select formControlName="barcodeType">
+                  @for (type of barcodeTypes; track type) {
+                    <mat-option [value]="type">{{ barcodeTypeLabels[type] }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-checkbox formControlName="isPrimary">Principal</mat-checkbox>
+
+              <button mat-flat-button type="submit" [disabled]="savingBarcode()">
+                <mat-icon>add</mat-icon>
+                Agregar
+              </button>
+            </form>
+          }
+
+          @if ((current.barcodes ?? []).length > 0) {
+            <ul class="barcode-list">
+              @for (b of current.barcodes ?? []; track b.id ?? b.code) {
+                <li class="barcode-item">
+                  <div class="barcode-info">
+                    <code>{{ b.code }}</code>
+                    @if (b.barcodeType) {
+                      <span class="chip">{{ barcodeTypeLabels[b.barcodeType] }}</span>
+                    }
+                    @if (b.isPrimary) {
+                      <span class="chip chip--primary">Principal</span>
+                    }
+                  </div>
+                  @if (canUpdate()) {
+                    <div class="barcode-actions">
+                      @if (!b.isPrimary) {
+                        <button
+                          mat-button
+                          type="button"
+                          [disabled]="savingBarcode()"
+                          (click)="setPrimaryBarcode(b)"
+                        >
+                          Marcar principal
+                        </button>
+                      }
+                      <button
+                        mat-icon-button
+                        type="button"
+                        aria-label="Eliminar código de barras"
+                        [disabled]="savingBarcode()"
+                        (click)="deleteBarcode(b)"
+                      >
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-hint">Este producto no tiene códigos de barras registrados.</p>
+          }
+        </div>
+      </mat-tab>
+
+      @if (selectedSaleType() === 'PACK') {
+        <mat-tab label="Pack">
+          <form class="tab-panel" [formGroup]="packForm" (ngSubmit)="savePack()">
+            @if (packError(); as pErr) {
+              <div class="error-banner" role="alert">
+                <mat-icon aria-hidden="true">error_outline</mat-icon>
+                <span>{{ pErr }}</span>
+              </div>
+            }
+
+            <div class="pack-search-row">
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="grow">
+                <mat-label>Buscar producto base (por unidad)</mat-label>
+                <input
+                  matInput
+                  [formControl]="baseSearchControl"
+                  placeholder="Nombre o SKU del producto base"
+                />
+              </mat-form-field>
+              <button
+                mat-stroked-button
+                type="button"
+                [disabled]="loadingBaseProducts()"
+                (click)="searchBaseProducts()"
+              >
+                Buscar
+              </button>
+            </div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>Producto base</mat-label>
+                <mat-select formControlName="baseProductId">
+                  @for (opt of baseProductOptions(); track opt.id) {
+                    <mat-option [value]="opt.id">{{ opt.sku }} — {{ opt.name }}</mat-option>
+                  }
+                </mat-select>
+                @if (packForm.controls.baseProductId.hasError('required')) {
+                  <mat-error>Selecciona el producto base.</mat-error>
+                } @else if (packForm.controls.baseProductId.errors?.['server']; as serverErr) {
+                  <mat-error>{{ serverErr }}</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Factor (unidades por pack)</mat-label>
+                <input matInput type="number" min="2" max="1000" formControlName="factor" />
+                @if (packForm.controls.factor.hasError('required')) {
+                  <mat-error>El factor es obligatorio.</mat-error>
+                } @else if (packForm.controls.factor.hasError('min')) {
+                  <mat-error>El factor mínimo es 2.</mat-error>
+                } @else if (packForm.controls.factor.hasError('max')) {
+                  <mat-error>El factor máximo es 1000.</mat-error>
+                } @else if (packForm.controls.factor.hasError('integer')) {
+                  <mat-error>Debe ser un número entero.</mat-error>
+                } @else if (packForm.controls.factor.errors?.['server']; as serverErr) {
+                  <mat-error>{{ serverErr }}</mat-error>
+                }
+              </mat-form-field>
+            </div>
+
+            @if (canUpdate()) {
+              <div class="form-footer">
+                <button mat-flat-button type="submit" [disabled]="savingPack()">
+                  {{ savingPack() ? 'Guardando...' : 'Guardar pack' }}
+                </button>
+              </div>
+            }
+          </form>
+        </mat-tab>
+      }
+
+      <mat-tab label="Impuestos">
+        <div class="tab-panel">
+          @if (taxesError(); as tErr) {
+            <div class="error-banner" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ tErr }}</span>
+            </div>
+          }
+
+          <div class="taxes-header">
+            <mat-checkbox
+              [checked]="taxesForm.controls.vatExempt.value"
+              [disabled]="!canManageTaxes()"
+              (change)="onVatExemptChange($event.checked)"
+            >
+              Producto exento de IVA
+            </mat-checkbox>
+          </div>
+
+          <div class="taxes-list">
+            @for (tax of taxes(); track tax.id) {
+              <mat-checkbox
+                [checked]="isTaxSelected(tax.id)"
+                [disabled]="isTaxDisabled(tax)"
+                (change)="toggleTax(tax, $event.checked)"
+              >
+                {{ tax.name }} ({{ tax.rate }}% · {{ tax.taxType }})
+              </mat-checkbox>
+            }
+          </div>
+
+          @if (taxesValidationError(); as taxErr) {
+            <p class="inline-error" role="alert">{{ taxErr }}</p>
+          }
+
+          @if (canManageTaxes()) {
+            <div class="form-footer">
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="savingTaxes() || !!taxesValidationError()"
+                (click)="saveTaxes()"
+              >
+                {{ savingTaxes() ? 'Guardando...' : 'Guardar impuestos' }}
+              </button>
+            </div>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Precio y costos">
+        <div class="tab-panel pricing-grid">
+          <mat-card appearance="outlined">
+            <mat-card-header>
+              <mat-card-title>Precio de venta</mat-card-title>
+            </mat-card-header>
+            <mat-card-content>
+              <dl class="kpi-list">
+                <div>
+                  <dt>Precio bruto actual</dt>
+                  <dd>{{ current.priceGross | clp }}</dd>
+                </div>
+                <div>
+                  <dt>Precio neto</dt>
+                  <dd>{{ current.netPrice | clp }}</dd>
+                </div>
+              </dl>
+
+              @if (priceError(); as pErr) {
+                <div class="error-banner" role="alert">
+                  <mat-icon aria-hidden="true">error_outline</mat-icon>
+                  <span>{{ pErr }}</span>
+                </div>
+              }
+
+              @if (canUpdatePrice()) {
+                <form class="stack-form" [formGroup]="priceForm" (ngSubmit)="savePrice()">
+                  <mat-form-field appearance="outline">
+                    <mat-label>Nuevo precio bruto (CLP)</mat-label>
+                    <input
+                      matInput
+                      type="number"
+                      min="1"
+                      step="1"
+                      formControlName="newPriceGross"
+                    />
+                    @if (priceForm.controls.newPriceGross.hasError('required')) {
+                      <mat-error>El precio es obligatorio.</mat-error>
+                    } @else if (priceForm.controls.newPriceGross.hasError('min')) {
+                      <mat-error>Debe ser al menos $1.</mat-error>
+                    } @else if (priceForm.controls.newPriceGross.hasError('integer')) {
+                      <mat-error>Debe ser entero en CLP.</mat-error>
+                    } @else if (priceForm.controls.newPriceGross.errors?.['server']; as serverErr) {
+                      <mat-error>{{ serverErr }}</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <mat-form-field appearance="outline">
+                    <mat-label>Motivo del cambio</mat-label>
+                    <input matInput formControlName="reason" autocomplete="off" />
+                    @if (priceForm.controls.reason.hasError('required')) {
+                      <mat-error>El motivo es obligatorio.</mat-error>
+                    } @else if (priceForm.controls.reason.hasError('minlength')) {
+                      <mat-error>Mínimo 3 caracteres.</mat-error>
+                    } @else if (priceForm.controls.reason.errors?.['server']; as serverErr) {
+                      <mat-error>{{ serverErr }}</mat-error>
+                    }
+                  </mat-form-field>
+
+                  <button mat-flat-button type="submit" [disabled]="savingPrice()">
+                    {{ savingPrice() ? 'Guardando...' : 'Actualizar precio' }}
+                  </button>
+                </form>
+              }
+            </mat-card-content>
+          </mat-card>
+
+          @if (canReadCosts()) {
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>Costos y margen</mat-card-title>
+              </mat-card-header>
+              <mat-card-content>
+                <dl class="kpi-list">
+                  <div>
+                    <dt>Costo promedio</dt>
+                    <dd>{{ formatCost(current.avgCost) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Último costo</dt>
+                    <dd>{{ formatCost(current.lastCost) }}</dd>
+                  </div>
+                  <div>
+                    <dt>Margen bruto</dt>
+                    <dd>{{ formatMargin(current.marginPct) }}</dd>
+                  </div>
+                </dl>
+
+                @if (costError(); as cErr) {
+                  <div class="error-banner" role="alert">
+                    <mat-icon aria-hidden="true">error_outline</mat-icon>
+                    <span>{{ cErr }}</span>
+                  </div>
+                }
+
+                @if (canUpdateCost()) {
+                  <form class="stack-form" [formGroup]="costForm" (ngSubmit)="saveCost()">
+                    <mat-form-field appearance="outline">
+                      <mat-label>Nuevo costo promedio (CLP)</mat-label>
+                      <input
+                        matInput
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        formControlName="newAvgCost"
+                      />
+                      @if (costForm.controls.newAvgCost.hasError('required')) {
+                        <mat-error>El costo es obligatorio.</mat-error>
+                      } @else if (costForm.controls.newAvgCost.hasError('min')) {
+                        <mat-error>No puede ser negativo.</mat-error>
+                      } @else if (costForm.controls.newAvgCost.errors?.['server']; as serverErr) {
+                        <mat-error>{{ serverErr }}</mat-error>
+                      }
+                    </mat-form-field>
+
+                    <mat-form-field appearance="outline">
+                      <mat-label>Motivo del ajuste</mat-label>
+                      <input matInput formControlName="reason" autocomplete="off" />
+                      @if (costForm.controls.reason.hasError('required')) {
+                        <mat-error>El motivo es obligatorio.</mat-error>
+                      } @else if (costForm.controls.reason.hasError('minlength')) {
+                        <mat-error>Mínimo 3 caracteres.</mat-error>
+                      } @else if (costForm.controls.reason.errors?.['server']; as serverErr) {
+                        <mat-error>{{ serverErr }}</mat-error>
+                      }
+                    </mat-form-field>
+
+                    <button mat-flat-button type="submit" [disabled]="savingCost()">
+                      {{ savingCost() ? 'Guardando...' : 'Actualizar costo' }}
+                    </button>
+                  </form>
+                }
+              </mat-card-content>
+            </mat-card>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Imagen">
+        <div class="tab-panel image-panel">
+          @if (imageError(); as iErr) {
+            <div class="error-banner" role="alert">
+              <mat-icon aria-hidden="true">error_outline</mat-icon>
+              <span>{{ iErr }}</span>
+            </div>
+          }
+
+          <div class="image-preview-box">
+            @if (imagePreviewUrl(); as preview) {
+              <img [src]="preview" [alt]="'Imagen de ' + (current.name ?? 'producto')" />
+            } @else {
+              <div class="image-placeholder">
+                <mat-icon aria-hidden="true">image</mat-icon>
+                <span>Sin imagen asignada</span>
+              </div>
+            }
+          </div>
+
+          @if (canUpdate()) {
+            <div class="image-actions">
+              <input
+                #fileInput
+                type="file"
+                class="sr-only"
+                accept="image/png,image/jpeg,image/webp"
+                aria-label="Seleccionar imagen del producto"
+                (change)="onImageSelected($event)"
+              />
+              <button
+                mat-flat-button
+                type="button"
+                [disabled]="savingImage()"
+                (click)="fileInput.click()"
+              >
+                <mat-icon>upload</mat-icon>
+                {{ savingImage() ? 'Subiendo...' : 'Subir imagen' }}
+              </button>
+
+              @if (current.imageUrl) {
+                <button
+                  mat-stroked-button
+                  type="button"
+                  color="warn"
+                  [disabled]="savingImage()"
+                  (click)="removeImage()"
+                >
+                  <mat-icon>delete</mat-icon>
+                  Quitar imagen
+                </button>
+              }
+            </div>
+            <p class="empty-hint">Formatos permitidos: PNG, JPEG o WebP hasta 5 MB.</p>
+          }
+        </div>
+      </mat-tab>
+
+      <mat-tab label="Historial de precios">
+        <div class="tab-panel">
+          <pos-paginated-table
+            [dataSource]="historyDataSource"
+            [columns]="historyColumns()"
+            label="Historial de precios y costos"
+            emptyMessage="Este producto aún no registra cambios de precio ni costo."
+          />
+        </div>
+      </mat-tab>
+    </mat-tab-group>
+  }
+</section>

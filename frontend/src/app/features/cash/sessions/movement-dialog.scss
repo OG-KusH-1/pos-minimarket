@@ -1,0 +1,32 @@
+.dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 320px;
+  padding-top: 4px;
+}
+
+.expected-hint {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container);
+  font-size: 0.9rem;
+}
+
+.type-row {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+  font-size: 0.875rem;
+}

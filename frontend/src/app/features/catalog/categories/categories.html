@@ -1,0 +1,173 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Categorías</h1>
+      <p class="subtitle">
+        Organización del catálogo en categorías y subcategorías (máximo dos niveles).
+      </p>
+    </div>
+    @if (canManage()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon>add</mat-icon>
+        Nueva categoría
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Nombre o código" />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todas</mat-option>
+        <mat-option [value]="true">Activas</mat-option>
+        <mat-option [value]="false">Inactivas</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando categorías" />
+  }
+
+  @if (error(); as err) {
+    <div class="error-box" role="alert">
+      <span>{{ err }}</span>
+      <button mat-stroked-button type="button" (click)="loadCategories()">Reintentar</button>
+    </div>
+  } @else if (!loading() && filteredTree().length === 0) {
+    <p class="empty-state" role="status">No hay categorías que coincidan con los filtros.</p>
+  } @else {
+    <ul class="category-tree" aria-label="Árbol de categorías">
+      @for (root of filteredTree(); track root.id) {
+        <li class="category-card">
+          <div class="category-row category-row--root">
+            <div class="category-info">
+              @if ((root.children?.length ?? 0) > 0) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  (click)="toggleCollapse(root.id)"
+                  [attr.aria-expanded]="!isCollapsed(root.id)"
+                  [attr.aria-label]="(isCollapsed(root.id) ? 'Expandir ' : 'Contraer ') + root.name"
+                >
+                  <mat-icon>
+                    {{ isCollapsed(root.id) ? 'chevron_right' : 'expand_more' }}
+                  </mat-icon>
+                </button>
+              } @else {
+                <span class="tree-spacer" aria-hidden="true"></span>
+              }
+
+              <span class="category-name">{{ root.name }}</span>
+              @if (root.code) {
+                <span class="badge">{{ root.code }}</span>
+              }
+              <span
+                class="badge"
+                [class.badge--active]="root.active !== false"
+                [class.badge--inactive]="root.active === false"
+              >
+                {{ root.active !== false ? 'Activa' : 'Inactiva' }}
+              </span>
+              @if ((root.children?.length ?? 0) > 0) {
+                <span class="child-count"> {{ root.children?.length }} subcategoría(s) </span>
+              }
+            </div>
+
+            @if (canManage()) {
+              <div class="row-actions">
+                <button mat-stroked-button type="button" (click)="openCreate(root.id ?? null)">
+                  <mat-icon>add</mat-icon>
+                  Subcategoría
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Editar categoría"
+                  [attr.aria-label]="'Editar ' + root.name"
+                  (click)="openEdit(root)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  [matTooltip]="root.active !== false ? 'Desactivar' : 'Activar'"
+                  [attr.aria-label]="
+                    (root.active !== false ? 'Desactivar ' : 'Activar ') + root.name
+                  "
+                  (click)="toggleActive(root)"
+                >
+                  <mat-icon>{{ root.active !== false ? 'block' : 'check_circle' }}</mat-icon>
+                </button>
+              </div>
+            }
+          </div>
+
+          @if ((root.children?.length ?? 0) > 0 && !isCollapsed(root.id)) {
+            <ul class="subcategory-list" [attr.aria-label]="'Subcategorías de ' + root.name">
+              @for (child of root.children ?? []; track child.id) {
+                <li class="category-row category-row--child">
+                  <div class="category-info">
+                    <mat-icon class="child-icon" aria-hidden="true">
+                      subdirectory_arrow_right
+                    </mat-icon>
+                    <span class="category-name">{{ child.name }}</span>
+                    @if (child.code) {
+                      <span class="badge">{{ child.code }}</span>
+                    }
+                    <span
+                      class="badge"
+                      [class.badge--active]="child.active !== false"
+                      [class.badge--inactive]="child.active === false"
+                    >
+                      {{ child.active !== false ? 'Activa' : 'Inactiva' }}
+                    </span>
+                  </div>
+
+                  @if (canManage()) {
+                    <div class="row-actions">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        matTooltip="Editar subcategoría"
+                        [attr.aria-label]="'Editar ' + child.name"
+                        (click)="openEdit(child)"
+                      >
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [matTooltip]="child.active !== false ? 'Desactivar' : 'Activar'"
+                        [attr.aria-label]="
+                          (child.active !== false ? 'Desactivar ' : 'Activar ') + child.name
+                        "
+                        (click)="toggleActive(child)"
+                      >
+                        <mat-icon>
+                          {{ child.active !== false ? 'block' : 'check_circle' }}
+                        </mat-icon>
+                      </button>
+                    </div>
+                  }
+                </li>
+              }
+            </ul>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

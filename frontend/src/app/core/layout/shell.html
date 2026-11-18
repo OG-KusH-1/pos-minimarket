@@ -1,0 +1,63 @@
+<mat-toolbar class="shell-toolbar">
+  <button
+    type="button"
+    mat-icon-button
+    aria-label="Mostrar u ocultar el menú"
+    [attr.aria-expanded]="menuOpen()"
+    (click)="toggleMenu()"
+  >
+    <mat-icon fontSet="material-symbols-outlined">menu</mat-icon>
+  </button>
+  <span class="app-name">{{ appName }}</span>
+  <span class="spacer"></span>
+  <span class="store-name">{{ storeName() }}</span>
+  <span class="user-name">
+    <mat-icon fontSet="material-symbols-outlined">account_circle</mat-icon>
+    {{ userName() }}
+  </span>
+  @if (isAuthenticated()) {
+    <button
+      type="button"
+      mat-icon-button
+      aria-label="Cerrar sesión"
+      title="Cerrar sesión"
+      [disabled]="loggingOut()"
+      (click)="logout()"
+    >
+      <mat-icon fontSet="material-symbols-outlined">logout</mat-icon>
+    </button>
+  }
+</mat-toolbar>
+
+<mat-sidenav-container class="shell-container">
+  <mat-sidenav mode="side" [opened]="menuOpen()" class="shell-sidenav">
+    <nav aria-label="Menú principal">
+      @for (group of groups(); track group.id) {
+        <mat-nav-list>
+          @if (group.items.length > 1) {
+            <div mat-subheader class="group-title">
+              <mat-icon fontSet="material-symbols-outlined">{{ group.icon }}</mat-icon>
+              {{ group.label }}
+            </div>
+          }
+          @for (item of group.items; track item.path) {
+            <a mat-list-item [routerLink]="item.path" routerLinkActive="active-link">
+              @if (group.items.length === 1) {
+                <mat-icon matListItemIcon fontSet="material-symbols-outlined">{{
+                  group.icon
+                }}</mat-icon>
+              }
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+        </mat-nav-list>
+      }
+    </nav>
+  </mat-sidenav>
+
+  <mat-sidenav-content class="shell-content">
+    <main>
+      <router-outlet />
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

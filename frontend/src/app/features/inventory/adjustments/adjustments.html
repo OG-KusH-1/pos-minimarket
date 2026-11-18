@@ -1,0 +1,134 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Ajustes de inventario</h1>
+      <p class="subtitle">
+        Solicitudes manuales de entrada y salida de stock con flujo de aprobación en
+        {{ activeStoreName() }}.
+      </p>
+    </div>
+
+    @if (canCreate()) {
+      <button mat-flat-button type="button" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Nuevo ajuste
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-filter">
+      <mat-label>Producto (SKU o nombre)</mat-label>
+      <input matInput formControlName="productQuery" placeholder="Filtrar en la página..." />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (hasActiveProductFilter()) {
+    <p class="filter-note" role="status">
+      Mostrando ajustes de la página actual que incluyen el producto buscado.
+    </p>
+  }
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de ajustes de inventario"
+    emptyMessage="No hay ajustes registrados con los filtros seleccionados."
+  />
+
+  <ng-template #linesTpl let-row>
+    <span>{{ summarizeLines(row) }}</span>
+  </ng-template>
+
+  <ng-template #costTpl let-row>
+    {{
+      row.totalCostImpact !== undefined && row.totalCostImpact !== null
+        ? (row.totalCostImpact | clp)
+        : '—'
+    }}
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--pending]="row.status === 'PENDING_APPROVAL'"
+      [class.badge--approved]="row.status === 'APPROVED'"
+      [class.badge--rejected]="row.status === 'REJECTED'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="adjMenu"
+      [attr.aria-label]="'Acciones para ajuste ' + (row.number || row.id)"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #adjMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openDetail(row)">
+        <mat-icon>visibility</mat-icon>
+        <span>Ver detalle</span>
+      </button>
+      @if (canApprove() && isPending(row)) {
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="isOwnRequest(row)"
+          [matTooltip]="
+            isOwnRequest(row)
+              ? 'Segregación de funciones: no puedes aprobar tu propia solicitud.'
+              : ''
+          "
+          (click)="approveAdjustment(row)"
+        >
+          <mat-icon>check_circle</mat-icon>
+          <span>Aprobar</span>
+        </button>
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="isOwnRequest(row)"
+          [matTooltip]="
+            isOwnRequest(row)
+              ? 'Segregación de funciones: no puedes rechazar tu propia solicitud.'
+              : ''
+          "
+          (click)="openRejectDialog(row)"
+        >
+          <mat-icon>cancel</mat-icon>
+          <span>Rechazar</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

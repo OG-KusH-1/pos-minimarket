@@ -1,0 +1,132 @@
+.dialog-content {
+  min-width: 640px;
+  max-height: 72vh;
+}
+
+.tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+}
+
+.search-field {
+  width: 100%;
+}
+
+.modules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.module-card {
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.module-header {
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.permission-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 8px;
+  padding-left: 8px;
+}
+
+.permission-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.perm-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.85rem;
+}
+
+.perm-desc {
+  margin-left: 40px;
+  font-size: 0.78rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.sensitive-badge {
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+}
+
+.limits-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.limits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.limit-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  border-radius: 8px;
+}
+
+.limit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+
+.limit-label {
+  font-weight: 500;
+}
+
+.limit-preview {
+  font-size: 0.85rem;
+  color: var(--mat-sys-primary);
+  font-weight: 600;
+}
+
+.limit-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.limit-input {
+  width: 150px;
+}
+
+.tab-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.empty {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+@media (max-width: 680px) {
+  .dialog-content {
+    min-width: auto;
+  }
+}

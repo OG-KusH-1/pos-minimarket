@@ -1,0 +1,21 @@
+# Perfil demo: igual que prod en seguridad, pero con datos semilla de demostración (db/demo) y
+# Swagger disponible. Todas las credenciales llegan por variables de entorno (.env, no versionado).
+
+server:
+  # Detras de nginx: respeta X-Forwarded-* (esquema, host, IP de cliente).
+  forward-headers-strategy: framework
+
+spring:
+  flyway:
+    # Versiones V2099...: se aplican después de todo el esquema y la semilla base.
+    locations: classpath:db/migration,classpath:db/demo
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+logging:
+  level:
+    cl.minimarket.pos: INFO

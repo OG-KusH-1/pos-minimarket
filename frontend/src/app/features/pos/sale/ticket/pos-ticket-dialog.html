@@ -1,0 +1,58 @@
+<h2 mat-dialog-title class="ticket-dialog-title">
+  <mat-icon aria-hidden="true">receipt_long</mat-icon>
+  <span>Comprobante {{ ticket()?.number ?? data.saleNumber ?? '#' + data.saleId }}</span>
+  @if (ticket()?.copyLabel) {
+    <span class="copy-chip">{{ ticket()?.copyLabel }}</span>
+  }
+</h2>
+
+<mat-dialog-content class="ticket-dialog-content">
+  @if (errorMessage()) {
+    <div class="inline-alert inline-alert--error" role="alert" data-testid="ticket-error">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+
+  @if (statusNotice()) {
+    <div class="inline-alert inline-alert--info" role="status" data-testid="ticket-notice">
+      <mat-icon aria-hidden="true">check_circle</mat-icon>
+      <span>{{ statusNotice() }}</span>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-box" role="status">
+      <mat-spinner diameter="32" />
+      <span>Cargando comprobante térmico 80 mm…</span>
+    </div>
+  } @else if (ticket(); as currentTicket) {
+    <div class="ticket-preview-scroll">
+      <pos-ticket [ticket]="currentTicket" />
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" data-testid="ticket-close-btn" (click)="close()">Cerrar</button>
+  <button
+    mat-stroked-button
+    type="button"
+    [disabled]="loading() || reprinting() || !ticket()"
+    data-testid="ticket-reprint-btn"
+    (click)="reprintCopy()"
+  >
+    <mat-icon aria-hidden="true">content_copy</mat-icon>
+    {{ reprinting() ? 'Reimprimiendo…' : 'Reimprimir (COPIA)' }}
+  </button>
+  <button
+    mat-flat-button
+    type="button"
+    [disabled]="loading() || reprinting() || !ticket()"
+    data-testid="ticket-print-btn"
+    (click)="printCurrent()"
+  >
+    <mat-icon aria-hidden="true">print</mat-icon>
+    Imprimir
+  </button>
+</mat-dialog-actions>

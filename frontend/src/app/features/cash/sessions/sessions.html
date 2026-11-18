@@ -1,0 +1,398 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Caja</h1>
+      <p class="subtitle">
+        Apertura, movimientos de efectivo, arqueo de cierre e historial de turnos en
+        {{ activeStoreName() }}.
+      </p>
+    </div>
+  </header>
+
+  <mat-tab-group animationDuration="0ms">
+    <mat-tab label="Turno actual">
+      <div class="tab-panel">
+        @if (!canOpen()) {
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <p class="info-text">
+                Tu rol no tiene permiso para abrir o gestionar el turno activo de una terminal.
+                Puedes consultar y administrar los turnos registrados en la pestaña
+                <strong>Historial de turnos</strong>.
+              </p>
+            </mat-card-content>
+          </mat-card>
+        } @else if (activeTerminalId() === null) {
+          <mat-card appearance="outlined">
+            <mat-card-content>
+              <div class="info-banner" role="status">
+                <mat-icon>point_of_sale</mat-icon>
+                <span>
+                  No hay una terminal activa seleccionada en tu sesión. Inicia sesión eligiendo una
+                  terminal para abrir o gestionar un turno de caja.
+                </span>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        } @else if (loadingCurrent()) {
+          <div class="loading-box" role="status">
+            <mat-spinner diameter="32" />
+            <span>Consultando turno actual de la terminal…</span>
+          </div>
+        } @else if (currentError(); as err) {
+          <mat-card appearance="outlined">
+            <mat-card-content class="error-state">
+              <p class="error-banner" role="alert">
+                <mat-icon>error_outline</mat-icon>
+                <span>{{ err }}</span>
+              </p>
+              <button mat-stroked-button type="button" (click)="loadCurrentSession()">
+                Reintentar
+              </button>
+            </mat-card-content>
+          </mat-card>
+        } @else if (currentSession(); as session) {
+          <mat-card appearance="outlined" class="session-card">
+            <mat-card-header>
+              <mat-card-title>
+                Turno {{ session.number }}
+                <span class="badge badge--open">Abierto</span>
+              </mat-card-title>
+              <mat-card-subtitle>
+                Terminal: {{ session.terminal?.name ?? session.terminal?.code ?? '—' }} · Cajero:
+                {{ formatUser(session.cashier) }} · Fecha negocio:
+                {{ formatDate(session.businessDate) }} · Apertura:
+                {{ formatDateTime(session.openedAt) }}
+              </mat-card-subtitle>
+            </mat-card-header>
+
+            <mat-card-content class="session-content">
+              <div class="session-actions">
+                @if (canCashIn() || canCashOut()) {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    (click)="openMovementDialog(canCashIn() ? 'CASH_IN' : 'CASH_OUT')"
+                  >
+                    <mat-icon>swap_vert</mat-icon>
+                    Registrar movimiento
+                  </button>
+                }
+                @if (canCloseSession(session)) {
+                  <button mat-flat-button type="button" (click)="openCloseDialog(session)">
+                    <mat-icon>lock</mat-icon>
+                    Cerrar turno y arquear
+                  </button>
+                }
+                <button mat-button type="button" (click)="refreshCurrent()">
+                  <mat-icon>refresh</mat-icon>
+                  Actualizar
+                </button>
+              </div>
+
+              @if (currentSummary(); as summary) {
+                <div class="kpi-grid">
+                  <div class="kpi-card">
+                    <span class="kpi-label">Monto inicial</span>
+                    <strong class="kpi-value">{{ summary.openingAmount ?? 0 | clp }}</strong>
+                  </div>
+                  <div class="kpi-card">
+                    <span class="kpi-label">Ingresos manuales</span>
+                    <strong class="kpi-value">{{ summary.cashIn ?? 0 | clp }}</strong>
+                  </div>
+                  <div class="kpi-card">
+                    <span class="kpi-label">Retiros manuales</span>
+                    <strong class="kpi-value">{{ summary.cashOut ?? 0 | clp }}</strong>
+                  </div>
+                  <div class="kpi-card kpi-card--highlight">
+                    <span class="kpi-label">Efectivo esperado</span>
+                    <strong class="kpi-value">{{ summary.expectedCash ?? 0 | clp }}</strong>
+                  </div>
+                  <div class="kpi-card">
+                    <span class="kpi-label">Operaciones</span>
+                    <strong class="kpi-value">
+                      {{ summary.salesCount ?? 0 }} ventas · {{ summary.voidCount ?? 0 }} anul. ·
+                      {{ summary.returnCount ?? 0 }} dev.
+                    </strong>
+                  </div>
+                </div>
+
+                @if ((summary.byMethod ?? []).length > 0) {
+                  <div class="subsection">
+                    <h3>Esperado por medio de pago</h3>
+                    <table class="simple-table">
+                      <thead>
+                        <tr>
+                          <th>Medio</th>
+                          <th class="num">Ventas</th>
+                          <th class="num">Devoluciones</th>
+                          <th class="num">Abonos</th>
+                          <th class="num">Esperado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (m of summary.byMethod ?? []; track m.method) {
+                          <tr>
+                            <td>{{ methodLabel(m.method) }}</td>
+                            <td class="num">{{ m.sales ?? 0 | clp }}</td>
+                            <td class="num">{{ m.refunds ?? 0 | clp }}</td>
+                            <td class="num">{{ m.creditPayments ?? 0 | clp }}</td>
+                            <td class="num">
+                              <strong>{{ m.expected ?? 0 | clp }}</strong>
+                            </td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                }
+              }
+
+              <div class="subsection">
+                <h3>Movimientos manuales de efectivo</h3>
+                @if (currentMovements().length === 0) {
+                  <p class="muted">No hay ingresos ni retiros registrados en este turno.</p>
+                } @else {
+                  <table class="simple-table">
+                    <thead>
+                      <tr>
+                        <th>Fecha y hora</th>
+                        <th>Tipo</th>
+                        <th class="num">Monto</th>
+                        <th>Motivo</th>
+                        <th>Usuario</th>
+                        <th>Autorización</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (mov of currentMovements(); track mov.id) {
+                        <tr>
+                          <td>{{ formatDateTime(mov.occurredAt) }}</td>
+                          <td>
+                            <span
+                              class="badge"
+                              [class.badge--open]="mov.movementType === 'CASH_IN'"
+                              [class.badge--warn]="mov.movementType === 'CASH_OUT'"
+                            >
+                              {{ movementLabel(mov.movementType) }}
+                            </span>
+                          </td>
+                          <td class="num">{{ mov.amount ?? 0 | clp }}</td>
+                          <td>{{ mov.reason || '—' }}</td>
+                          <td>{{ mov.username || '—' }}</td>
+                          <td>
+                            {{ mov.authorizationId ? 'Supervisor #' + mov.authorizationId : '—' }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                }
+              </div>
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          <mat-card appearance="outlined" class="open-card">
+            <mat-card-header>
+              <mat-card-title>Abrir turno de caja</mat-card-title>
+              <mat-card-subtitle>
+                Ingresa el fondo inicial de caja en la terminal activa para comenzar a operar.
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <form class="open-form" [formGroup]="openForm" (ngSubmit)="submitOpenSession()">
+                <mat-form-field appearance="outline">
+                  <mat-label>Monto inicial (CLP)</mat-label>
+                  <span matTextPrefix>$&nbsp;</span>
+                  <input
+                    matInput
+                    type="number"
+                    min="0"
+                    step="1"
+                    inputmode="numeric"
+                    formControlName="openingAmount"
+                    placeholder="Ej. 50000"
+                  />
+                  @if (openForm.controls.openingAmount.hasError('required')) {
+                    <mat-error>El monto inicial es obligatorio.</mat-error>
+                  } @else if (openForm.controls.openingAmount.hasError('min')) {
+                    <mat-error>El monto inicial debe ser mayor o igual a $0.</mat-error>
+                  } @else if (openForm.controls.openingAmount.hasError('pattern')) {
+                    <mat-error>Ingresa un monto entero en pesos chilenos.</mat-error>
+                  } @else if (openForm.controls.openingAmount.getError('server'); as serverMsg) {
+                    <mat-error>{{ serverMsg }}</mat-error>
+                  }
+                </mat-form-field>
+
+                @if (openError(); as err) {
+                  <p class="error-banner" role="alert">
+                    <mat-icon>error_outline</mat-icon>
+                    <span>{{ err }}</span>
+                  </p>
+                }
+
+                <div class="open-actions">
+                  <button mat-flat-button type="submit" [disabled]="openingBusy()">
+                    @if (openingBusy()) {
+                      <mat-spinner diameter="18" />
+                    } @else {
+                      Abrir turno
+                    }
+                  </button>
+                </div>
+              </form>
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Historial de turnos">
+      <div class="tab-panel">
+        <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Desde</mat-label>
+            <input matInput type="date" formControlName="from" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Hasta</mat-label>
+            <input matInput type="date" formControlName="to" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Terminal</mat-label>
+            <mat-select formControlName="terminalId">
+              <mat-option [value]="null">Todas</mat-option>
+              @for (term of terminals(); track term.id) {
+                <mat-option [value]="term.id">{{ term.code }} — {{ term.name }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (hasFullReadScope() && canReadUsers()) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Cajero</mat-label>
+              <mat-select formControlName="cashierId">
+                <mat-option [value]="null">Todos</mat-option>
+                @for (user of storeUsers(); track user.id) {
+                  <mat-option [value]="user.id">
+                    {{ user.fullName ? user.fullName + ' (' + user.username + ')' : user.username }}
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+          }
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Estado</mat-label>
+            <mat-select formControlName="status">
+              <mat-option [value]="null">Todos</mat-option>
+              <mat-option value="OPEN">Abierto</mat-option>
+              <mat-option value="CLOSED">Cerrado</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>Diferencia</mat-label>
+            <mat-select formControlName="withDifference">
+              <mat-option [value]="null">Todas</mat-option>
+              <mat-option [value]="true">Con diferencia</mat-option>
+              <mat-option [value]="false">Sin diferencia</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="filter-actions">
+            <button mat-stroked-button type="submit">Filtrar</button>
+            <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+          </div>
+        </form>
+
+        <pos-paginated-table
+          [dataSource]="dataSource"
+          [columns]="columns()"
+          label="Historial de turnos de caja"
+          emptyMessage="No hay turnos de caja que coincidan con los filtros."
+        />
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+
+  <ng-template #differenceTpl let-row>
+    @if (row.differenceTotal !== undefined && row.differenceTotal !== null) {
+      <span
+        [class.diff-danger]="row.requiresDifferenceApproval"
+        [class.diff-warn]="!row.requiresDifferenceApproval && row.differenceTotal !== 0"
+      >
+        {{ row.differenceTotal | clp }}
+      </span>
+    } @else {
+      <span>—</span>
+    }
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <div class="status-cell">
+      <span
+        class="badge"
+        [class.badge--open]="row.status === 'OPEN'"
+        [class.badge--closed]="row.status === 'CLOSED'"
+      >
+        {{ statusLabel(row.status) }}
+      </span>
+      @if (row.requiresDifferenceApproval) {
+        <span class="badge badge--warn">Pend. aprobación</span>
+      } @else if (row.differenceApprovedBy) {
+        <span class="badge badge--approved">Aprobada</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    @if (row.status === 'CLOSED' || canCloseSession(row)) {
+      <button
+        mat-icon-button
+        type="button"
+        [matMenuTriggerFor]="rowMenu"
+        [attr.aria-label]="'Acciones para turno ' + (row.number ?? row.id)"
+      >
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      <mat-menu #rowMenu="matMenu">
+        @if (canCloseSession(row)) {
+          <button mat-menu-item type="button" (click)="openCloseDialog(row)">
+            <mat-icon>lock</mat-icon>
+            <span>Cerrar turno</span>
+          </button>
+        }
+        @if (row.status === 'CLOSED' && row.requiresDifferenceApproval && canApproveDifference()) {
+          <button
+            mat-menu-item
+            type="button"
+            [disabled]="isOwnSession(row)"
+            (click)="approveRowDifference(row)"
+          >
+            <mat-icon>verified</mat-icon>
+            <span>
+              {{
+                isOwnSession(row)
+                  ? 'Aprobar diferencia (requiere otro supervisor)'
+                  : 'Aprobar diferencia'
+              }}
+            </span>
+          </button>
+        }
+        @if (row.status === 'CLOSED') {
+          <button mat-menu-item type="button" (click)="openReceiptDialog(row)">
+            <mat-icon>receipt_long</mat-icon>
+            <span>Ver comprobante</span>
+          </button>
+          <button mat-menu-item type="button" (click)="downloadRowPdf(row)">
+            <mat-icon>picture_as_pdf</mat-icon>
+            <span>Descargar PDF</span>
+          </button>
+        }
+      </mat-menu>
+    }
+  </ng-template>
+</section>

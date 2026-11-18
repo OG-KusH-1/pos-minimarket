@@ -1,0 +1,150 @@
+<h2 mat-dialog-title>
+  Comprobante de cierre —
+  {{ receipt()?.session?.number ?? data.sessionNumber ?? '#' + data.sessionId }}
+</h2>
+
+<mat-dialog-content class="receipt-dialog-content">
+  @if (loading()) {
+    <div class="loading-box" role="status">
+      <mat-spinner diameter="32" />
+      <span>Cargando comprobante de cierre…</span>
+    </div>
+  } @else if (receipt(); as r) {
+    <section class="receipt-sheet" aria-label="Detalle del comprobante de cierre">
+      <header class="sheet-header">
+        <div>
+          <h3>{{ r.company?.tradeName || r.company?.legalName || 'Minimarket' }}</h3>
+          @if (r.company?.rut) {
+            <p class="muted">RUT: {{ r.company.rut | rut }}</p>
+          }
+        </div>
+        <div class="sheet-meta">
+          <span><strong>Turno:</strong> {{ r.session?.number }}</span>
+          <span><strong>Fecha negocio:</strong> {{ formatDate(r.session?.businessDate) }}</span>
+        </div>
+      </header>
+
+      <div class="info-grid">
+        <div><strong>Local:</strong> {{ r.store?.code }} — {{ r.store?.name }}</div>
+        <div>
+          <strong>Terminal:</strong> {{ r.session?.terminal?.code }} —
+          {{ r.session?.terminal?.name }}
+        </div>
+        <div><strong>Cajero:</strong> {{ formatUser(r.session?.cashier) }}</div>
+        <div><strong>Cerrado por:</strong> {{ formatUser(r.session?.closedBy) }}</div>
+        <div><strong>Apertura:</strong> {{ formatDateTime(r.session?.openedAt) }}</div>
+        <div><strong>Cierre:</strong> {{ formatDateTime(r.session?.closedAt) }}</div>
+      </div>
+
+      <h4>Resumen de efectivo</h4>
+      <table class="receipt-table">
+        <tbody>
+          <tr>
+            <td>Monto inicial</td>
+            <td class="num">{{ r.summary?.openingAmount ?? 0 | clp }}</td>
+          </tr>
+          <tr>
+            <td>(+) Ingresos manuales</td>
+            <td class="num">{{ r.summary?.cashIn ?? 0 | clp }}</td>
+          </tr>
+          <tr>
+            <td>(-) Retiros manuales</td>
+            <td class="num">{{ r.summary?.cashOut ?? 0 | clp }}</td>
+          </tr>
+          <tr class="total-row">
+            <td>Efectivo esperado</td>
+            <td class="num">{{ r.summary?.expectedCash ?? 0 | clp }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h4>Arqueo por medio de pago</h4>
+      <table class="receipt-table">
+        <thead>
+          <tr>
+            <th>Medio</th>
+            <th class="num">Esperado</th>
+            <th class="num">Contado</th>
+            <th class="num">Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (count of r.session?.counts ?? []; track count.paymentMethod) {
+            <tr>
+              <td>{{ methodLabel(count.paymentMethod) }}</td>
+              <td class="num">{{ count.expectedAmount ?? 0 | clp }}</td>
+              <td class="num">{{ count.countedAmount ?? 0 | clp }}</td>
+              <td class="num">{{ count.difference ?? 0 | clp }}</td>
+            </tr>
+          }
+          <tr class="total-row">
+            <td>Total arqueo</td>
+            <td class="num">{{ r.session?.expectedTotal ?? 0 | clp }}</td>
+            <td class="num">{{ r.session?.countedTotal ?? 0 | clp }}</td>
+            <td class="num">{{ r.session?.differenceTotal ?? 0 | clp }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="ops-strip">
+        <span
+          >Ventas: <strong>{{ r.summary?.salesCount ?? 0 }}</strong></span
+        >
+        <span
+          >Anulaciones: <strong>{{ r.summary?.voidCount ?? 0 }}</strong></span
+        >
+        <span
+          >Devoluciones: <strong>{{ r.summary?.returnCount ?? 0 }}</strong></span
+        >
+      </div>
+
+      @if (r.session?.differenceApprovedBy; as approver) {
+        <p class="approval-box approval-box--approved">
+          <mat-icon>verified</mat-icon>
+          <span>Diferencia aprobada por {{ formatUser(approver) }}.</span>
+        </p>
+      } @else if (r.session?.requiresDifferenceApproval) {
+        <div class="approval-box approval-box--pending">
+          <mat-icon>pending_actions</mat-icon>
+          <div class="approval-text">
+            <strong>Diferencia pendiente de aprobación por supervisor.</strong>
+            @if (canApproveDifference() && isOwnSession()) {
+              <span>Requiere aprobación de otro supervisor (segregación de funciones).</span>
+            }
+          </div>
+          @if (canApproveDifference() && !isOwnSession()) {
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="approving()"
+              (click)="approveDifference()"
+            >
+              Aprobar diferencia
+            </button>
+          }
+        </div>
+      }
+    </section>
+  }
+
+  @if (errorMessage(); as error) {
+    <p class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ error }}</span>
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()">Cerrar</button>
+  @if (receipt()) {
+    <button mat-stroked-button type="button" [disabled]="pdfBusy()" (click)="openPdf()">
+      <mat-icon>picture_as_pdf</mat-icon>
+      Ver / Imprimir PDF
+    </button>
+    <button mat-flat-button type="button" [disabled]="pdfBusy()" (click)="downloadPdf()">
+      <mat-icon>download</mat-icon>
+      Descargar PDF
+    </button>
+  }
+</mat-dialog-actions>

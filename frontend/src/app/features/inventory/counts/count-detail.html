@@ -1,0 +1,412 @@
+<section class="page">
+  <div class="top-nav">
+    <button mat-button type="button" (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a tomas
+    </button>
+
+    <button mat-stroked-button type="button" (click)="reloadAll()" [disabled]="loadingCount()">
+      <mat-icon>refresh</mat-icon>
+      Actualizar
+    </button>
+  </div>
+
+  @if (loadingCount() && !count()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+
+  @if (concurrencyConflict(); as conflict) {
+    <div class="alert alert--conflict" role="alert">
+      <div class="alert-text">
+        <mat-icon>sync_problem</mat-icon>
+        <span>{{ conflict }}</span>
+      </div>
+      <button mat-flat-button type="button" (click)="reloadAll()">Recargar toma</button>
+    </div>
+  }
+
+  @if (errorMessage(); as error) {
+    <div class="alert alert--error" role="alert">
+      <div class="alert-text">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </div>
+    </div>
+  }
+
+  @if (count(); as current) {
+    <header class="detail-header">
+      <div class="title-block">
+        <div class="title-row">
+          <h1>Toma {{ current.number || '#' + current.id }}</h1>
+          <span
+            class="badge"
+            [class.badge--open]="current.status === 'OPEN'"
+            [class.badge--submitted]="current.status === 'SUBMITTED'"
+            [class.badge--approved]="current.status === 'APPROVED'"
+            [class.badge--rejected]="current.status === 'REJECTED'"
+            [class.badge--cancelled]="current.status === 'CANCELLED'"
+          >
+            {{ statusLabel(current.status) }}
+          </span>
+          <span class="chip">
+            {{ typeLabel(current.countType) }}
+            @if (current.countType === 'CYCLIC' && current.category?.name) {
+              · {{ current.category.name }}
+            }
+          </span>
+          <span class="chip" [class.chip--blind]="current.blind">
+            {{ current.blind ? 'Modo ciego' : 'Con teórico visible' }}
+          </span>
+          @if (current.version !== undefined) {
+            <span class="version-tag">v{{ current.version }}</span>
+          }
+        </div>
+
+        <div class="meta-row">
+          <span
+            >Iniciada por: <strong>{{ current.startedBy?.fullName || '—' }}</strong></span
+          >
+          <span>Inicio: {{ formatDate(current.startedAt) }}</span>
+          @if (current.submittedAt) {
+            <span>Enviada: {{ formatDate(current.submittedAt) }}</span>
+          }
+          @if (current.approvedBy?.fullName) {
+            <span>
+              Aprobada por: <strong>{{ current.approvedBy.fullName }}</strong> ({{
+                formatDate(current.approvedAt)
+              }})
+            </span>
+          }
+        </div>
+
+        @if (current.notes) {
+          <p class="notes-text">Notas: {{ current.notes }}</p>
+        }
+      </div>
+
+      <div class="lifecycle-actions">
+        @if (isEditable()) {
+          <button
+            mat-flat-button
+            type="button"
+            (click)="savePendingLines()"
+            [disabled]="pendingCount() === 0 || hasValidationErrors() || saving()"
+          >
+            <mat-icon>save</mat-icon>
+            Guardar cambios ({{ pendingCount() }})
+          </button>
+        }
+
+        @if (current.status === 'OPEN' && canManage()) {
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="submitForReview()"
+            [disabled]="!canSubmit()"
+          >
+            <mat-icon>send</mat-icon>
+            Enviar a revisión
+          </button>
+        }
+
+        @if (current.status === 'SUBMITTED' && canApprove()) {
+          <button
+            mat-flat-button
+            type="button"
+            (click)="approveCount()"
+            [disabled]="isSodBlocked() || actionInFlight()"
+          >
+            <mat-icon>check_circle</mat-icon>
+            Aprobar toma
+          </button>
+          <button
+            mat-stroked-button
+            type="button"
+            (click)="rejectCount()"
+            [disabled]="actionInFlight()"
+          >
+            <mat-icon>undo</mat-icon>
+            Rechazar a reconteo
+          </button>
+        }
+
+        @if ((current.status === 'OPEN' || current.status === 'SUBMITTED') && canManage()) {
+          <button
+            mat-button
+            type="button"
+            class="btn-danger"
+            (click)="cancelCount()"
+            [disabled]="actionInFlight()"
+          >
+            <mat-icon>cancel</mat-icon>
+            Cancelar toma
+          </button>
+        }
+      </div>
+    </header>
+
+    @if (current.rejectionReason) {
+      <div class="alert alert--info" role="status">
+        <div class="alert-text">
+          <mat-icon>info</mat-icon>
+          <span> <strong>Motivo registrado:</strong> {{ current.rejectionReason }} </span>
+        </div>
+      </div>
+    }
+
+    @if (current.status === 'SUBMITTED' && canApprove() && isSodBlocked()) {
+      <div class="alert alert--warning" role="status">
+        <div class="alert-text">
+          <mat-icon>gavel</mat-icon>
+          <span>
+            Segregación de funciones: no puedes aprobar una toma que iniciaste o en la que
+            registraste conteos.
+          </span>
+        </div>
+      </div>
+    }
+
+    @if (current.blind && !showTheoretical()) {
+      <div class="alert alert--blind" role="status">
+        <div class="alert-text">
+          <mat-icon>visibility_off</mat-icon>
+          <span>
+            Modo ciego activo: las existencias teóricas y diferencias permanecen ocultas hasta que
+            la toma sea enviada y evaluada por un aprobador autorizado.
+          </span>
+        </div>
+      </div>
+    }
+
+    <section class="summary-strip">
+      <div class="summary-card">
+        <span class="summary-label">Avance del conteo</span>
+        <span class="summary-value">
+          {{ countedLinesCount() }} / {{ totalCountLines() }} líneas ({{ progressPercent() }}%)
+        </span>
+        <mat-progress-bar mode="determinate" [value]="progressPercent()" />
+        @if (current.status === 'OPEN' && uncountedCount() > 0) {
+          <span class="summary-hint">
+            Faltan {{ uncountedCount() }} línea(s) por contar para poder enviar a revisión.
+          </span>
+        }
+      </div>
+
+      @if (showValuationSummary() && current.differenceSummary; as summary) {
+        <div class="summary-card">
+          <span class="summary-label">Líneas con diferencia</span>
+          <span class="summary-value">{{ summary.lines ?? 0 }}</span>
+          <span class="summary-hint">Sobre el total de líneas contadas</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Sobrantes valorizados</span>
+          <span class="summary-value summary-value--positive">
+            {{ summary.valueIn ?? 0 | clp }}
+          </span>
+          <span class="summary-hint">Ajustes positivos</span>
+        </div>
+        <div class="summary-card">
+          <span class="summary-label">Faltantes valorizados</span>
+          <span class="summary-value summary-value--negative">
+            {{ summary.valueOut ?? 0 | clp }}
+          </span>
+          <span class="summary-hint"> Impacto neto: {{ netDifference(current) | clp }} </span>
+        </div>
+      }
+    </section>
+
+    <section class="grid-toolbar">
+      <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+          <mat-label>Buscar producto</mat-label>
+          <input matInput formControlName="q" placeholder="SKU, código de barras o nombre" />
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Estado de línea</mat-label>
+          <mat-select formControlName="countedMode" (selectionChange)="applyFilters()">
+            @for (opt of countedFilterOptions; track opt.value) {
+              <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <div class="filter-actions">
+          <button mat-stroked-button type="submit">Filtrar</button>
+          <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+        </div>
+      </form>
+
+      @if (isEditable()) {
+        <div class="keyboard-controls">
+          <span class="keyboard-hint">
+            Atajos: <strong>Enter / ↓</strong> siguiente fila · <strong>↑</strong> fila anterior ·
+            <strong>Ctrl+S</strong> guardar lote
+          </span>
+          <mat-slide-toggle [checked]="autosaveEnabled()" (change)="toggleAutosave($event.checked)">
+            Autoguardado
+          </mat-slide-toggle>
+        </div>
+      }
+    </section>
+
+    @if (isEditable() && pendingCount() > 0) {
+      <div class="pending-banner" role="status">
+        <span>
+          <strong>{{ pendingCount() }}</strong> cambio(s) pendiente(s) por guardar en lote.
+        </span>
+        <div class="pending-actions">
+          <button mat-button type="button" (click)="discardDrafts()" [disabled]="saving()">
+            Descartar cambios
+          </button>
+          <button
+            mat-flat-button
+            type="button"
+            (click)="savePendingLines()"
+            [disabled]="hasValidationErrors() || saving()"
+          >
+            Guardar ahora
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (loadingLines() || saving()) {
+      <mat-progress-bar mode="indeterminate" />
+    }
+
+    <div class="table-container">
+      @if (lines().length === 0 && !loadingLines()) {
+        <p class="empty-state" role="status">
+          No hay líneas que coincidan con los filtros actuales.
+        </p>
+      } @else {
+        <table class="count-grid" aria-label="Grilla de conteo físico">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Producto</th>
+              <th>Lote</th>
+              @if (showTheoretical()) {
+                <th class="align-end">Teórico</th>
+              }
+              <th class="align-end">Contado</th>
+              @if (showTheoretical()) {
+                <th class="align-end">Diferencia</th>
+              }
+              @if (canReadCosts()) {
+                <th class="align-end">Costo unit.</th>
+              }
+              @if (canReadCosts() && showTheoretical()) {
+                <th class="align-end">Valor dif.</th>
+              }
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (line of lines(); track line.id ?? $index; let i = $index) {
+              <tr
+                [class.row--dirty]="isRowDirty(line)"
+                [class.row--focused]="focusedRowIndex() === i"
+                [class.row--error]="rowError(line) !== null"
+              >
+                <td class="mono">{{ line.sku || '—' }}</td>
+                <td>
+                  <div class="product-name">{{ line.name || 'Producto #' + line.productId }}</div>
+                </td>
+                <td>{{ line.lotNumber || '—' }}</td>
+                @if (showTheoretical()) {
+                  <td class="align-end">
+                    {{
+                      line.theoreticalQty !== undefined && line.theoreticalQty !== null
+                        ? (line.theoreticalQty | qty: unitFor(line))
+                        : '—'
+                    }}
+                  </td>
+                }
+                <td class="align-end counted-cell">
+                  @if (isEditable()) {
+                    <div class="qty-input-wrap">
+                      <input
+                        #qtyInput
+                        type="number"
+                        class="qty-input"
+                        min="0"
+                        [step]="stepFor(line)"
+                        [value]="inputValueFor(line)"
+                        [attr.aria-label]="'Cantidad contada para ' + (line.name || line.sku)"
+                        [attr.data-line-id]="line.id"
+                        [attr.data-row-index]="i"
+                        (input)="onQtyInputEvent(line, $event)"
+                        (keydown)="onQtyKeydown($event, i)"
+                        (focus)="focusedRowIndex.set(i)"
+                      />
+                      <span class="unit-label">{{ unitFor(line) }}</span>
+                    </div>
+                    @if (rowError(line); as fieldErr) {
+                      <span class="field-error" role="alert">{{ fieldErr }}</span>
+                    }
+                  } @else {
+                    <span>
+                      {{
+                        line.countedQty !== undefined && line.countedQty !== null
+                          ? (line.countedQty | qty: unitFor(line))
+                          : 'Pendiente'
+                      }}
+                    </span>
+                  }
+                </td>
+                @if (showTheoretical()) {
+                  <td class="align-end">
+                    @if (line.difference !== undefined && line.difference !== null) {
+                      <span
+                        [class.diff--pos]="line.difference > 0"
+                        [class.diff--neg]="line.difference < 0"
+                      >
+                        {{ line.difference > 0 ? '+' : ''
+                        }}{{ line.difference | qty: unitFor(line) }}
+                      </span>
+                    } @else {
+                      <span>—</span>
+                    }
+                  </td>
+                }
+                @if (canReadCosts()) {
+                  <td class="align-end">{{ formatCost(line.unitCost) }}</td>
+                }
+                @if (canReadCosts() && showTheoretical()) {
+                  <td class="align-end">
+                    @if (lineDifferenceValue(line); as diffVal) {
+                      {{ diffVal | clp }}
+                    } @else {
+                      <span>—</span>
+                    }
+                  </td>
+                }
+                <td>
+                  @if (isRowDirty(line)) {
+                    <span class="line-badge line-badge--dirty">Sin guardar</span>
+                  } @else if (line.countedAt) {
+                    <span class="line-badge line-badge--counted">Contada</span>
+                  } @else {
+                    <span class="line-badge line-badge--pending">Pendiente</span>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+
+      <mat-paginator
+        [length]="totalLines()"
+        [pageIndex]="pageIndex()"
+        [pageSize]="pageSize()"
+        [pageSizeOptions]="[50, 100, 200]"
+        (page)="onPageChange($event)"
+      />
+    </div>
+  }
+</section>

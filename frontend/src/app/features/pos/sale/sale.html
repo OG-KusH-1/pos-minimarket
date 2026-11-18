@@ -1,0 +1,453 @@
+<section class="pos-sale-page" aria-label="Punto de venta">
+  <header class="pos-header">
+    <div class="pos-title-group">
+      <h1>Venta</h1>
+      @if (storeContext.activeStore(); as store) {
+        <span class="pos-context-label">
+          {{ store.name }}
+          @if (storeContext.terminalId(); as termId) {
+            · Terminal #{{ termId }}
+          }
+        </span>
+      }
+    </div>
+
+    <div class="pos-header-actions">
+      @if (cashSession(); as session) {
+        <span class="status-badge status-badge--ok" data-testid="cash-session-open">
+          <mat-icon aria-hidden="true">point_of_sale</mat-icon>
+          Caja abierta {{ session.number ? '(' + session.number + ')' : '#' + session.id }}
+        </span>
+      } @else if (hasStoreAndTerminal() && cashSessionChecked() && !cashSessionLoading()) {
+        <span class="status-badge status-badge--warn" data-testid="cash-session-missing">
+          <mat-icon aria-hidden="true">warning_amber</mat-icon>
+          Sin turno de caja abierto
+        </span>
+      }
+
+      @if (lastCompletedSale(); as lastSale) {
+        @if (lastSale.id; as lastSaleId) {
+          <button
+            mat-stroked-button
+            type="button"
+            data-testid="last-sale-ticket-btn"
+            (click)="openTicketDialog(lastSaleId, lastSale.number, false)"
+          >
+            <mat-icon aria-hidden="true">receipt_long</mat-icon>
+            Ticket {{ lastSale.number ?? '#' + lastSaleId }}
+          </button>
+        }
+      }
+
+      @if (!cart.isEmpty()) {
+        <button
+          mat-stroked-button
+          type="button"
+          data-testid="clear-cart-btn"
+          (click)="confirmAndClearCart()"
+        >
+          <mat-icon aria-hidden="true">delete_sweep</mat-icon>
+          Limpiar (Esc)
+        </button>
+      }
+
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="shortcuts-help-btn"
+        (click)="openShortcutsDialog()"
+      >
+        <mat-icon aria-hidden="true">keyboard</mat-icon>
+        Atajos (F1)
+      </button>
+    </div>
+  </header>
+
+  @if (!hasStoreAndTerminal()) {
+    <div class="pos-banner pos-banner--warn" role="alert" data-testid="missing-context-banner">
+      <mat-icon aria-hidden="true">store_mall_directory</mat-icon>
+      <span>
+        Selecciona un local y una terminal en la barra superior para escanear productos y cotizar
+        precios.
+      </span>
+    </div>
+  }
+
+  @if (statusNotice(); as notice) {
+    <div
+      class="pos-banner"
+      [class.pos-banner--info]="notice.severity === 'info'"
+      [class.pos-banner--warn]="notice.severity === 'warning'"
+      [class.pos-banner--error]="notice.severity === 'error'"
+      role="status"
+      data-testid="pos-status-notice"
+    >
+      <mat-icon aria-hidden="true">
+        @switch (notice.severity) {
+          @case ('error') {
+            error_outline
+          }
+          @case ('warning') {
+            warning_amber
+          }
+          @default {
+            info
+          }
+        }
+      </mat-icon>
+      <span>{{ notice.message }}</span>
+    </div>
+  }
+
+  @if (cart.quoteError(); as qError) {
+    <div class="pos-banner pos-banner--error" role="alert" data-testid="quote-error-banner">
+      <mat-icon aria-hidden="true">error</mat-icon>
+      <span>{{ qError }}</span>
+    </div>
+  }
+
+  <div class="pos-workspace">
+    <div class="pos-main-column">
+      <mat-card class="pos-search-card" appearance="outlined">
+        <pos-search-bar
+          [disabled]="!hasStoreAndTerminal()"
+          (scanResolved)="onScanResolved($event)"
+          (productSelected)="onProductSelected($event)"
+        />
+      </mat-card>
+
+      <mat-card class="pos-cart-card" appearance="outlined">
+        <div class="cart-card-header">
+          <div class="cart-heading">
+            <h2>Carrito en curso</h2>
+            <span class="cart-counts">
+              {{ cart.lineCount() }} línea(s) · {{ cart.totalItemsCount() | qty }} ítem(s)
+            </span>
+          </div>
+
+          <div class="cart-toolbar-actions">
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="cart.selectedLine() === null"
+              data-testid="edit-qty-btn"
+              (click)="editLineQuantity()"
+            >
+              <mat-icon aria-hidden="true">edit</mat-icon>
+              Cantidad (F4)
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="cart.isEmpty()"
+              data-testid="apply-discount-btn"
+              (click)="openDiscountDialog()"
+            >
+              <mat-icon aria-hidden="true">percent</mat-icon>
+              Descuento (F6)
+            </button>
+          </div>
+        </div>
+
+        @if (cart.isEmpty()) {
+          <div class="empty-cart-state" data-testid="empty-cart-state">
+            <mat-icon aria-hidden="true">qr_code_scanner</mat-icon>
+            <h3>Escanea o busca un producto para comenzar</h3>
+            <p>
+              El lector de códigos de barras agrega artículos al instante. También puedes buscar por
+              nombre, SKU o atajo numérico desde la barra superior (<code>F2</code>).
+            </p>
+          </div>
+        } @else {
+          <div class="cart-table-wrapper">
+            <table class="cart-table" aria-label="Líneas del carrito de venta">
+              <thead>
+                <tr>
+                  <th scope="col" class="col-index">#</th>
+                  <th scope="col">Producto</th>
+                  <th scope="col" class="col-num">Cant.</th>
+                  <th scope="col" class="col-num">P. unit.</th>
+                  <th scope="col" class="col-num">Desc.</th>
+                  <th scope="col" class="col-num">Total</th>
+                  <th scope="col" class="col-actions">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of cart.lines(); track line.lineId) {
+                  <tr
+                    class="cart-row"
+                    [class.is-selected]="cart.selectedLineIndex() === $index"
+                    [attr.data-line-index]="$index"
+                  >
+                    <td class="col-index">{{ $index + 1 }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        class="line-select-btn"
+                        [attr.aria-pressed]="cart.selectedLineIndex() === $index"
+                        (click)="selectLine($index)"
+                      >
+                        <span class="line-name">
+                          {{ line.name }}
+                          @if (line.restricted) {
+                            <span class="tag tag--restricted">+18</span>
+                          }
+                          @if (line.saleType === 'PACK') {
+                            <span class="tag tag--pack">Pack</span>
+                          }
+                          @if (quotedLine($index)?.appliedPromotion; as promo) {
+                            <span class="tag tag--promo">{{ promo.name }}</span>
+                          }
+                        </span>
+                        <span class="line-sku">{{ line.sku }}</span>
+                      </button>
+                    </td>
+                    <td class="col-num">
+                      <button
+                        type="button"
+                        class="qty-inline-btn"
+                        matTooltip="Editar cantidad (F4)"
+                        (click)="editLineQuantity($index)"
+                      >
+                        {{ line.quantity | qty }}
+                        {{ line.unitOfMeasure === 'KG' ? 'kg' : 'u' }}
+                      </button>
+                    </td>
+                    <td class="col-num">{{ line.unitPriceGross | clp }}</td>
+                    <td class="col-num">
+                      @if (lineDiscountDisplay($index); as discAmount) {
+                        <span class="discount-cell">-{{ discAmount | clp }}</span>
+                      } @else if (line.manualDiscount) {
+                        <span class="discount-cell">
+                          {{ formatDiscountBadge(line.manualDiscount) }}
+                        </span>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td class="col-num total-cell">
+                      {{ lineDisplayTotal($index, line) | clp }}
+                    </td>
+                    <td class="col-actions">
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="'Editar cantidad de ' + line.name"
+                        matTooltip="Editar cantidad (F4)"
+                        (click)="editLineQuantity($index)"
+                      >
+                        <mat-icon aria-hidden="true">edit</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="'Aplicar descuento a ' + line.name"
+                        matTooltip="Descuento (F6)"
+                        (click)="selectLine($index); openDiscountDialog('LINE')"
+                      >
+                        <mat-icon aria-hidden="true">percent</mat-icon>
+                      </button>
+                      <button
+                        mat-icon-button
+                        type="button"
+                        [attr.aria-label]="'Quitar ' + line.name + ' del carrito'"
+                        matTooltip="Quitar línea (Supr)"
+                        (click)="removeSelectedOrLine($index)"
+                      >
+                        <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </mat-card>
+    </div>
+
+    <aside class="pos-summary-column" aria-label="Resumen de venta y acciones">
+      @if (cart.requiresAgeConfirmation()) {
+        <mat-card
+          class="alert-card"
+          [class.alert-card--ok]="cart.ageConfirmed()"
+          appearance="outlined"
+          data-testid="age-confirmation-card"
+        >
+          <div class="alert-card-content">
+            <mat-icon aria-hidden="true">
+              {{ cart.ageConfirmed() ? 'verified_user' : '18_up_rating' }}
+            </mat-icon>
+            <div>
+              <strong>Venta con restricción +18</strong>
+              <p>
+                @if (cart.ageConfirmed()) {
+                  Mayoría de edad confirmada para productos restringidos.
+                } @else {
+                  Verifica cédula de identidad y confirma mayoría de edad antes de cobrar.
+                }
+              </p>
+            </div>
+          </div>
+          <button
+            mat-stroked-button
+            type="button"
+            data-testid="confirm-age-btn"
+            (click)="toggleAgeConfirmation()"
+          >
+            {{ cart.ageConfirmed() ? 'Edad confirmada (F7)' : 'Confirmar +18 (F7)' }}
+          </button>
+        </mat-card>
+      }
+
+      @if (pendingNonAgeOverrides().length > 0) {
+        <mat-card class="alert-card" appearance="outlined" data-testid="pending-overrides-card">
+          <div class="alert-card-header">
+            <mat-icon aria-hidden="true">admin_panel_settings</mat-icon>
+            <strong>Autorizaciones pendientes</strong>
+          </div>
+          <ul class="override-list">
+            @for (req of pendingNonAgeOverrides(); track overrideTrackKey(req)) {
+              <li class="override-item">
+                <span>{{ describeOverride(req) }}</span>
+                <button mat-stroked-button type="button" (click)="authorizePendingOverride(req)">
+                  Autorizar
+                </button>
+              </li>
+            }
+          </ul>
+        </mat-card>
+      }
+
+      <mat-card class="summary-card" appearance="outlined">
+        <div class="summary-header">
+          <h2>Resumen</h2>
+          @if (cart.quoteLoading()) {
+            <span class="quoting-pill">Cotizando…</span>
+          } @else if (cart.quote() !== null) {
+            <span class="quoted-pill">Cotización al día</span>
+          }
+        </div>
+
+        <dl class="summary-breakdown">
+          <div class="summary-row">
+            <dt>Subtotal bruto</dt>
+            <dd>
+              {{ (cart.quote() ? cart.subtotalGross() : cart.localSubtotalGross()) | clp }}
+            </dd>
+          </div>
+
+          @if (cart.discountTotal() > 0) {
+            <div class="summary-row summary-row--discount">
+              <dt>Descuentos (promos + manuales)</dt>
+              <dd>-{{ cart.discountTotal() | clp }}</dd>
+            </div>
+          }
+
+          @if (cart.totalDiscount(); as globalDisc) {
+            <div class="summary-row summary-row--subtle">
+              <dt>Descuento global aplicado</dt>
+              <dd>{{ formatDiscountBadge(globalDisc) }}</dd>
+            </div>
+          }
+
+          @if (cart.quote() !== null) {
+            <div class="summary-row summary-row--subtle">
+              <dt>Neto afecto</dt>
+              <dd>{{ cart.netTotal() | clp }}</dd>
+            </div>
+            <div class="summary-row summary-row--subtle">
+              <dt>IVA / Impuestos</dt>
+              <dd>{{ cart.taxTotal() | clp }}</dd>
+            </div>
+            @if (cart.exemptTotal() > 0) {
+              <div class="summary-row summary-row--subtle">
+                <dt>Exento</dt>
+                <dd>{{ cart.exemptTotal() | clp }}</dd>
+              </div>
+            }
+            @for (tax of cart.taxBreakdown(); track tax.taxCode ?? $index) {
+              <div class="summary-row summary-row--tax-detail">
+                <dt>{{ tax.taxCode ?? 'Impuesto' }} ({{ tax.rate ?? 0 }}%)</dt>
+                <dd>{{ tax.taxAmount ?? 0 | clp }}</dd>
+              </div>
+            }
+            @if (cart.roundingAdjustment() !== 0) {
+              <div class="summary-row summary-row--subtle">
+                <dt>Ajuste redondeo ley</dt>
+                <dd>{{ cart.roundingAdjustment() | clp }}</dd>
+              </div>
+            }
+          }
+        </dl>
+
+        <mat-divider />
+
+        <div class="summary-payable">
+          <span>Total a pagar</span>
+          <strong data-testid="total-payable">
+            {{ (cart.quote() ? cart.totalPayable() : cart.localSubtotalGross()) | clp }}
+          </strong>
+        </div>
+
+        <!--
+          Punto de montaje reservado para T47 (Parte 2: Cobrar F10, Suspender F8, Retomar F9,
+          Finalizar F12) y futura extensión de fiado / cliente en T77.
+        -->
+        <div class="part2-actions" aria-label="Acciones de flujo de venta">
+          <button
+            mat-flat-button
+            type="button"
+            class="primary-pay-btn"
+            [disabled]="!cart.canProceedToPayment()"
+            data-testid="pay-btn"
+            (click)="openPaymentDialog()"
+          >
+            <mat-icon aria-hidden="true">payments</mat-icon>
+            Cobrar (F10)
+          </button>
+
+          <div class="secondary-flow-buttons">
+            <button
+              mat-stroked-button
+              type="button"
+              [disabled]="cart.isEmpty()"
+              data-testid="suspend-btn"
+              (click)="openSuspendDialog()"
+            >
+              Suspender (F8)
+            </button>
+            <button
+              mat-stroked-button
+              type="button"
+              data-testid="resume-btn"
+              (click)="openResumeSuspendedDialog()"
+            >
+              Retomar (F9)
+            </button>
+          </div>
+
+          @if (!canDiscount()) {
+            <p class="permission-hint">
+              Tu rol no tiene descuento directo: si excedes el límite se solicitará PIN de
+              supervisor.
+            </p>
+          }
+        </div>
+      </mat-card>
+
+      <div class="keyboard-strip" aria-label="Resumen de atajos rápidos">
+        <span><kbd>F2</kbd> Buscar</span>
+        <span><kbd>F4</kbd> Cant.</span>
+        <span><kbd>F6</kbd> Desc.</span>
+        <span><kbd>F7</kbd> +18</span>
+        <span><kbd>F8</kbd> Susp.</span>
+        <span><kbd>F9</kbd> Retom.</span>
+        <span><kbd>F10</kbd> Cobrar</span>
+        <span><kbd>F12</kbd> Ticket</span>
+        <span><kbd>Supr</kbd> Quitar</span>
+        <span><kbd>F1</kbd> Ayuda</span>
+      </div>
+    </aside>
+  </div>
+</section>

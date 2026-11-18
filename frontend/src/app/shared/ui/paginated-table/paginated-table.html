@@ -1,0 +1,61 @@
+@let ds = dataSource();
+@if (ds.loading()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando datos" />
+}
+
+<div class="table-scroll">
+  <table
+    mat-table
+    matSort
+    [dataSource]="ds.rows()"
+    [matSortActive]="activeSort()?.field ?? ''"
+    [matSortDirection]="activeSort()?.direction ?? ''"
+    [attr.aria-label]="label()"
+    [attr.aria-busy]="ds.loading()"
+    (matSortChange)="onSort($event)"
+  >
+    @for (column of columns(); track column.key) {
+      <ng-container [matColumnDef]="column.key">
+        <th
+          mat-header-cell
+          *matHeaderCellDef
+          [mat-sort-header]="column.sortField ?? column.key"
+          [disabled]="!column.sortField"
+          [class.align-end]="column.align === 'end'"
+        >
+          {{ column.header }}
+        </th>
+        <td mat-cell *matCellDef="let row" [class.align-end]="column.align === 'end'">
+          @if (column.template; as template) {
+            <ng-container *ngTemplateOutlet="template; context: { $implicit: row }" />
+          } @else {
+            {{ cellText(row, column) }}
+          }
+        </td>
+      </ng-container>
+    }
+
+    <tr mat-header-row *matHeaderRowDef="columnKeys(); sticky: true"></tr>
+    <tr mat-row *matRowDef="let row; columns: columnKeys()"></tr>
+  </table>
+</div>
+
+@if (ds.error(); as message) {
+  <div class="state state-error" role="alert">
+    <span>{{ message }}</span>
+    <button mat-button type="button" (click)="retry()">Reintentar</button>
+  </div>
+} @else if (!ds.loading() && ds.rows().length === 0) {
+  <p class="state" role="status">{{ emptyMessage() }}</p>
+}
+
+<mat-paginator
+  [length]="ds.totalElements()"
+  [pageIndex]="ds.query().page"
+  [pageSize]="ds.query().size"
+  [pageSizeOptions]="pageSizeOptions()"
+  [disabled]="ds.loading()"
+  showFirstLastButtons
+  aria-label="Paginación de resultados"
+  (page)="onPage($event)"
+/>

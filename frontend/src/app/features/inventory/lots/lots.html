@@ -1,0 +1,180 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Lotes y vencimientos</h1>
+      <p class="subtitle">
+        Control de lotes por producto, alertas de vencimiento y orden sugerido FEFO en
+        {{ activeStoreName() }}.
+      </p>
+    </div>
+  </header>
+
+  <mat-tab-group
+    [selectedIndex]="selectedTabIndex()"
+    (selectedIndexChange)="selectedTabIndex.set($event)"
+    animationDuration="0ms"
+  >
+    @if (canReadStock()) {
+      <mat-tab label="Lotes">
+        <div class="tab-body">
+          <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="filter-search">
+              <mat-label>Buscar</mat-label>
+              <input matInput formControlName="q" placeholder="N° lote, SKU o producto" />
+              <mat-icon matPrefix>search</mat-icon>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-filter">
+              <mat-label>Producto (opcional)</mat-label>
+              <input
+                matInput
+                [formControl]="productSearchControl"
+                [matAutocomplete]="lotProductAuto"
+                placeholder="Filtrar por producto..."
+              />
+              @if (filterForm.controls.productId.value !== null) {
+                <button
+                  mat-icon-button
+                  matSuffix
+                  type="button"
+                  aria-label="Limpiar producto del filtro"
+                  (click)="clearProductFilter()"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              }
+              <mat-autocomplete
+                #lotProductAuto="matAutocomplete"
+                [displayWith]="displayProductOption"
+                (optionSelected)="onProductSelected($event)"
+              >
+                @for (option of productOptions(); track option.id) {
+                  <mat-option [value]="option">
+                    <span>{{ option.sku }} — {{ option.name }}</span>
+                  </mat-option>
+                }
+              </mat-autocomplete>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Estado</mat-label>
+              <mat-select formControlName="status">
+                <mat-option [value]="null">Todos</mat-option>
+                @for (opt of statusOptions; track opt.value) {
+                  <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Disponibilidad</mat-label>
+              <mat-select formControlName="withStock">
+                <mat-option [value]="null">Todos</mat-option>
+                <mat-option [value]="true">Solo con saldo</mat-option>
+                <mat-option [value]="false">Agotados</mat-option>
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="days-filter">
+              <mat-label>Vence dentro de (días)</mat-label>
+              <input
+                matInput
+                type="number"
+                min="0"
+                step="1"
+                formControlName="expiringWithinDays"
+                placeholder="Ej. 15"
+              />
+              @if (filterForm.controls.expiringWithinDays.hasError('min')) {
+                <mat-error>Debe ser >= 0.</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="filter-actions">
+              <button mat-stroked-button type="submit">Filtrar</button>
+              <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+            </div>
+          </form>
+
+          <pos-paginated-table
+            [dataSource]="dataSource"
+            [columns]="columns()"
+            label="Listado de lotes del local"
+            emptyMessage="No hay lotes que coincidan con los filtros."
+          />
+        </div>
+      </mat-tab>
+    }
+
+    @if (canReadExpiry()) {
+      <mat-tab label="Alertas de vencimiento">
+        <pos-expiry-alerts-tab (viewKardex)="goToKardex($event.productId, $event.lotId)" />
+      </mat-tab>
+    }
+
+    @if (canReadStock()) {
+      <mat-tab label="Simulador FEFO">
+        <pos-fefo-simulator-tab />
+      </mat-tab>
+    }
+  </mat-tab-group>
+
+  <ng-template #expiryTpl let-row>
+    {{ row.expiryDate ? formatLocalDate(row.expiryDate) : 'Sin vencimiento' }}
+  </ng-template>
+
+  <ng-template #daysTpl let-row>
+    @if (row.expiryDate) {
+      <span
+        class="badge"
+        [class.badge--expired]="row.expired || (row.daysToExpiry ?? 0) < 0"
+        [class.badge--soon]="
+          !row.expired && (row.daysToExpiry ?? 999) <= 15 && (row.daysToExpiry ?? 0) >= 0
+        "
+      >
+        {{ formatDays(row.daysToExpiry) }}
+      </span>
+    } @else {
+      <span class="muted">Sin vencimiento</span>
+    }
+  </ng-template>
+
+  <ng-template #qtyTpl let-row>
+    <span class="qty-value">{{ row.quantity | qty: unitFor(row) }}</span>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--active]="row.status === 'ACTIVE'"
+      [class.badge--depleted]="row.status === 'DEPLETED'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="lotMenu"
+      [attr.aria-label]="'Acciones para lote ' + (row.lotNumber || row.id)"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #lotMenu="matMenu">
+      @if (canUpdateLots()) {
+        <button mat-menu-item type="button" (click)="openEditLot(row)">
+          <mat-icon>edit</mat-icon>
+          <span>Corregir lote / vencimiento</span>
+        </button>
+      }
+      @if (canReadKardex()) {
+        <button mat-menu-item type="button" (click)="goToKardex(row.productId, row.id)">
+          <mat-icon>history</mat-icon>
+          <span>Ver kardex</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>
