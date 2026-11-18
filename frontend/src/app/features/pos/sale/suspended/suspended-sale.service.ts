@@ -4,7 +4,7 @@ import { Observable, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs'
 import { ApiConfiguration } from '../../../../api/api-configuration';
 import { get2 } from '../../../../api/fn/catalog/get-2';
 import { delete$ } from '../../../../api/fn/sales/delete';
-import { list9 } from '../../../../api/fn/sales/list-9';
+import { list10 } from '../../../../api/fn/sales/list-10';
 import { resume } from '../../../../api/fn/sales/resume';
 import { suspend } from '../../../../api/fn/sales/suspend';
 import { CartQuoteResponse } from '../../../../api/models/cart-quote-response';
@@ -39,7 +39,7 @@ export class SuspendedSaleService {
 
   /** Lista las ventas suspendidas vigentes de la terminal activa (`GET /pos/suspended-sales`). */
   list(context?: HttpContext): Observable<SuspendedSaleResponse[]> {
-    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list10(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Suspende el carrito actual de la terminal (`POST /pos/suspended-sales`). */

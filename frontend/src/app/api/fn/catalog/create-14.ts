@@ -7,14 +7,14 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { BrandRequest } from '../../models/brand-request';
-import { BrandResponse } from '../../models/brand-response';
+import { CategoryRequest } from '../../models/category-request';
+import { CategoryResponse } from '../../models/category-response';
 
 export interface Create14$Params {
-      body: BrandRequest
+      body: CategoryRequest
 }
 
-export function create14(http: HttpClient, rootUrl: string, params: Create14$Params, context?: HttpContext): Observable<StrictHttpResponse<BrandResponse>> {
+export function create14(http: HttpClient, rootUrl: string, params: Create14$Params, context?: HttpContext): Observable<StrictHttpResponse<CategoryResponse>> {
   const rb = new RequestBuilder(rootUrl, create14.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
@@ -25,9 +25,9 @@ export function create14(http: HttpClient, rootUrl: string, params: Create14$Par
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<BrandResponse>;
+      return r as StrictHttpResponse<CategoryResponse>;
     })
   );
 }
 
-create14.PATH = '/api/v1/brands';
+create14.PATH = '/api/v1/categories';

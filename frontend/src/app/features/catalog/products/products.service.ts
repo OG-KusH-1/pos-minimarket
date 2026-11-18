@@ -15,16 +15,16 @@ import { activate3 } from '../../../api/fn/catalog/activate-3';
 import { addBarcode } from '../../../api/fn/catalog/add-barcode';
 import { changeCost } from '../../../api/fn/catalog/change-cost';
 import { changePrice } from '../../../api/fn/catalog/change-price';
-import { create9 } from '../../../api/fn/catalog/create-9';
+import { create10 } from '../../../api/fn/catalog/create-10';
 import { deactivate3 } from '../../../api/fn/catalog/deactivate-3';
 import { deleteBarcode } from '../../../api/fn/catalog/delete-barcode';
 import { deleteImage } from '../../../api/fn/catalog/delete-image';
 import { get2 } from '../../../api/fn/catalog/get-2';
 import { list } from '../../../api/fn/catalog/list';
-import { list5 } from '../../../api/fn/catalog/list-5';
-import { list8, List8$Params } from '../../../api/fn/catalog/list-8';
-import { list12 } from '../../../api/fn/catalog/list-12';
-import { list14, List14$Params } from '../../../api/fn/catalog/list-14';
+import { list6 } from '../../../api/fn/catalog/list-6';
+import { list9, List9$Params } from '../../../api/fn/catalog/list-9';
+import { list13 } from '../../../api/fn/catalog/list-13';
+import { list15, List15$Params } from '../../../api/fn/catalog/list-15';
 import { priceHistory, PriceHistory$Params } from '../../../api/fn/catalog/price-history';
 import { setPack } from '../../../api/fn/catalog/set-pack';
 import { setPrimaryBarcode } from '../../../api/fn/catalog/set-primary-barcode';
@@ -149,10 +149,10 @@ export class ProductsService {
 
   /** Lista productos paginados según filtros (`q`, `categoryId`, `brandId`, `saleType`, etc.). */
   listProducts(
-    params?: List8$Params,
+    params?: List9$Params,
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
-    return unwrapApiResponse(list8(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene la ficha completa de un producto por su identificador. */
@@ -162,7 +162,7 @@ export class ProductsService {
 
   /** Crea un producto nuevo junto con sus impuestos, códigos iniciales y pack (si aplica). */
   createProduct(body: ProductRequest, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(create9(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create10(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza los datos no económicos de un producto (controlando concurrencia por `version`). */
@@ -301,12 +301,12 @@ export class ProductsService {
 
   /** Lista el árbol de categorías para selectores y filtros. */
   listCategories(tree = true, context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, { tree }, context));
+    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree }, context));
   }
 
   /** Lista marcas para selectores y filtros. */
-  listBrands(params?: List14$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
-    return unwrapApiResponse(list14(this.http, this.apiConfig.rootUrl, params, context));
+  listBrands(params?: List15$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
+    return unwrapApiResponse(list15(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Lista los impuestos configurados para asignar al producto. */
@@ -316,6 +316,6 @@ export class ProductsService {
 
   /** Lista configuraciones de balanza para informar compatibilidad de `SCALE_PLU`. */
   listScaleConfigs(context?: HttpContext): Observable<ScaleBarcodeConfigResponse[]> {
-    return unwrapApiResponse(list5(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list6(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 }

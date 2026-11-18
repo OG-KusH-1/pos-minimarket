@@ -128,11 +128,11 @@ Ejecuta por fase y oleada, de arriba hacia abajo. Las tareas de una misma oleada
 
 | Oleada | Tarea | Tipo | Estado |
 |---|---|---|---|
-| O1 | [T63](T63.md) Mermas (J-01): implementación de TransferDifferenceHandler (definida p… | backend | pendiente |
-| O1 | [T64](T64.md) Importación y exportación del catálogo (dry-run, confirmación transacc… | backend | pendiente |
-| O2 | [T65](T65.md) Regenerar contrato (6) | contrato | pendiente |
-| O3 🔍 | [T66](T66.md) Frontend mermas | frontend | pendiente |
-| O3 🔍 | [T67](T67.md) Frontend importación y exportación | frontend | pendiente |
+| O1 | [T63](T63.md) Mermas (J-01): implementación de TransferDifferenceHandler (definida p… | backend | entregada |
+| O1 | [T64](T64.md) Importación y exportación del catálogo (dry-run, confirmación transacc… | backend | entregada |
+| O2 | [T65](T65.md) Regenerar contrato (6) | contrato | entregada |
+| O3 🔍 | [T66](T66.md) Frontend mermas | frontend | entregada |
+| O3 🔍 | [T67](T67.md) Frontend importación y exportación | frontend | entregada |
 
 ### Fase 5
 

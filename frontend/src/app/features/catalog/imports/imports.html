@@ -1,0 +1,410 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Importaciones</h1>
+      <p class="subtitle">
+        Carga masiva de productos, proveedores y stock inicial con validación previa, y exportación
+        del catálogo.
+      </p>
+    </div>
+  </header>
+
+  <mat-tab-group animationDuration="0ms">
+    <mat-tab label="Importación masiva">
+      <div class="tab-content">
+        @if (!canImport()) {
+          <mat-card appearance="outlined" class="notice-card">
+            <mat-card-content class="notice-row">
+              <mat-icon>lock</mat-icon>
+              <span
+                >No tienes el permiso <code>catalog:product:import</code> para importar
+                archivos.</span
+              >
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          <div class="import-grid">
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>1. Tipo de importación y plantilla</mat-card-title>
+              </mat-card-header>
+              <mat-card-content class="card-body">
+                <form [formGroup]="importForm" class="stack">
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                    <mat-label>Tipo de importación</mat-label>
+                    <mat-select formControlName="importType">
+                      @for (opt of importTypeOptions; track opt.value) {
+                        <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                      }
+                    </mat-select>
+                  </mat-form-field>
+
+                  <p class="hint">{{ selectedImportDescription() }}</p>
+
+                  @if (importForm.controls.importType.value === 'INITIAL_STOCK') {
+                    <div class="info-banner">
+                      <mat-icon>store</mat-icon>
+                      @if (activeStore()) {
+                        <span>
+                          El stock inicial se aplicará en el local activo:
+                          <strong>{{ activeStore()!.name }}</strong>.
+                        </span>
+                      } @else {
+                        <span> Selecciona un local activo antes de importar stock inicial. </span>
+                      }
+                    </div>
+                  }
+
+                  <div class="button-row">
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="isImportBusy()"
+                      (click)="downloadTemplate('xlsx')"
+                    >
+                      <mat-icon>download</mat-icon>
+                      Descargar plantilla XLSX
+                    </button>
+                    <button
+                      mat-stroked-button
+                      type="button"
+                      [disabled]="isImportBusy()"
+                      (click)="downloadTemplate('csv')"
+                    >
+                      <mat-icon>download</mat-icon>
+                      Descargar plantilla CSV
+                    </button>
+                  </div>
+                </form>
+              </mat-card-content>
+            </mat-card>
+
+            <mat-card appearance="outlined">
+              <mat-card-header>
+                <mat-card-title>2. Cargar archivo (máx. 20 MB)</mat-card-title>
+              </mat-card-header>
+              <mat-card-content class="card-body">
+                <div class="file-picker">
+                  <input
+                    #fileInput
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    class="visually-hidden"
+                    aria-label="Seleccionar archivo de importación"
+                    (change)="onFileSelected($event)"
+                  />
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="isImportBusy()"
+                    (click)="fileInput.click()"
+                  >
+                    <mat-icon>upload_file</mat-icon>
+                    Seleccionar archivo CSV o XLSX
+                  </button>
+
+                  @if (selectedFile(); as file) {
+                    <span class="file-meta">
+                      <strong>{{ file.name }}</strong> ({{ selectedFileSizeLabel() }})
+                    </span>
+                  } @else {
+                    <span class="file-meta muted">Ningún archivo seleccionado</span>
+                  }
+                </div>
+
+                @if (fileValidationError()) {
+                  <div class="error-banner" role="alert">
+                    <mat-icon>error_outline</mat-icon>
+                    <span>{{ fileValidationError() }}</span>
+                  </div>
+                }
+
+                <div class="button-row">
+                  <button
+                    mat-flat-button
+                    type="button"
+                    [disabled]="!selectedFile() || !!fileValidationError() || isImportBusy()"
+                    (click)="runDryRun()"
+                  >
+                    <mat-icon>fact_check</mat-icon>
+                    Validar archivo (simulación)
+                  </button>
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [disabled]="!selectedFile() || !!fileValidationError() || isImportBusy()"
+                    (click)="runDirectImport()"
+                  >
+                    <mat-icon>publish</mat-icon>
+                    Importar directamente
+                  </button>
+                </div>
+
+                <form [formGroup]="lookupForm" (ngSubmit)="lookupJobById()" class="lookup-form">
+                  <mat-form-field
+                    appearance="outline"
+                    subscriptSizing="dynamic"
+                    class="lookup-field"
+                  >
+                    <mat-label>Consultar importación por ID</mat-label>
+                    <input
+                      matInput
+                      formControlName="jobId"
+                      placeholder="Ej. 42"
+                      inputmode="numeric"
+                    />
+                  </mat-form-field>
+                  <button mat-stroked-button type="submit" [disabled]="isImportBusy()">
+                    <mat-icon>search</mat-icon>
+                    Consultar
+                  </button>
+                </form>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          @if (isImportBusy()) {
+            <mat-progress-bar mode="indeterminate" aria-label="Procesando importación" />
+          }
+
+          @if (importError()) {
+            <div class="error-banner" role="alert">
+              <mat-icon>error</mat-icon>
+              <span>{{ importError() }}</span>
+            </div>
+          }
+
+          @if (currentJob(); as job) {
+            <mat-card appearance="outlined" class="result-card">
+              <mat-card-header class="result-header">
+                <div>
+                  <mat-card-title>
+                    Resultado de importación #{{ job.id }} — {{ formatImportType(job.importType) }}
+                  </mat-card-title>
+                  <mat-card-subtitle>
+                    Modo: {{ job.dryRun ? 'Simulación (sin cambios)' : 'Aplicación directa' }} ·
+                    Estado: <strong>{{ formatStatus(job.status) }}</strong>
+                  </mat-card-subtitle>
+                </div>
+
+                @if (job.dryRun) {
+                  <button
+                    mat-flat-button
+                    type="button"
+                    [disabled]="!canConfirmCurrentJob()"
+                    (click)="confirmCurrentImport()"
+                  >
+                    <mat-icon>check_circle</mat-icon>
+                    Confirmar importación
+                  </button>
+                }
+              </mat-card-header>
+
+              <mat-card-content class="card-body">
+                <div class="summary-grid">
+                  <div class="stat-box">
+                    <span class="stat-label">Total de filas</span>
+                    <strong class="stat-value">{{ job.totalRows ?? 0 }}</strong>
+                  </div>
+                  <div class="stat-box stat-box--ok">
+                    <span class="stat-label">Filas válidas</span>
+                    <strong class="stat-value">{{ job.okRows ?? 0 }}</strong>
+                  </div>
+                  <div class="stat-box" [class.stat-box--error]="(job.errorRows ?? 0) > 0">
+                    <span class="stat-label">Filas con error</span>
+                    <strong class="stat-value">{{ job.errorRows ?? 0 }}</strong>
+                  </div>
+                  <div class="stat-box">
+                    <span class="stat-label">Estado</span>
+                    <strong class="stat-value">{{ formatStatus(job.status) }}</strong>
+                  </div>
+                </div>
+
+                @if (jobErrors().length > 0) {
+                  <div class="errors-section">
+                    <h3>Detalle de errores ({{ jobErrors().length }})</h3>
+                    <table
+                      mat-table
+                      [dataSource]="jobErrors()"
+                      class="errors-table"
+                      aria-label="Errores de importación por fila y campo"
+                    >
+                      <ng-container matColumnDef="row">
+                        <th mat-header-cell *matHeaderCellDef>Fila</th>
+                        <td mat-cell *matCellDef="let err">{{ err.row ?? '—' }}</td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="field">
+                        <th mat-header-cell *matHeaderCellDef>Campo</th>
+                        <td mat-cell *matCellDef="let err">
+                          <code>{{ err.field ?? '—' }}</code>
+                        </td>
+                      </ng-container>
+
+                      <ng-container matColumnDef="message">
+                        <th mat-header-cell *matHeaderCellDef>Mensaje</th>
+                        <td mat-cell *matCellDef="let err">{{ err.message ?? '' }}</td>
+                      </ng-container>
+
+                      <tr mat-header-row *matHeaderRowDef="errorColumns"></tr>
+                      <tr mat-row *matRowDef="let row; columns: errorColumns"></tr>
+                    </table>
+                  </div>
+                } @else if (job.status === 'VALIDATED' && job.dryRun) {
+                  <div class="success-banner">
+                    <mat-icon>verified</mat-icon>
+                    <span>
+                      Archivo validado sin errores. Presiona «Confirmar importación» para aplicar
+                      los cambios en una sola transacción.
+                    </span>
+                  </div>
+                } @else if (job.status === 'COMPLETED') {
+                  <div class="success-banner">
+                    <mat-icon>task_alt</mat-icon>
+                    <span>Importación completada y aplicada correctamente.</span>
+                  </div>
+                }
+              </mat-card-content>
+            </mat-card>
+          }
+        }
+      </div>
+    </mat-tab>
+
+    <mat-tab label="Exportación del catálogo">
+      <div class="tab-content">
+        @if (!canExport()) {
+          <mat-card appearance="outlined" class="notice-card">
+            <mat-card-content class="notice-row">
+              <mat-icon>lock</mat-icon>
+              <span
+                >No tienes el permiso <code>catalog:product:export</code> para exportar el
+                catálogo.</span
+              >
+            </mat-card-content>
+          </mat-card>
+        } @else {
+          @if (!canReadCosts()) {
+            <div class="info-banner" role="note">
+              <mat-icon>info</mat-icon>
+              <span>
+                No cuentas con permiso de lectura de costos (<code>catalog:cost:read</code>): el
+                archivo exportado omitirá las columnas de costo.
+              </span>
+            </div>
+          }
+
+          <mat-card appearance="outlined">
+            <mat-card-header>
+              <mat-card-title>Filtros y formato de exportación</mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="card-body">
+              <form [formGroup]="exportForm" (ngSubmit)="exportCatalog()" class="export-form">
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Formato</mat-label>
+                  <mat-select formControlName="format">
+                    <mat-option value="xlsx">Excel (XLSX)</mat-option>
+                    <mat-option value="csv">CSV</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="search-field">
+                  <mat-label>Buscar</mat-label>
+                  <input
+                    matInput
+                    formControlName="q"
+                    placeholder="Nombre, SKU, código de barras o atajo"
+                  />
+                  <mat-icon matPrefix>search</mat-icon>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Categoría</mat-label>
+                  <mat-select formControlName="categoryId">
+                    <mat-option [value]="null">Todas</mat-option>
+                    @for (cat of categories(); track cat.id) {
+                      <mat-option [value]="cat.id">{{ cat.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Marca</mat-label>
+                  <mat-select formControlName="brandId">
+                    <mat-option [value]="null">Todas</mat-option>
+                    @for (brand of brands(); track brand.id) {
+                      <mat-option [value]="brand.id">{{ brand.name }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Tipo de venta</mat-label>
+                  <mat-select formControlName="saleType">
+                    <mat-option [value]="null">Todos</mat-option>
+                    <mat-option value="UNIT">Unidad</mat-option>
+                    <mat-option value="WEIGHT">Pesable (kg)</mat-option>
+                    <mat-option value="PACK">Pack</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Estado</mat-label>
+                  <mat-select formControlName="active">
+                    <mat-option [value]="null">Todos</mat-option>
+                    <mat-option [value]="true">Activos</mat-option>
+                    <mat-option [value]="false">Inactivos</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Restricción</mat-label>
+                  <mat-select formControlName="restricted">
+                    <mat-option [value]="null">Todas</mat-option>
+                    <mat-option [value]="true">Restringidos</mat-option>
+                    <mat-option [value]="false">Sin restricción</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                  <mat-label>Lotes</mat-label>
+                  <mat-select formControlName="lotControlled">
+                    <mat-option [value]="null">Todos</mat-option>
+                    <mat-option [value]="true">Con lotes</mat-option>
+                    <mat-option [value]="false">Sin lotes</mat-option>
+                  </mat-select>
+                </mat-form-field>
+
+                <div class="export-actions">
+                  <button mat-flat-button type="submit" [disabled]="exporting()">
+                    <mat-icon>download</mat-icon>
+                    Exportar catálogo
+                  </button>
+                  <button
+                    mat-button
+                    type="button"
+                    [disabled]="exporting()"
+                    (click)="resetExportFilters()"
+                  >
+                    Limpiar filtros
+                  </button>
+                </div>
+              </form>
+
+              @if (exporting()) {
+                <mat-progress-bar mode="indeterminate" aria-label="Exportando catálogo" />
+              }
+
+              @if (exportError()) {
+                <div class="error-banner" role="alert">
+                  <mat-icon>error</mat-icon>
+                  <span>{{ exportError() }}</span>
+                </div>
+              }
+            </mat-card-content>
+          </mat-card>
+        }
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</section>

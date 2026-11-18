@@ -12,12 +12,12 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
+import { list9 } from '../../../api/fn/catalog/list-9';
 import { cancel1 } from '../../../api/fn/purchasing/cancel-1';
-import { create8 } from '../../../api/fn/purchasing/create-8';
+import { create9 } from '../../../api/fn/purchasing/create-9';
 import { getById1 } from '../../../api/fn/purchasing/get-by-id-1';
 import { list1 } from '../../../api/fn/purchasing/list-1';
-import { list7, List7$Params } from '../../../api/fn/purchasing/list-7';
+import { list8, List8$Params } from '../../../api/fn/purchasing/list-8';
 import { listBySupplier } from '../../../api/fn/purchasing/list-by-supplier';
 import { pdf } from '../../../api/fn/purchasing/pdf';
 import { receiptDraft } from '../../../api/fn/purchasing/receipt-draft';
@@ -126,10 +126,10 @@ export class PurchaseOrdersService {
 
   /** Lista órdenes de compra del local activo con filtros, paginación y ordenamiento. */
   listOrders(
-    params?: List7$Params,
+    params?: List8$Params,
     context?: HttpContext,
   ): Observable<PageResponsePurchaseOrderSummary> {
-    return unwrapApiResponse(list7(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list8(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de una orden de compra. */
@@ -142,7 +142,7 @@ export class PurchaseOrdersService {
     body: PurchaseOrderRequest,
     context?: HttpContext,
   ): Observable<PurchaseOrderResponse> {
-    return unwrapApiResponse(create8(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create9(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza un borrador de orden de compra (`DRAFT`) con control optimista (`version`). */
@@ -222,7 +222,7 @@ export class PurchaseOrdersService {
   /** Busca productos activos en el catálogo por texto (SKU, código de barras o nombre). */
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         { q: q || undefined, active: true, size: 20, sort: ['name,asc'] },

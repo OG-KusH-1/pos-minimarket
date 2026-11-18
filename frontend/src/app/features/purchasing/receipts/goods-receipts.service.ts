@@ -13,15 +13,15 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
+import { list9 } from '../../../api/fn/catalog/list-9';
 import { cancel3 } from '../../../api/fn/purchasing/cancel-3';
 import { confirm } from '../../../api/fn/purchasing/confirm';
-import { create12 } from '../../../api/fn/purchasing/create-12';
+import { create13 } from '../../../api/fn/purchasing/create-13';
 import { getById1 } from '../../../api/fn/purchasing/get-by-id-1';
 import { getById2 } from '../../../api/fn/purchasing/get-by-id-2';
 import { list1 } from '../../../api/fn/purchasing/list-1';
-import { list11, List11$Params } from '../../../api/fn/purchasing/list-11';
-import { list7 } from '../../../api/fn/purchasing/list-7';
+import { list12, List12$Params } from '../../../api/fn/purchasing/list-12';
+import { list8 } from '../../../api/fn/purchasing/list-8';
 import { receiptDraft } from '../../../api/fn/purchasing/receipt-draft';
 import { update11 } from '../../../api/fn/purchasing/update-11';
 import { GoodsReceiptCancelRequest } from '../../../api/models/goods-receipt-cancel-request';
@@ -128,10 +128,10 @@ export class GoodsReceiptsService {
 
   /** Lista recepciones del local activo con filtros, paginación y ordenamiento. */
   listReceipts(
-    params?: List11$Params,
+    params?: List12$Params,
     context?: HttpContext,
   ): Observable<PageResponseGoodsReceiptSummary> {
-    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de una recepción de mercadería. */
@@ -144,7 +144,7 @@ export class GoodsReceiptsService {
     body: GoodsReceiptRequest,
     context?: HttpContext,
   ): Observable<GoodsReceiptResponse> {
-    return unwrapApiResponse(create12(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create13(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza un borrador de recepción (`DRAFT`) con control optimista (`version`). */
@@ -199,7 +199,7 @@ export class GoodsReceiptsService {
   listReceivableOrders(context?: HttpContext): Observable<PurchaseOrderSummary[]> {
     return forkJoin([
       unwrapApiResponse(
-        list7(
+        list8(
           this.http,
           this.apiConfig.rootUrl,
           { status: 'SENT', size: 50, sort: ['createdAt,desc'] },
@@ -207,7 +207,7 @@ export class GoodsReceiptsService {
         ),
       ),
       unwrapApiResponse(
-        list7(
+        list8(
           this.http,
           this.apiConfig.rootUrl,
           { status: 'PARTIALLY_RECEIVED', size: 50, sort: ['createdAt,desc'] },
@@ -232,7 +232,7 @@ export class GoodsReceiptsService {
   /** Busca productos activos del catálogo para recepciones sin OC. */
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         { q: q || undefined, active: true, size: 20, sort: ['name,asc'] },

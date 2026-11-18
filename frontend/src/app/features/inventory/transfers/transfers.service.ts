@@ -12,11 +12,11 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
+import { list9 } from '../../../api/fn/catalog/list-9';
 import { cancel } from '../../../api/fn/inventory/cancel';
 import { create4 } from '../../../api/fn/inventory/create-4';
 import { getById } from '../../../api/fn/inventory/get-by-id';
-import { list17 } from '../../../api/fn/inventory/list-17';
+import { list18 } from '../../../api/fn/inventory/list-18';
 import { list3, List3$Params } from '../../../api/fn/inventory/list-3';
 import { receive } from '../../../api/fn/inventory/receive';
 import { send } from '../../../api/fn/inventory/send';
@@ -209,7 +209,7 @@ export class TransfersService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -231,7 +231,7 @@ export class TransfersService {
   /** Lista los lotes con stock positivo de un producto en el local activo (orden FEFO). */
   listProductLots(productId: number, context?: HttpContext): Observable<LotResponse[]> {
     return unwrapApiResponse(
-      list17(
+      list18(
         this.http,
         this.apiConfig.rootUrl,
         {

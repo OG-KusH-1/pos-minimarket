@@ -5,7 +5,7 @@ import { ApiConfiguration } from '../../../api/api-configuration';
 import { effective } from '../../../api/fn/organization/effective';
 import { get3 } from '../../../api/fn/organization/get-3';
 import { list2 } from '../../../api/fn/organization/list-2';
-import { list16, List16$Params } from '../../../api/fn/organization/list-16';
+import { list17, List17$Params } from '../../../api/fn/organization/list-17';
 import { update5 } from '../../../api/fn/organization/update-5';
 import { CompanyResponse } from '../../../api/models/company-response';
 import { JsonNode } from '../../../api/models/json-node';
@@ -30,12 +30,12 @@ export class SettingsService {
    * `X-Store-Id`) o para el local activo del contexto si se omite.
    */
   listSettings(
-    params?: List16$Params,
+    params?: List17$Params,
     storeId?: number | null,
     context?: HttpContext,
   ): Observable<SettingItem[]> {
     return unwrapApiResponse(
-      list16(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
+      list17(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
     ).pipe(map((items) => items.map((item) => this.toSettingItem(item))));
   }
 

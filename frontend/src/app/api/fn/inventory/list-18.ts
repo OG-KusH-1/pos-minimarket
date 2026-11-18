@@ -7,27 +7,47 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { PageResponseStockMovementResponse } from '../../models/page-response-stock-movement-response';
+import { PageResponseLotResponse } from '../../models/page-response-lot-response';
 
 export interface List18$Params {
-  productId: number;
-  from?: string;
-  to?: string;
-  movementType?: 'INITIAL' | 'PURCHASE_RECEIPT' | 'SALE' | 'SALE_VOID' | 'SALE_RETURN' | 'SHRINKAGE' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'TRANSFER_OUT' | 'TRANSFER_IN';
-  lotId?: number;
+
+/**
+ * Filtrar por identificador de producto.
+ */
+  productId?: number;
+
+/**
+ * Filtrar lotes cuyo vencimiento sea menor o igual a hoy + días indicados.
+ */
+  expiringWithinDays?: number;
+
+/**
+ * Filtrar lotes con saldo positivo (true = ACTIVE) o agotados (false = DEPLETED).
+ */
+  withStock?: boolean;
+
+/**
+ * Filtrar por estado explícito del lote (ACTIVE o DEPLETED).
+ */
+  status?: string;
+
+/**
+ * Búsqueda libre por número de lote, SKU o nombre de producto.
+ */
+  q?: string;
   page?: number;
   size?: number;
   sort?: Array<string>;
 }
 
-export function list18(http: HttpClient, rootUrl: string, params: List18$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockMovementResponse>> {
+export function list18(http: HttpClient, rootUrl: string, params?: List18$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseLotResponse>> {
   const rb = new RequestBuilder(rootUrl, list18.PATH, 'get');
   if (params) {
     rb.query('productId', params.productId, {});
-    rb.query('from', params.from, {});
-    rb.query('to', params.to, {});
-    rb.query('movementType', params.movementType, {});
-    rb.query('lotId', params.lotId, {});
+    rb.query('expiringWithinDays', params.expiringWithinDays, {});
+    rb.query('withStock', params.withStock, {});
+    rb.query('status', params.status, {});
+    rb.query('q', params.q, {});
     rb.query('page', params.page, {});
     rb.query('size', params.size, {});
     rb.query('sort', params.sort, {});
@@ -38,9 +58,9 @@ export function list18(http: HttpClient, rootUrl: string, params: List18$Params,
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<PageResponseStockMovementResponse>;
+      return r as StrictHttpResponse<PageResponseLotResponse>;
     })
   );
 }
 
-list18.PATH = '/api/v1/kardex';
+list18.PATH = '/api/v1/lots';

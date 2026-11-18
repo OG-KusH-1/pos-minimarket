@@ -12,11 +12,11 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
+import { list9 } from '../../../api/fn/catalog/list-9';
 import { approve } from '../../../api/fn/inventory/approve';
 import { create5 } from '../../../api/fn/inventory/create-5';
 import { getById3 } from '../../../api/fn/inventory/get-by-id-3';
-import { list17 } from '../../../api/fn/inventory/list-17';
+import { list18 } from '../../../api/fn/inventory/list-18';
 import { list4, List4$Params } from '../../../api/fn/inventory/list-4';
 import { reject } from '../../../api/fn/inventory/reject';
 import { LotResponse } from '../../../api/models/lot-response';
@@ -183,7 +183,7 @@ export class AdjustmentsService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -209,7 +209,7 @@ export class AdjustmentsService {
     context?: HttpContext,
   ): Observable<LotResponse[]> {
     return unwrapApiResponse(
-      list17(
+      list18(
         this.http,
         this.apiConfig.rootUrl,
         {

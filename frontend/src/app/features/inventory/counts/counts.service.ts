@@ -11,16 +11,16 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list8 } from '../../../api/fn/catalog/list-8';
-import { list12 } from '../../../api/fn/catalog/list-12';
-import { approve1 } from '../../../api/fn/inventory/approve-1';
+import { list9 } from '../../../api/fn/catalog/list-9';
+import { list13 } from '../../../api/fn/catalog/list-13';
+import { approve2 } from '../../../api/fn/inventory/approve-2';
 import { cancel2 } from '../../../api/fn/inventory/cancel-2';
-import { create11 } from '../../../api/fn/inventory/create-11';
+import { create12 } from '../../../api/fn/inventory/create-12';
 import { get4 } from '../../../api/fn/inventory/get-4';
-import { list10, List10$Params } from '../../../api/fn/inventory/list-10';
+import { list11, List11$Params } from '../../../api/fn/inventory/list-11';
 import { listLines, ListLines$Params } from '../../../api/fn/inventory/list-lines';
 import { recordLines } from '../../../api/fn/inventory/record-lines';
-import { reject1 } from '../../../api/fn/inventory/reject-1';
+import { reject2 } from '../../../api/fn/inventory/reject-2';
 import { submit } from '../../../api/fn/inventory/submit';
 import { CategoryResponse } from '../../../api/models/category-response';
 import { CountLineResponse } from '../../../api/models/count-line-response';
@@ -126,10 +126,10 @@ export class CountsService {
 
   /** Lista paginada de tomas de inventario del local activo con filtros opcionales. */
   listCounts(
-    params?: List10$Params,
+    params?: List11$Params,
     context?: HttpContext,
   ): Observable<PageResponseInventoryCountResponse> {
-    return unwrapApiResponse(list10(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene la cabecera y progreso actualizado de una toma de inventario. */
@@ -147,7 +147,7 @@ export class CountsService {
   ): Observable<InventoryCountResponse> {
     const idempotentContext = context?.get(IDEMPOTENT) ? context : withIdempotency(context);
     return unwrapApiResponse(
-      create11(this.http, this.apiConfig.rootUrl, { body }, idempotentContext),
+      create12(this.http, this.apiConfig.rootUrl, { body }, idempotentContext),
     );
   }
 
@@ -175,7 +175,7 @@ export class CountsService {
 
   /** Aprueba una toma `SUBMITTED`, valida segregación de funciones (SoD) y aplica los deltas. */
   approveCount(id: number, context?: HttpContext): Observable<InventoryCountResponse> {
-    return unwrapApiResponse(approve1(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(approve2(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Rechaza una toma `SUBMITTED` devolviéndola a estado `OPEN` para reconteo. */
@@ -184,7 +184,7 @@ export class CountsService {
     body: InventoryCountRejectRequest,
     context?: HttpContext,
   ): Observable<InventoryCountResponse> {
-    return unwrapApiResponse(reject1(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(reject2(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Cancela una toma `OPEN` o `SUBMITTED` liberando el alcance abierto. */
@@ -198,7 +198,7 @@ export class CountsService {
 
   /** Obtiene el árbol de categorías para seleccionar el alcance de una toma cíclica. */
   listCategories(context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, { tree: true }, context));
+    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree: true }, context));
   }
 
   /** Consulta una muestra resumida de productos activos de una categoría para previsualizar el alcance. */
@@ -207,7 +207,7 @@ export class CountsService {
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         { categoryId, active: true, page: 0, size: 5, sort: ['name,asc'] },

@@ -12,9 +12,9 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
-import { list17, List17$Params } from '../../../api/fn/inventory/list-17';
-import { list19, List19$Params } from '../../../api/fn/inventory/list-19';
+import { list9 } from '../../../api/fn/catalog/list-9';
+import { list18, List18$Params } from '../../../api/fn/inventory/list-18';
+import { list20, List20$Params } from '../../../api/fn/inventory/list-20';
 import { suggestFefo, SuggestFefo$Params } from '../../../api/fn/inventory/suggest-fefo';
 import { update10 } from '../../../api/fn/inventory/update-10';
 import { FefoSuggestionResponse } from '../../../api/models/fefo-suggestion-response';
@@ -120,8 +120,8 @@ export class LotsService {
    * Lista los lotes del local activo con paginación, orden y filtros (`productId`, `status`,
    * `withStock`, `expiringWithinDays`, `q`).
    */
-  listLots(params?: List17$Params, context?: HttpContext): Observable<PageResponseLotResponse> {
-    return unwrapApiResponse(list17(this.http, this.apiConfig.rootUrl, params, context));
+  listLots(params?: List18$Params, context?: HttpContext): Observable<PageResponseLotResponse> {
+    return unwrapApiResponse(list18(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /**
@@ -137,10 +137,10 @@ export class LotsService {
    * (`GET /api/v1/expiry-alerts`).
    */
   listExpiryAlerts(
-    params?: List19$Params,
+    params?: List20$Params,
     context?: HttpContext,
   ): Observable<PageResponseExpiryAlertResponse> {
-    return unwrapApiResponse(list19(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list20(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /**
@@ -158,7 +158,7 @@ export class LotsService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         {

@@ -1,0 +1,166 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Mermas</h1>
+      <p class="subtitle">
+        Registro, evidencia y flujo de aprobación de mermas manuales y sistémicas en
+        {{ activeStoreName() }}.
+      </p>
+    </div>
+
+    @if (canCreate()) {
+      <button mat-flat-button type="button" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Registrar merma
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo de merma</mat-label>
+      <mat-select formControlName="shrinkageType">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of typeOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="product-filter">
+      <mat-label>Producto (SKU o nombre)</mat-label>
+      <input matInput formControlName="productQuery" placeholder="Filtrar en la página..." />
+      <mat-icon matPrefix>search</mat-icon>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (hasActiveProductFilter()) {
+    <p class="filter-note" role="status">
+      Mostrando mermas de la página actual que coinciden con el producto buscado.
+    </p>
+  }
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de mermas"
+    emptyMessage="No hay mermas registradas con los filtros seleccionados."
+  />
+
+  <ng-template #typeTpl let-row>
+    <div class="type-cell">
+      <span>{{ typeLabel(row.shrinkageType) }}</span>
+      @if (isSystemic(row)) {
+        <span
+          class="badge badge--systemic"
+          matTooltip="Merma sistémica: no realiza descuento adicional de stock al aprobarse."
+        >
+          Sistémica
+        </span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #productTpl let-row>
+    <div class="product-cell">
+      <span>{{ row.product?.name || row.product?.sku || '—' }}</span>
+      @if (row.lot?.lotNumber) {
+        <span class="product-sub">Lote: {{ row.lot?.lotNumber }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #qtyTpl let-row>
+    {{ row.quantity | qty }}
+  </ng-template>
+
+  <ng-template #costTpl let-row>
+    {{ row.totalCost !== undefined && row.totalCost !== null ? (row.totalCost | clp) : '—' }}
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <div class="status-cell">
+      <span
+        class="badge"
+        [class.badge--pending]="row.status === 'PENDING_APPROVAL'"
+        [class.badge--approved]="row.status === 'APPROVED'"
+        [class.badge--rejected]="row.status === 'REJECTED'"
+      >
+        {{ statusLabel(row.status) }}
+      </span>
+      @if (row.autoApproved) {
+        <span class="badge badge--auto" matTooltip="Autoaprobada dentro del límite del rol">
+          Auto
+        </span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="shrinkageMenu"
+      [attr.aria-label]="'Acciones para merma ' + (row.number || row.id)"
+    >
+      <mat-icon>more_vert</mat-icon>
+    </button>
+    <mat-menu #shrinkageMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openDetail(row)">
+        <mat-icon>visibility</mat-icon>
+        <span>Ver detalle</span>
+      </button>
+      @if (canApprove() && isPending(row)) {
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="isOwnReport(row)"
+          [matTooltip]="
+            isOwnReport(row) ? 'Segregación de funciones: no puedes aprobar tu propia merma.' : ''
+          "
+          (click)="approveShrinkage(row)"
+        >
+          <mat-icon>check_circle</mat-icon>
+          <span>Aprobar</span>
+        </button>
+        <button
+          mat-menu-item
+          type="button"
+          [disabled]="isOwnReport(row)"
+          [matTooltip]="
+            isOwnReport(row) ? 'Segregación de funciones: no puedes rechazar tu propia merma.' : ''
+          "
+          (click)="openRejectDialog(row)"
+        >
+          <mat-icon>cancel</mat-icon>
+          <span>Rechazar</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

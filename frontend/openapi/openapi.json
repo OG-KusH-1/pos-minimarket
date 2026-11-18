@@ -1009,6 +1009,67 @@
         },
         "type" : "object"
       },
+      "DataExchangeImportJobResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "dryRun" : {
+            "type" : "boolean"
+          },
+          "errorRows" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "errors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/DataExchangeImportRowError"
+            },
+            "type" : "array"
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "importType" : {
+            "enum" : [ "PRODUCTS", "PRODUCT_SUPPLIERS", "INITIAL_STOCK" ],
+            "type" : "string"
+          },
+          "okRows" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "enum" : [ "PENDING", "VALIDATED", "PROCESSING", "COMPLETED", "FAILED" ],
+            "type" : "string"
+          },
+          "totalRows" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "DataExchangeImportRowError" : {
+        "properties" : {
+          "field" : {
+            "type" : "string"
+          },
+          "message" : {
+            "type" : "string"
+          },
+          "row" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "DiscountInput" : {
         "properties" : {
           "kind" : {
@@ -2641,6 +2702,39 @@
         },
         "type" : "object"
       },
+      "PageResponseShrinkageResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ShrinkageResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PageResponseStockAdjustmentResponse" : {
         "properties" : {
           "content" : {
@@ -4243,6 +4337,222 @@
           }
         },
         "required" : [ "scope", "value" ],
+        "type" : "object"
+      },
+      "ShrinkageLotRef" : {
+        "description" : "Resumen del lote afectado.",
+        "properties" : {
+          "expiryDate" : {
+            "description" : "Fecha de vencimiento del lote.",
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador del lote.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "lotNumber" : {
+            "description" : "Número de lote.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ShrinkageProductRef" : {
+        "description" : "Resumen del producto afectado.",
+        "properties" : {
+          "id" : {
+            "description" : "Identificador del producto.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "description" : "Nombre del producto.",
+            "type" : "string"
+          },
+          "sku" : {
+            "description" : "SKU del producto.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ShrinkageRejectRequest" : {
+        "description" : "Motivo de rechazo de una merma pendiente.",
+        "properties" : {
+          "reason" : {
+            "description" : "Motivo explícito del rechazo (entre 3 y 250 caracteres).",
+            "maxLength" : 250,
+            "minLength" : 3,
+            "type" : "string"
+          }
+        },
+        "required" : [ "reason" ],
+        "type" : "object"
+      },
+      "ShrinkageRequest" : {
+        "description" : "Datos para registrar una merma manual.",
+        "properties" : {
+          "evidenceFileId" : {
+            "description" : "Identificador del archivo de evidencia (categoría SHRINKAGE_EVIDENCE).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "lotId" : {
+            "description" : "Identificador del lote (obligatorio si el producto controla lotes).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "occurredAt" : {
+            "description" : "Instante en que ocurrió la merma (ISO-8601, no futuro).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "productId" : {
+            "description" : "Identificador del producto.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "quantity" : {
+            "description" : "Cantidad positiva mermada.",
+            "minimum" : 0.001,
+            "type" : "number"
+          },
+          "reason" : {
+            "description" : "Motivo de la merma (obligatorio para THEFT_LOSS e INTERNAL_CONSUMPTION).",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "responsibleUserId" : {
+            "description" : "Identificador del usuario responsable de la merma.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "shrinkageType" : {
+            "description" : "Tipo de merma (distinto de TRANSFER_DIFFERENCE).",
+            "enum" : [ "EXPIRED", "DAMAGED", "BROKEN", "THEFT_LOSS", "INTERNAL_CONSUMPTION", "RECEIVING_ERROR", "TRANSFER_DIFFERENCE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "occurredAt", "productId", "quantity", "responsibleUserId", "shrinkageType" ],
+        "type" : "object"
+      },
+      "ShrinkageResponse" : {
+        "description" : "Detalle de una merma manual o sistémica.",
+        "properties" : {
+          "affectsStock" : {
+            "description" : "Indica si la merma descuenta stock al aprobarse (false en mermas sistémicas).",
+            "type" : "boolean"
+          },
+          "approvedAt" : {
+            "description" : "Instante UTC de aprobación o rechazo.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "approvedBy" : {
+            "$ref" : "#/components/schemas/ShrinkageUserRef",
+            "description" : "Usuario que aprobó o rechazó la merma."
+          },
+          "autoApproved" : {
+            "description" : "Indica si se autoaprobó por monto dentro del límite del reportante.",
+            "type" : "boolean"
+          },
+          "evidenceUrl" : {
+            "description" : "URL de descarga de la evidencia adjunta, si existe.",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador único de la merma.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "lot" : {
+            "$ref" : "#/components/schemas/ShrinkageLotRef",
+            "description" : "Lote afectado, si aplica."
+          },
+          "number" : {
+            "description" : "Folio correlativo de la merma (p. ej. L01-MR-000001).",
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "description" : "Instante UTC en que ocurrió la merma.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/ShrinkageProductRef",
+            "description" : "Producto afectado."
+          },
+          "quantity" : {
+            "description" : "Cantidad mermada.",
+            "type" : "number"
+          },
+          "reason" : {
+            "description" : "Motivo de la merma.",
+            "type" : "string"
+          },
+          "rejectionReason" : {
+            "description" : "Motivo de rechazo cuando status = REJECTED.",
+            "type" : "string"
+          },
+          "reportedBy" : {
+            "$ref" : "#/components/schemas/ShrinkageUserRef",
+            "description" : "Usuario que reportó la merma."
+          },
+          "responsible" : {
+            "$ref" : "#/components/schemas/ShrinkageUserRef",
+            "description" : "Usuario responsable."
+          },
+          "saleReturnLineId" : {
+            "description" : "Identificador de la línea de devolución origen, si es sistémica.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "shrinkageType" : {
+            "description" : "Tipo de merma.",
+            "enum" : [ "EXPIRED", "DAMAGED", "BROKEN", "THEFT_LOSS", "INTERNAL_CONSUMPTION", "RECEIVING_ERROR", "TRANSFER_DIFFERENCE" ],
+            "type" : "string"
+          },
+          "status" : {
+            "description" : "Estado de aprobación.",
+            "enum" : [ "PENDING_APPROVAL", "APPROVED", "REJECTED" ],
+            "type" : "string"
+          },
+          "totalCost" : {
+            "description" : "Costo total (null sin permiso de lectura de costos).",
+            "type" : "number"
+          },
+          "transferLineId" : {
+            "description" : "Identificador de la línea de transferencia origen, si es sistémica.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "unitCost" : {
+            "description" : "Costo unitario (null sin permiso de lectura de costos).",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "ShrinkageUserRef" : {
+        "description" : "Identificación resumida de usuario.",
+        "properties" : {
+          "fullName" : {
+            "description" : "Nombre completo.",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador del usuario.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "username" : {
+            "description" : "Nombre de usuario.",
+            "type" : "string"
+          }
+        },
         "type" : "object"
       },
       "StockAdjustmentLineRequest" : {
@@ -5858,7 +6168,7 @@
     "/api/v1/audit-log" : {
       "get" : {
         "description" : "Permiso: security:audit:read. Errores: VALIDATION_ERROR, ACCESS_DENIED.",
-        "operationId" : "list_20",
+        "operationId" : "list_21",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -5987,7 +6297,7 @@
     "/api/v1/audit-log/{id}" : {
       "get" : {
         "description" : "Permiso: security:audit:read. Errores: NOT_FOUND, ACCESS_DENIED.",
-        "operationId" : "getById_5",
+        "operationId" : "getById_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6251,7 +6561,7 @@
     "/api/v1/brands" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_14",
+        "operationId" : "list_15",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -6310,7 +6620,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:brand:manage",
-        "operationId" : "create_14",
+        "operationId" : "create_16",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6422,7 +6732,7 @@
     },
     "/api/v1/cash-sessions" : {
       "get" : {
-        "operationId" : "list_13",
+        "operationId" : "list_14",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -6561,7 +6871,7 @@
     },
     "/api/v1/cash-sessions/{id}" : {
       "get" : {
-        "operationId" : "get_5",
+        "operationId" : "get_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6812,10 +7122,175 @@
         "tags" : [ "Cash" ]
       }
     },
+    "/api/v1/catalog/imports" : {
+      "post" : {
+        "description" : "Permiso: catalog:product:import. Errores: FILE_INVALID, IMPORT_INVALID, VALIDATION_ERROR",
+        "operationId" : "create_15",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "importType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "PRODUCTS", "PRODUCT_SUPPLIERS", "INITIAL_STOCK" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "dryRun",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-Store-Id",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "properties" : {
+                  "file" : {
+                    "format" : "binary",
+                    "type" : "string"
+                  }
+                },
+                "required" : [ "file" ],
+                "type" : "object"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataExchangeImportJobResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Crear importación masiva",
+        "tags" : [ "DataExchange" ]
+      }
+    },
+    "/api/v1/catalog/imports/templates/{importType}" : {
+      "get" : {
+        "description" : "Permiso: catalog:product:import. Errores: VALIDATION_ERROR",
+        "operationId" : "template",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "importType",
+          "required" : true,
+          "schema" : {
+            "enum" : [ "PRODUCTS", "PRODUCT_SUPPLIERS", "INITIAL_STOCK" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Descargar plantilla de importación",
+        "tags" : [ "DataExchange" ]
+      }
+    },
+    "/api/v1/catalog/imports/{id}" : {
+      "get" : {
+        "description" : "Permiso: catalog:product:import. Errores: NOT_FOUND",
+        "operationId" : "get_5",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataExchangeImportJobResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Obtener trabajo de importación",
+        "tags" : [ "DataExchange" ]
+      }
+    },
+    "/api/v1/catalog/imports/{id}/confirm" : {
+      "post" : {
+        "description" : "Permiso: catalog:product:import. Errores: NOT_FOUND, INVALID_STATE_TRANSITION, IMPORT_INVALID",
+        "operationId" : "confirm_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-Store-Id",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DataExchangeImportJobResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Confirmar importación",
+        "tags" : [ "DataExchange" ]
+      }
+    },
     "/api/v1/categories" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_12",
+        "operationId" : "list_13",
         "parameters" : [ {
           "in" : "query",
           "name" : "tree",
@@ -6845,7 +7320,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:category:manage",
-        "operationId" : "create_13",
+        "operationId" : "create_14",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7004,7 +7479,7 @@
     "/api/v1/expiry-alerts" : {
       "get" : {
         "description" : "Permiso: inventory:expiry:read (y catalog:cost:read opcional para valuation). Excluye lotes con saldo 0 y usa por defecto alerts.expiry.days_ahead del local o global.",
-        "operationId" : "list_19",
+        "operationId" : "list_20",
         "parameters" : [ {
           "description" : "Ventana en días (>= 0); si se omite usa alerts.expiry.days_ahead.",
           "in" : "query",
@@ -7153,7 +7628,7 @@
     "/api/v1/goods-receipts" : {
       "get" : {
         "description" : "Permiso: purchasing:order:read. netTotal visible solo con catalog:cost:read.",
-        "operationId" : "list_11",
+        "operationId" : "list_12",
         "parameters" : [ {
           "description" : "Filtrar por estado de la recepción.",
           "in" : "query",
@@ -7263,7 +7738,7 @@
       },
       "post" : {
         "description" : "Permiso: purchasing:receipt:create (+ purchasing:receipt:without-order si no hay OC).",
-        "operationId" : "create_12",
+        "operationId" : "create_13",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7582,7 +8057,7 @@
     "/api/v1/inventory-counts" : {
       "get" : {
         "description" : "Permiso: inventory:count:execute",
-        "operationId" : "list_10",
+        "operationId" : "list_11",
         "parameters" : [ {
           "in" : "query",
           "name" : "status",
@@ -7643,7 +8118,7 @@
       },
       "post" : {
         "description" : "Permiso: inventory:count:manage",
-        "operationId" : "create_11",
+        "operationId" : "create_12",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7702,7 +8177,7 @@
     "/api/v1/inventory-counts/{id}/approve" : {
       "post" : {
         "description" : "Permiso: inventory:count:approve",
-        "operationId" : "approve_1",
+        "operationId" : "approve_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7872,7 +8347,7 @@
     "/api/v1/inventory-counts/{id}/reject" : {
       "post" : {
         "description" : "Permiso: inventory:count:approve",
-        "operationId" : "reject_1",
+        "operationId" : "reject_2",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7940,7 +8415,7 @@
     "/api/v1/kardex" : {
       "get" : {
         "description" : "Permiso: inventory:kardex:read",
-        "operationId" : "list_18",
+        "operationId" : "list_19",
         "parameters" : [ {
           "in" : "query",
           "name" : "productId",
@@ -8027,7 +8502,7 @@
     "/api/v1/lots" : {
       "get" : {
         "description" : "Permiso: inventory:stock:read. Permite filtrar por producto, días hasta el vencimiento, disponibilidad de stock (withStock), estado y texto libre.",
-        "operationId" : "list_17",
+        "operationId" : "list_18",
         "parameters" : [ {
           "description" : "Filtrar por identificador de producto.",
           "in" : "query",
@@ -8472,7 +8947,7 @@
     },
     "/api/v1/pos/suspended-sales" : {
       "get" : {
-        "operationId" : "list_9",
+        "operationId" : "list_10",
         "responses" : {
           "200" : {
             "content" : {
@@ -8578,7 +9053,7 @@
     "/api/v1/product-suppliers" : {
       "post" : {
         "description" : "Permiso: purchasing:product-supplier:manage (sensible, auditado como PRODUCT_SUPPLIER_CHANGED).",
-        "operationId" : "create_10",
+        "operationId" : "create_11",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -8814,7 +9289,7 @@
     "/api/v1/products" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -8911,7 +9386,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:product:create",
-        "operationId" : "create_9",
+        "operationId" : "create_10",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -8936,6 +9411,88 @@
         },
         "summary" : "Crear producto",
         "tags" : [ "Catalog" ]
+      }
+    },
+    "/api/v1/products/export" : {
+      "get" : {
+        "description" : "Permiso: catalog:product:export. Errores: VALIDATION_ERROR",
+        "operationId" : "export",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "categoryId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "brandId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "saleType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "UNIT", "WEIGHT", "PACK" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "restricted",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lotControlled",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Exportar catálogo de productos",
+        "tags" : [ "DataExchange" ]
       }
     },
     "/api/v1/products/{id}" : {
@@ -9481,7 +10038,7 @@
     "/api/v1/purchase-orders" : {
       "get" : {
         "description" : "Permiso: purchasing:order:read. Total visible solo con catalog:cost:read.",
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "parameters" : [ {
           "description" : "Filtrar por estado de la orden.",
           "in" : "query",
@@ -9599,7 +10156,7 @@
       },
       "post" : {
         "description" : "Permiso: purchasing:order:create.",
-        "operationId" : "create_8",
+        "operationId" : "create_9",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -10326,7 +10883,7 @@
     "/api/v1/sales" : {
       "get" : {
         "description" : "Permiso: sales:sale:read. Alcance P: los cajeros ven solo sus propias ventas.",
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -10434,7 +10991,7 @@
       },
       "post" : {
         "description" : "Permiso: sales:pos:operate. Idempotente ([I]) y ligado a terminal ([T]). Acepta múltiples tokens en X-Override-Token separados por coma. En Fase 1 rechaza CUSTOMER_CREDIT con 400 VALIDATION_ERROR.",
-        "operationId" : "create_7",
+        "operationId" : "create_8",
         "parameters" : [ {
           "in" : "header",
           "name" : "Idempotency-Key",
@@ -10508,7 +11065,7 @@
     "/api/v1/sales/{id}" : {
       "get" : {
         "description" : "Permiso: sales:sale:read. Alcance P: ventas ajenas responden 404 NOT_FOUND.",
-        "operationId" : "getById_4",
+        "operationId" : "getById_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -10602,7 +11159,7 @@
     "/api/v1/scale-barcode-configs" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "responses" : {
           "200" : {
             "content" : {
@@ -10623,7 +11180,7 @@
       },
       "post" : {
         "description" : "Permiso: config:scale-barcode:manage",
-        "operationId" : "create_6",
+        "operationId" : "create_7",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -10691,7 +11248,7 @@
     },
     "/api/v1/settings" : {
       "get" : {
-        "operationId" : "list_16",
+        "operationId" : "list_17",
         "parameters" : [ {
           "in" : "query",
           "name" : "scope",
@@ -10783,10 +11340,405 @@
         "tags" : [ "Organization" ]
       }
     },
+    "/api/v1/shrinkages" : {
+      "get" : {
+        "description" : "Permiso: shrinkage:record:read. Filtros opcionales por status, shrinkageType, productId, from y to.",
+        "operationId" : "list_5",
+        "parameters" : [ {
+          "description" : "Filtrar por estado.",
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "PENDING_APPROVAL", "APPROVED", "REJECTED" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtrar por tipo de merma.",
+          "in" : "query",
+          "name" : "shrinkageType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "EXPIRED", "DAMAGED", "BROKEN", "THEFT_LOSS", "INTERNAL_CONSUMPTION", "RECEIVING_ERROR", "TRANSFER_DIFFERENCE" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtrar por producto.",
+          "in" : "query",
+          "name" : "productId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Fecha inicial inclusive (YYYY-MM-DD, zona de negocio).",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final inclusive (YYYY-MM-DD, zona de negocio).",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Listado paginado de mermas"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseShrinkageResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por filtros, paginación u orden inválidos"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseShrinkageResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Listar mermas",
+        "tags" : [ "Shrinkage" ]
+      },
+      "post" : {
+        "description" : "Permiso: shrinkage:record:create. Requiere Idempotency-Key ([I]). Se autoaprueba si 0 < totalCost <= SHRINKAGE_AUTO_APPROVE_MAX_AMOUNT (RN-21).",
+        "operationId" : "create_6",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ShrinkageRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma registrada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR o Idempotency-Key faltante"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Producto, lote, archivo o usuario no encontrado"
+          },
+          "422" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "LOT_REQUIRED o STOCK_INSUFFICIENT"
+          }
+        },
+        "summary" : "Registrar merma",
+        "tags" : [ "Shrinkage" ]
+      }
+    },
+    "/api/v1/shrinkages/{id}" : {
+      "get" : {
+        "description" : "Permiso: shrinkage:record:read.",
+        "operationId" : "getById_4",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Detalle de la merma"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma no encontrada en el local activo"
+          }
+        },
+        "summary" : "Obtener merma por id",
+        "tags" : [ "Shrinkage" ]
+      }
+    },
+    "/api/v1/shrinkages/{id}/approve" : {
+      "post" : {
+        "description" : "Permiso: shrinkage:record:approve. Aplica segregación de funciones, límite SHRINKAGE_APPROVE_MAX_AMOUNT ([O:SHRINKAGE_APPROVAL]) y descuento de stock solo si affectsStock = true.",
+        "operationId" : "approve_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Token de autorización de supervisor cuando supera SHRINKAGE_APPROVE_MAX_AMOUNT.",
+          "in" : "header",
+          "name" : "X-Override-Token",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma aprobada"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma no encontrada en el local activo"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE_TRANSITION"
+          },
+          "422" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "SEGREGATION_OF_DUTIES, OVERRIDE_REQUIRED, OVERRIDE_INVALID o STOCK_INSUFFICIENT"
+          }
+        },
+        "summary" : "Aprobar merma",
+        "tags" : [ "Shrinkage" ]
+      }
+    },
+    "/api/v1/shrinkages/{id}/reject" : {
+      "post" : {
+        "description" : "Permiso: shrinkage:record:approve. Deja la merma en REJECTED sin mover stock.",
+        "operationId" : "reject_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ShrinkageRejectRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma rechazada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "Merma no encontrada en el local activo"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE_TRANSITION"
+          },
+          "422" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ShrinkageResponse"
+                }
+              }
+            },
+            "description" : "SEGREGATION_OF_DUTIES"
+          }
+        },
+        "summary" : "Rechazar merma",
+        "tags" : [ "Shrinkage" ]
+      }
+    },
     "/api/v1/stock" : {
       "get" : {
         "description" : "Permiso: inventory:stock:read",
-        "operationId" : "list_15",
+        "operationId" : "list_16",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -13053,6 +14005,9 @@
     "url" : "http://localhost"
   } ],
   "tags" : [ {
+    "description" : "Importación y exportación masiva del catálogo",
+    "name" : "DataExchange"
+  }, {
     "description" : "Operaciones de venta y carritos suspendidos en POS",
     "name" : "Sales"
   }, {

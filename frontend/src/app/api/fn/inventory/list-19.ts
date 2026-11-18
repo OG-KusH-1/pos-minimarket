@@ -7,23 +7,27 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { PageResponseExpiryAlertResponse } from '../../models/page-response-expiry-alert-response';
+import { PageResponseStockMovementResponse } from '../../models/page-response-stock-movement-response';
 
 export interface List19$Params {
-
-/**
- * Ventana en días (>= 0); si se omite usa alerts.expiry.days_ahead.
- */
-  days?: number;
+  productId: number;
+  from?: string;
+  to?: string;
+  movementType?: 'INITIAL' | 'PURCHASE_RECEIPT' | 'SALE' | 'SALE_VOID' | 'SALE_RETURN' | 'SHRINKAGE' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'TRANSFER_OUT' | 'TRANSFER_IN';
+  lotId?: number;
   page?: number;
   size?: number;
   sort?: Array<string>;
 }
 
-export function list19(http: HttpClient, rootUrl: string, params?: List19$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseExpiryAlertResponse>> {
+export function list19(http: HttpClient, rootUrl: string, params: List19$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockMovementResponse>> {
   const rb = new RequestBuilder(rootUrl, list19.PATH, 'get');
   if (params) {
-    rb.query('days', params.days, {});
+    rb.query('productId', params.productId, {});
+    rb.query('from', params.from, {});
+    rb.query('to', params.to, {});
+    rb.query('movementType', params.movementType, {});
+    rb.query('lotId', params.lotId, {});
     rb.query('page', params.page, {});
     rb.query('size', params.size, {});
     rb.query('sort', params.sort, {});
@@ -34,9 +38,9 @@ export function list19(http: HttpClient, rootUrl: string, params?: List19$Params
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<PageResponseExpiryAlertResponse>;
+      return r as StrictHttpResponse<PageResponseStockMovementResponse>;
     })
   );
 }
 
-list19.PATH = '/api/v1/expiry-alerts';
+list19.PATH = '/api/v1/kardex';

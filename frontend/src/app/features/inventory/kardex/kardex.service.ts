@@ -12,8 +12,8 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { get2 } from '../../../api/fn/catalog/get-2';
-import { list8 } from '../../../api/fn/catalog/list-8';
-import { list18, List18$Params } from '../../../api/fn/inventory/list-18';
+import { list9 } from '../../../api/fn/catalog/list-9';
+import { list19, List19$Params } from '../../../api/fn/inventory/list-19';
 import { PageResponseStockMovementResponse } from '../../../api/models/page-response-stock-movement-response';
 import { ProductResponse } from '../../../api/models/product-response';
 import { ProductSummary } from '../../../api/models/product-summary';
@@ -111,17 +111,17 @@ export class KardexService {
    * Lista los movimientos de stock de un producto en el local activo (`productId` obligatorio).
    */
   listMovements(
-    params: List18$Params,
+    params: List19$Params,
     context?: HttpContext,
   ): Observable<PageResponseStockMovementResponse> {
-    return unwrapApiResponse(list18(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list19(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Busca productos del catálogo por nombre o SKU para el selector de producto del kardex. */
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list8(
+      list9(
         this.http,
         this.apiConfig.rootUrl,
         {

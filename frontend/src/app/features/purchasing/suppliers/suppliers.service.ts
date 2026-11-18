@@ -11,11 +11,11 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list8, List8$Params } from '../../../api/fn/catalog/list-8';
+import { list9, List9$Params } from '../../../api/fn/catalog/list-9';
 import { activate1 } from '../../../api/fn/purchasing/activate-1';
 import { activate4 } from '../../../api/fn/purchasing/activate-4';
 import { create1 } from '../../../api/fn/purchasing/create-1';
-import { create10 } from '../../../api/fn/purchasing/create-10';
+import { create11 } from '../../../api/fn/purchasing/create-11';
 import { deactivate1 } from '../../../api/fn/purchasing/deactivate-1';
 import { deactivate4 } from '../../../api/fn/purchasing/deactivate-4';
 import { get } from '../../../api/fn/purchasing/get';
@@ -161,7 +161,7 @@ export class SuppliersService {
     body: ProductSupplierRequest,
     context?: HttpContext,
   ): Observable<ProductSupplierResponse> {
-    return unwrapApiResponse(create10(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create11(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza una asociación producto-proveedor existente. */
@@ -190,9 +190,9 @@ export class SuppliersService {
 
   /** Busca productos del catálogo para asociar a un proveedor. */
   searchProducts(
-    params?: List8$Params,
+    params?: List9$Params,
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
-    return unwrapApiResponse(list8(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, params, context));
   }
 }

@@ -12,9 +12,9 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { activate5 } from '../../../api/fn/catalog/activate-5';
-import { create13 } from '../../../api/fn/catalog/create-13';
+import { create14 } from '../../../api/fn/catalog/create-14';
 import { deactivate5 } from '../../../api/fn/catalog/deactivate-5';
-import { list12 } from '../../../api/fn/catalog/list-12';
+import { list13 } from '../../../api/fn/catalog/list-13';
 import { update13 } from '../../../api/fn/catalog/update-13';
 import { CategoryRequest } from '../../../api/models/category-request';
 import { CategoryResponse } from '../../../api/models/category-response';
@@ -109,12 +109,12 @@ export class CategoriesService {
    * @param context Contexto HTTP opcional (p. ej. `withoutErrorNotification()`).
    */
   listCategories(tree = true, context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, { tree }, context));
+    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree }, context));
   }
 
   /** Crea una categoría raíz o una subcategoría (máximo dos niveles). */
   createCategory(body: CategoryRequest, context?: HttpContext): Observable<CategoryResponse> {
-    return unwrapApiResponse(create13(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create14(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza nombre, código o categoría padre de una categoría existente. */
