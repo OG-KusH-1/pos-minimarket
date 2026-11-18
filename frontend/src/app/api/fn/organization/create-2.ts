@@ -7,18 +7,16 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { TerminalRequest } from '../../models/terminal-request';
-import { TerminalResponse } from '../../models/terminal-response';
+import { StoreRequest } from '../../models/store-request';
+import { StoreResponse } from '../../models/store-response';
 
 export interface Create2$Params {
-  storeId: number;
-      body: TerminalRequest
+      body: StoreRequest
 }
 
-export function create2(http: HttpClient, rootUrl: string, params: Create2$Params, context?: HttpContext): Observable<StrictHttpResponse<TerminalResponse>> {
+export function create2(http: HttpClient, rootUrl: string, params: Create2$Params, context?: HttpContext): Observable<StrictHttpResponse<StoreResponse>> {
   const rb = new RequestBuilder(rootUrl, create2.PATH, 'post');
   if (params) {
-    rb.path('storeId', params.storeId, {});
     rb.body(params.body, 'application/json');
   }
 
@@ -27,9 +25,9 @@ export function create2(http: HttpClient, rootUrl: string, params: Create2$Param
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<TerminalResponse>;
+      return r as StrictHttpResponse<StoreResponse>;
     })
   );
 }
 
-create2.PATH = '/api/v1/stores/{storeId}/terminals';
+create2.PATH = '/api/v1/stores';

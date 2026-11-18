@@ -11,11 +11,11 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { activate4 } from '../../../api/fn/catalog/activate-4';
-import { create10 } from '../../../api/fn/catalog/create-10';
-import { deactivate4 } from '../../../api/fn/catalog/deactivate-4';
-import { list11, List11$Params } from '../../../api/fn/catalog/list-11';
-import { update10 } from '../../../api/fn/catalog/update-10';
+import { activate6 } from '../../../api/fn/catalog/activate-6';
+import { create14 } from '../../../api/fn/catalog/create-14';
+import { deactivate6 } from '../../../api/fn/catalog/deactivate-6';
+import { list14, List14$Params } from '../../../api/fn/catalog/list-14';
+import { update14 } from '../../../api/fn/catalog/update-14';
 import { BrandRequest } from '../../../api/models/brand-request';
 import { BrandResponse } from '../../../api/models/brand-response';
 import { PageResponseBrandResponse } from '../../../api/models/page-response-brand-response';
@@ -103,23 +103,23 @@ export class BrandsService {
   private readonly apiConfig = inject(ApiConfiguration);
 
   /** Lista marcas paginadas según filtros (`q`, `active`) y criterios de orden. */
-  listBrands(params?: List11$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
-    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
+  listBrands(params?: List14$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
+    return unwrapApiResponse(list14(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Crea una nueva marca. */
   createBrand(body: BrandRequest, context?: HttpContext): Observable<BrandResponse> {
-    return unwrapApiResponse(create10(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create14(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza el nombre de una marca existente. */
   updateBrand(id: number, body: BrandRequest, context?: HttpContext): Observable<BrandResponse> {
-    return unwrapApiResponse(update10(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update14(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Desactiva una marca. */
   deactivateBrand(id: number): Observable<void> {
-    return deactivate4(this.http, this.apiConfig.rootUrl, { id }).pipe(
+    return deactivate6(this.http, this.apiConfig.rootUrl, { id }).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -127,7 +127,7 @@ export class BrandsService {
 
   /** Reactiva una marca previamente desactivada. */
   activateBrand(id: number): Observable<void> {
-    return activate4(this.http, this.apiConfig.rootUrl, { id }).pipe(
+    return activate6(this.http, this.apiConfig.rootUrl, { id }).pipe(
       map(() => undefined),
       unwrapApiError(),
     );

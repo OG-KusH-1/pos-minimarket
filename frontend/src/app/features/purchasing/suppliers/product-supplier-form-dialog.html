@@ -1,0 +1,140 @@
+<h2 mat-dialog-title>
+  {{ isEdit ? 'Editar producto del proveedor' : 'Asociar producto al proveedor' }}
+</h2>
+
+@if (saving()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-dialog-content>
+  <p class="supplier-subtitle">
+    Proveedor: <strong>{{ data.supplierName }}</strong>
+  </p>
+
+  @if (errorMessage(); as message) {
+    <div class="error-banner" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" class="ps-form" (ngSubmit)="submit()">
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Producto</mat-label>
+      <input
+        matInput
+        [formControl]="productSearchControl"
+        [matAutocomplete]="productAuto"
+        placeholder="Buscar por SKU o nombre..."
+      />
+      <mat-autocomplete #productAuto="matAutocomplete" (optionSelected)="onProductSelected($event)">
+        @for (prod of productOptions(); track prod.id) {
+          <mat-option [value]="prod">
+            {{ prod.sku }} — {{ prod.name }}
+            @if (prod.saleType === 'PACK') {
+              <span class="pack-tag">(PACK - no permitido)</span>
+            }
+          </mat-option>
+        }
+      </mat-autocomplete>
+      @if (
+        productSearchControl.hasError('packNotAllowed') ||
+        form.controls.productId.hasError('packNotAllowed')
+      ) {
+        <mat-error>Los productos de tipo PACK no pueden asociarse a un proveedor.</mat-error>
+      } @else if (
+        productSearchControl.hasError('required') || form.controls.productId.hasError('required')
+      ) {
+        <mat-error>Selecciona un producto válido.</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>Unidad de compra</mat-label>
+        <input
+          matInput
+          formControlName="purchaseUnitName"
+          placeholder="Ej. Caja, Display, Saco"
+          maxlength="30"
+        />
+        @if (form.controls.purchaseUnitName.hasError('required')) {
+          <mat-error>La unidad de compra es obligatoria.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Código / SKU del proveedor</mat-label>
+        <input matInput formControlName="supplierSku" maxlength="40" />
+      </mat-form-field>
+    </div>
+
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>Unidades base por unidad de compra</mat-label>
+        <input matInput type="number" step="0.001" formControlName="unitsPerPurchaseUnit" />
+        @if (form.controls.unitsPerPurchaseUnit.hasError('required')) {
+          <mat-error>Obligatorio.</mat-error>
+        } @else if (form.controls.unitsPerPurchaseUnit.hasError('positive')) {
+          <mat-error>Debe ser mayor que 0.</mat-error>
+        }
+      </mat-form-field>
+
+      @if (canReadCosts()) {
+        <mat-form-field appearance="outline">
+          <mat-label>Costo neto por unidad de compra (CLP)</mat-label>
+          <input matInput type="number" step="1" min="0" formControlName="costPerPurchaseUnit" />
+          @if (form.controls.costPerPurchaseUnit.hasError('required')) {
+            <mat-error>El costo es obligatorio.</mat-error>
+          } @else if (form.controls.costPerPurchaseUnit.hasError('min')) {
+            <mat-error>No puede ser negativo.</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+
+    @if (canReadCosts()) {
+      <div class="cost-preview" role="status">
+        <span>Costo neto por unidad base (<code>unitCostNet</code>):</span>
+        <strong>{{ formattedPreviewUnitCostNet() }}</strong>
+      </div>
+    }
+
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>Pedido mínimo (unidades de compra)</mat-label>
+        <input matInput type="number" step="1" min="1" formControlName="minOrderQty" />
+        @if (
+          form.controls.minOrderQty.hasError('required') ||
+          form.controls.minOrderQty.hasError('min')
+        ) {
+          <mat-error>Debe ser al menos 1.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Lead time específico (días, opcional)</mat-label>
+        <input matInput type="number" min="0" max="90" formControlName="leadTimeDaysOverride" />
+        <mat-hint>Vacío usa el lead time del proveedor.</mat-hint>
+        @if (
+          form.controls.leadTimeDaysOverride.hasError('min') ||
+          form.controls.leadTimeDaysOverride.hasError('max') ||
+          form.controls.leadTimeDaysOverride.hasError('integer')
+        ) {
+          <mat-error>Ingresa un entero entre 0 y 90.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-checkbox formControlName="isPreferred">
+      Marcar como proveedor preferido para este producto
+    </mat-checkbox>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">Cancelar</button>
+  <button mat-flat-button type="button" (click)="submit()" [disabled]="saving() || form.invalid">
+    {{ isEdit ? 'Guardar cambios' : 'Asociar producto' }}
+  </button>
+</mat-dialog-actions>

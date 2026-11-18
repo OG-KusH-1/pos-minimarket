@@ -16,8 +16,8 @@ import { close } from '../../../api/fn/cash/close';
 import { closingReceipt$Json } from '../../../api/fn/cash/closing-receipt-json';
 import { closingReceipt$Pdf } from '../../../api/fn/cash/closing-receipt-pdf';
 import { current } from '../../../api/fn/cash/current';
-import { get4 } from '../../../api/fn/cash/get-4';
-import { list10, List10$Params } from '../../../api/fn/cash/list-10';
+import { get5 } from '../../../api/fn/cash/get-5';
+import { list13, List13$Params } from '../../../api/fn/cash/list-13';
 import { listMovements } from '../../../api/fn/cash/list-movements';
 import { open } from '../../../api/fn/cash/open';
 import { registerMovement } from '../../../api/fn/cash/register-movement';
@@ -165,15 +165,15 @@ export class CashService {
 
   /** Lista el historial paginado de turnos del local activo (`GET /api/v1/cash-sessions`). */
   listSessions(
-    params?: List10$Params,
+    params?: List13$Params,
     context?: HttpContext,
   ): Observable<PageResponseCashSessionResponse> {
-    return unwrapApiResponse(list10(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle de un turno por identificador (`GET /api/v1/cash-sessions/{id}`). */
   getSession(id: number, context?: HttpContext): Observable<CashSessionResponse> {
-    return unwrapApiResponse(get4(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get5(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Calcula el resumen financiero esperado del turno (`GET /api/v1/cash-sessions/{id}/summary`). */

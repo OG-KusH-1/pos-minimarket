@@ -11,24 +11,24 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { activate2 } from '../../../api/fn/catalog/activate-2';
+import { activate3 } from '../../../api/fn/catalog/activate-3';
 import { addBarcode } from '../../../api/fn/catalog/add-barcode';
 import { changeCost } from '../../../api/fn/catalog/change-cost';
 import { changePrice } from '../../../api/fn/catalog/change-price';
-import { create7 } from '../../../api/fn/catalog/create-7';
-import { deactivate2 } from '../../../api/fn/catalog/deactivate-2';
+import { create9 } from '../../../api/fn/catalog/create-9';
+import { deactivate3 } from '../../../api/fn/catalog/deactivate-3';
 import { deleteBarcode } from '../../../api/fn/catalog/delete-barcode';
 import { deleteImage } from '../../../api/fn/catalog/delete-image';
-import { get1 } from '../../../api/fn/catalog/get-1';
+import { get2 } from '../../../api/fn/catalog/get-2';
 import { list } from '../../../api/fn/catalog/list';
-import { list4 } from '../../../api/fn/catalog/list-4';
-import { list6, List6$Params } from '../../../api/fn/catalog/list-6';
-import { list9 } from '../../../api/fn/catalog/list-9';
-import { list11, List11$Params } from '../../../api/fn/catalog/list-11';
+import { list5 } from '../../../api/fn/catalog/list-5';
+import { list8, List8$Params } from '../../../api/fn/catalog/list-8';
+import { list12 } from '../../../api/fn/catalog/list-12';
+import { list14, List14$Params } from '../../../api/fn/catalog/list-14';
 import { priceHistory, PriceHistory$Params } from '../../../api/fn/catalog/price-history';
 import { setPack } from '../../../api/fn/catalog/set-pack';
 import { setPrimaryBarcode } from '../../../api/fn/catalog/set-primary-barcode';
-import { update6 } from '../../../api/fn/catalog/update-6';
+import { update8 } from '../../../api/fn/catalog/update-8';
 import { updateImage } from '../../../api/fn/catalog/update-image';
 import { updateTaxes } from '../../../api/fn/catalog/update-taxes';
 import { download } from '../../../api/fn/files/download';
@@ -149,20 +149,20 @@ export class ProductsService {
 
   /** Lista productos paginados según filtros (`q`, `categoryId`, `brandId`, `saleType`, etc.). */
   listProducts(
-    params?: List6$Params,
+    params?: List8$Params,
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
-    return unwrapApiResponse(list6(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list8(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene la ficha completa de un producto por su identificador. */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get1(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Crea un producto nuevo junto con sus impuestos, códigos iniciales y pack (si aplica). */
   createProduct(body: ProductRequest, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(create7(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create9(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza los datos no económicos de un producto (controlando concurrencia por `version`). */
@@ -171,12 +171,12 @@ export class ProductsService {
     body: ProductRequest,
     context?: HttpContext,
   ): Observable<ProductResponse> {
-    return unwrapApiResponse(update6(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update8(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Desactiva un producto (queda fuera de venta en POS, conservando su historial). */
   deactivateProduct(id: number, context?: HttpContext): Observable<void> {
-    return deactivate2(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
+    return deactivate3(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -184,7 +184,7 @@ export class ProductsService {
 
   /** Reactiva un producto previamente desactivado. */
   activateProduct(id: number, context?: HttpContext): Observable<void> {
-    return activate2(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
+    return activate3(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -301,12 +301,12 @@ export class ProductsService {
 
   /** Lista el árbol de categorías para selectores y filtros. */
   listCategories(tree = true, context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, { tree }, context));
+    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, { tree }, context));
   }
 
   /** Lista marcas para selectores y filtros. */
-  listBrands(params?: List11$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
-    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
+  listBrands(params?: List14$Params, context?: HttpContext): Observable<PageResponseBrandResponse> {
+    return unwrapApiResponse(list14(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Lista los impuestos configurados para asignar al producto. */
@@ -316,6 +316,6 @@ export class ProductsService {
 
   /** Lista configuraciones de balanza para informar compatibilidad de `SCALE_PLU`. */
   listScaleConfigs(context?: HttpContext): Observable<ScaleBarcodeConfigResponse[]> {
-    return unwrapApiResponse(list4(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list5(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 }

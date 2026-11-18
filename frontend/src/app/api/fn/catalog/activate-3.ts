@@ -28,4 +28,4 @@ export function activate3(http: HttpClient, rootUrl: string, params: Activate3$P
   );
 }
 
-activate3.PATH = '/api/v1/categories/{id}/activate';
+activate3.PATH = '/api/v1/products/{id}/activate';

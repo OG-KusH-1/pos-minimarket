@@ -4,8 +4,8 @@ import { Observable, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { download } from '../../../api/fn/files/download';
 import { upload } from '../../../api/fn/files/upload';
-import { get2 } from '../../../api/fn/organization/get-2';
-import { update8 } from '../../../api/fn/organization/update-8';
+import { get3 } from '../../../api/fn/organization/get-3';
+import { update12 } from '../../../api/fn/organization/update-12';
 import { CompanyRequest } from '../../../api/models/company-request';
 import { CompanyResponse } from '../../../api/models/company-response';
 import { FileResponse } from '../../../api/models/file-response';
@@ -23,12 +23,12 @@ export class CompanyService {
 
   /** Obtiene los datos actuales de la empresa (`GET /api/v1/company`, global `[G]`). */
   getCompany(context?: HttpContext): Observable<CompanyResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Actualiza los datos de la empresa (`PUT /api/v1/company`, global `[G]`). */
   updateCompany(body: CompanyRequest, context?: HttpContext): Observable<CompanyResponse> {
-    return unwrapApiResponse(update8(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(update12(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /**

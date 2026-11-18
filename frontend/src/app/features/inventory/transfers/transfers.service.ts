@@ -11,18 +11,18 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { get1 } from '../../../api/fn/catalog/get-1';
-import { list6 } from '../../../api/fn/catalog/list-6';
+import { get2 } from '../../../api/fn/catalog/get-2';
+import { list8 } from '../../../api/fn/catalog/list-8';
 import { cancel } from '../../../api/fn/inventory/cancel';
-import { create3 } from '../../../api/fn/inventory/create-3';
+import { create4 } from '../../../api/fn/inventory/create-4';
 import { getById } from '../../../api/fn/inventory/get-by-id';
-import { list14 } from '../../../api/fn/inventory/list-14';
-import { list2, List2$Params } from '../../../api/fn/inventory/list-2';
+import { list17 } from '../../../api/fn/inventory/list-17';
+import { list3, List3$Params } from '../../../api/fn/inventory/list-3';
 import { receive } from '../../../api/fn/inventory/receive';
 import { send } from '../../../api/fn/inventory/send';
 import { suggestFefo } from '../../../api/fn/inventory/suggest-fefo';
-import { update3 } from '../../../api/fn/inventory/update-3';
-import { list1 } from '../../../api/fn/organization/list-1';
+import { update4 } from '../../../api/fn/inventory/update-4';
+import { list2 } from '../../../api/fn/organization/list-2';
 import { CancelTransferRequest } from '../../../api/models/cancel-transfer-request';
 import { FefoSuggestionResponse } from '../../../api/models/fefo-suggestion-response';
 import { LotResponse } from '../../../api/models/lot-response';
@@ -130,10 +130,10 @@ export class TransfersService {
    * de dirección (`in`/`out`), estado, rango de fechas, paginación y ordenamiento.
    */
   listTransfers(
-    params?: List2$Params,
+    params?: List3$Params,
     context?: HttpContext,
   ): Observable<PageResponseStockTransferResponse> {
-    return unwrapApiResponse(list2(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list3(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de una transferencia visible para el local activo. */
@@ -151,7 +151,7 @@ export class TransfersService {
     context?: HttpContext,
   ): Observable<StockTransferResponse> {
     return unwrapApiResponse(
-      create3(this.http, this.apiConfig.rootUrl, { body }, withIdempotency(context)),
+      create4(this.http, this.apiConfig.rootUrl, { body }, withIdempotency(context)),
     );
   }
 
@@ -161,7 +161,7 @@ export class TransfersService {
     body: StockTransferRequest,
     context?: HttpContext,
   ): Observable<StockTransferResponse> {
-    return unwrapApiResponse(update3(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update4(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /**
@@ -196,7 +196,7 @@ export class TransfersService {
   /** Lista los locales activos disponibles para seleccionar el destino de la transferencia. */
   listStores(context?: HttpContext): Observable<StoreResponse[]> {
     return unwrapApiResponse(
-      list1(
+      list2(
         this.http,
         this.apiConfig.rootUrl,
         { active: true, size: 200, sort: ['name,asc'] },
@@ -209,7 +209,7 @@ export class TransfersService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list6(
+      list8(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -225,13 +225,13 @@ export class TransfersService {
 
   /** Obtiene la ficha completa del producto (incluye `lotControlled` y `unitOfMeasure`). */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get1(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Lista los lotes con stock positivo de un producto en el local activo (orden FEFO). */
   listProductLots(productId: number, context?: HttpContext): Observable<LotResponse[]> {
     return unwrapApiResponse(
-      list14(
+      list17(
         this.http,
         this.apiConfig.rootUrl,
         {

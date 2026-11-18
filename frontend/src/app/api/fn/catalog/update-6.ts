@@ -7,15 +7,15 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { ProductRequest } from '../../models/product-request';
-import { ProductResponse } from '../../models/product-response';
+import { ScaleBarcodeConfigRequest } from '../../models/scale-barcode-config-request';
+import { ScaleBarcodeConfigResponse } from '../../models/scale-barcode-config-response';
 
 export interface Update6$Params {
   id: number;
-      body: ProductRequest
+      body: ScaleBarcodeConfigRequest
 }
 
-export function update6(http: HttpClient, rootUrl: string, params: Update6$Params, context?: HttpContext): Observable<StrictHttpResponse<ProductResponse>> {
+export function update6(http: HttpClient, rootUrl: string, params: Update6$Params, context?: HttpContext): Observable<StrictHttpResponse<ScaleBarcodeConfigResponse>> {
   const rb = new RequestBuilder(rootUrl, update6.PATH, 'put');
   if (params) {
     rb.path('id', params.id, {});
@@ -27,9 +27,9 @@ export function update6(http: HttpClient, rootUrl: string, params: Update6$Param
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<ProductResponse>;
+      return r as StrictHttpResponse<ScaleBarcodeConfigResponse>;
     })
   );
 }
 
-update6.PATH = '/api/v1/products/{id}';
+update6.PATH = '/api/v1/scale-barcode-configs/{id}';

@@ -119,10 +119,10 @@ Ejecuta por fase y oleada, de arriba hacia abajo. Las tareas de una misma oleada
 |---|---|---|---|
 | O1 | [T57](T57.md) Proveedores y producto-proveedor (incluye ProductSupplierApi.upsert) | backend | entregada |
 | O2 | [T58](T58.md) Órdenes de compra: ciclo de estados, PDF, correo vía outbox (crea el E… | backend | entregada |
-| O3 🔍 | [T59](T59.md) Recepciones: lotes, costo promedio (applyAverageCost, con qty_received… | backend | asignada |
-| O4 | [T60](T60.md) Regenerar contrato (5) | contrato | pendiente |
-| O5 🔍 | [T61](T61.md) Frontend proveedores y producto-proveedor | frontend | pendiente |
-| O5 🔍 | [T62](T62.md) Frontend OC y recepciones | frontend | pendiente |
+| O3 🔍 | [T59](T59.md) Recepciones: lotes, costo promedio (applyAverageCost, con qty_received… | backend | entregada |
+| O4 | [T60](T60.md) Regenerar contrato (5) | contrato | entregada |
+| O5 🔍 | [T61](T61.md) Frontend proveedores y producto-proveedor | frontend | entregada |
+| O5 🔍 | [T62](T62.md) Frontend OC y recepciones | frontend | entregada |
 
 ### Fase 4
 

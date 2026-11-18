@@ -3,16 +3,16 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { activate } from '../../../api/fn/organization/activate';
-import { activate1 } from '../../../api/fn/organization/activate-1';
-import { create1 } from '../../../api/fn/organization/create-1';
+import { activate2 } from '../../../api/fn/organization/activate-2';
 import { create2 } from '../../../api/fn/organization/create-2';
+import { create3 } from '../../../api/fn/organization/create-3';
 import { deactivate } from '../../../api/fn/organization/deactivate';
-import { deactivate1 } from '../../../api/fn/organization/deactivate-1';
-import { get } from '../../../api/fn/organization/get';
-import { list1, List1$Params } from '../../../api/fn/organization/list-1';
+import { deactivate2 } from '../../../api/fn/organization/deactivate-2';
+import { get1 } from '../../../api/fn/organization/get-1';
+import { list2, List2$Params } from '../../../api/fn/organization/list-2';
 import { listByStore } from '../../../api/fn/organization/list-by-store';
 import { update } from '../../../api/fn/organization/update';
-import { update2 } from '../../../api/fn/organization/update-2';
+import { update3 } from '../../../api/fn/organization/update-3';
 import { PageResponseStoreResponse } from '../../../api/models/page-response-store-response';
 import { StoreRequest } from '../../../api/models/store-request';
 import { StoreResponse } from '../../../api/models/store-response';
@@ -33,28 +33,28 @@ export class StoresService {
   private readonly apiConfig = inject(ApiConfiguration);
 
   /** Lista los locales paginados (`GET /api/v1/stores`, `[G]`). */
-  listStores(params?: List1$Params, context?: HttpContext): Observable<PageResponseStoreResponse> {
-    return unwrapApiResponse(list1(this.http, this.apiConfig.rootUrl, params, context));
+  listStores(params?: List2$Params, context?: HttpContext): Observable<PageResponseStoreResponse> {
+    return unwrapApiResponse(list2(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle de un local (`GET /api/v1/stores/{id}`, `[G]`). */
   getStore(id: number, context?: HttpContext): Observable<StoreResponse> {
-    return unwrapApiResponse(get(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get1(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Crea un local nuevo (`POST /api/v1/stores`, `[G]`). */
   createStore(body: StoreRequest, context?: HttpContext): Observable<StoreResponse> {
-    return unwrapApiResponse(create1(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create2(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza un local existente (`PUT /api/v1/stores/{id}`, `[G]`). */
   updateStore(id: number, body: StoreRequest, context?: HttpContext): Observable<StoreResponse> {
-    return unwrapApiResponse(update2(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update3(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Desactiva un local (`POST /api/v1/stores/{id}/deactivate`, `[G]`). */
   deactivateStore(id: number, context?: HttpContext): Observable<void> {
-    return deactivate1(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
+    return deactivate2(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -62,7 +62,7 @@ export class StoresService {
 
   /** Reactiva un local (`POST /api/v1/stores/{id}/activate`, `[G]`). */
   activateStore(id: number, context?: HttpContext): Observable<void> {
-    return activate1(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
+    return activate2(this.http, this.apiConfig.rootUrl, { id }, context).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -80,7 +80,7 @@ export class StoresService {
     context?: HttpContext,
   ): Observable<TerminalResponse> {
     return unwrapApiResponse(
-      create2(httpForStore(this.http, storeId), this.apiConfig.rootUrl, { storeId, body }, context),
+      create3(httpForStore(this.http, storeId), this.apiConfig.rootUrl, { storeId, body }, context),
     );
   }
 

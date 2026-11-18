@@ -1,0 +1,179 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2>
+
+@if (loading() || saving()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-dialog-content>
+  @if (errorMessage(); as message) {
+    <div class="error-banner" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+      @if (concurrentConflict()) {
+        <button mat-stroked-button type="button" (click)="reloadSupplier()">Recargar datos</button>
+      }
+    </div>
+  }
+
+  <form [formGroup]="form" class="supplier-form" (ngSubmit)="submit()">
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>RUT</mat-label>
+        <input
+          matInput
+          formControlName="rut"
+          placeholder="76.123.456-K"
+          autocomplete="off"
+          (blur)="onRutBlur()"
+        />
+        @if (form.controls.rut.hasError('required')) {
+          <mat-error>El RUT es obligatorio.</mat-error>
+        } @else if (form.controls.rut.hasError('rut') || form.controls.rut.hasError('rutInvalid')) {
+          <mat-error>Ingresa un RUT válido (módulo 11).</mat-error>
+        } @else if (form.controls.rut.hasError('duplicated')) {
+          <mat-error>Este RUT ya está registrado.</mat-error>
+        } @else if (form.controls.rut.hasError('server')) {
+          <mat-error>{{ form.controls.rut.getError('server') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Razón social</mat-label>
+        <input matInput formControlName="legalName" maxlength="200" />
+        @if (form.controls.legalName.hasError('required')) {
+          <mat-error>La razón social es obligatoria.</mat-error>
+        } @else if (form.controls.legalName.hasError('minlength')) {
+          <mat-error>Debe tener al menos 2 caracteres.</mat-error>
+        } @else if (form.controls.legalName.hasError('server')) {
+          <mat-error>{{ form.controls.legalName.getError('server') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre de fantasía</mat-label>
+        <input matInput formControlName="tradeName" maxlength="200" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Giro comercial</mat-label>
+        <input matInput formControlName="businessActivity" maxlength="200" />
+      </mat-form-field>
+    </div>
+
+    <div class="grid-three">
+      <mat-form-field appearance="outline">
+        <mat-label>Condición de pago</mat-label>
+        <mat-select formControlName="paymentTermsType">
+          @for (opt of paymentTermsOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Plazo de pago (días)</mat-label>
+        <input matInput type="number" formControlName="paymentTermsDays" min="0" max="180" />
+        @if (
+          form.controls.paymentTermsDays.hasError('min') ||
+          form.controls.paymentTermsDays.hasError('max') ||
+          form.controls.paymentTermsDays.hasError('integer')
+        ) {
+          <mat-error>Ingresa un entero entre 0 y 180 días.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Lead time (días)</mat-label>
+        <input matInput type="number" formControlName="leadTimeDays" min="0" max="90" />
+        @if (form.controls.leadTimeDays.hasError('required')) {
+          <mat-error>El lead time es obligatorio.</mat-error>
+        } @else if (
+          form.controls.leadTimeDays.hasError('min') ||
+          form.controls.leadTimeDays.hasError('max') ||
+          form.controls.leadTimeDays.hasError('integer')
+        ) {
+          <mat-error>Ingresa un entero entre 0 y 90 días.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Días de despacho</mat-label>
+      <mat-select formControlName="deliveryWeekdays" multiple>
+        @for (day of weekdays; track day.value) {
+          <mat-option [value]="day.value">{{ day.label }}</mat-option>
+        }
+      </mat-select>
+      <mat-hint>Días en que el proveedor realiza entregas (usado en reabastecimiento).</mat-hint>
+    </mat-form-field>
+
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono principal</mat-label>
+        <input matInput formControlName="phone" maxlength="30" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Correo principal</mat-label>
+        <input matInput type="email" formControlName="email" maxlength="150" />
+        @if (form.controls.email.hasError('email')) {
+          <mat-error>Correo electrónico inválido.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <div class="grid-three">
+      <mat-form-field appearance="outline">
+        <mat-label>Dirección</mat-label>
+        <input matInput formControlName="address" maxlength="250" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Comuna</mat-label>
+        <input matInput formControlName="commune" maxlength="100" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Ciudad</mat-label>
+        <input matInput formControlName="city" maxlength="100" />
+      </mat-form-field>
+    </div>
+
+    <div class="grid-three">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre de contacto</mat-label>
+        <input matInput formControlName="contactName" maxlength="150" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Teléfono de contacto</mat-label>
+        <input matInput formControlName="contactPhone" maxlength="30" />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Correo de contacto</mat-label>
+        <input matInput type="email" formControlName="contactEmail" maxlength="150" />
+        @if (form.controls.contactEmail.hasError('email')) {
+          <mat-error>Correo electrónico inválido.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Notas internas</mat-label>
+      <textarea matInput formControlName="notes" rows="2" maxlength="2000"></textarea>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">Cancelar</button>
+  <button
+    mat-flat-button
+    type="button"
+    (click)="submit()"
+    [disabled]="loading() || saving() || form.invalid"
+  >
+    {{ isEdit ? 'Guardar cambios' : 'Crear proveedor' }}
+  </button>
+</mat-dialog-actions>

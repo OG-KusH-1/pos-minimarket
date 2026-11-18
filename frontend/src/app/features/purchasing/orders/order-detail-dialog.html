@@ -1,0 +1,137 @@
+<h2 mat-dialog-title class="dialog-title">
+  <span>Orden de compra {{ order.number }}</span>
+  <span
+    class="badge"
+    [class.badge--draft]="order.status === 'DRAFT'"
+    [class.badge--sent]="order.status === 'SENT'"
+    [class.badge--partial]="order.status === 'PARTIALLY_RECEIVED'"
+    [class.badge--received]="order.status === 'RECEIVED'"
+    [class.badge--cancelled]="order.status === 'CANCELLED'"
+  >
+    {{ statusLabel }}
+  </span>
+</h2>
+
+<mat-dialog-content class="content">
+  <dl class="meta-grid">
+    <div>
+      <dt>Proveedor</dt>
+      <dd>{{ order.supplier?.tradeName || order.supplier?.legalName || '—' }}</dd>
+    </div>
+    <div>
+      <dt>RUT proveedor</dt>
+      <dd>{{ order.supplier?.rut || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Local emisor</dt>
+      <dd>{{ order.store ? order.store.code + ' — ' + order.store.name : '—' }}</dd>
+    </div>
+    <div>
+      <dt>Origen</dt>
+      <dd>{{ originLabel }}</dd>
+    </div>
+    <div>
+      <dt>Entrega esperada</dt>
+      <dd>{{ expectedDateLabel }}</dd>
+    </div>
+    <div>
+      <dt>Enviada</dt>
+      <dd>{{ sentAtLabel }}</dd>
+    </div>
+    @if (order.cancelledAt) {
+      <div>
+        <dt>Cancelada</dt>
+        <dd>{{ cancelledAtLabel }}</dd>
+      </div>
+    }
+    @if (order.cancelReason) {
+      <div class="span-2">
+        <dt>Motivo de cancelación</dt>
+        <dd>{{ order.cancelReason }}</dd>
+      </div>
+    }
+    @if (order.notes) {
+      <div class="span-2">
+        <dt>Observaciones</dt>
+        <dd>{{ order.notes }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div class="table-wrap">
+    <table class="detail-table">
+      <thead>
+        <tr>
+          <th scope="col">SKU</th>
+          <th scope="col">Producto</th>
+          <th scope="col" class="num">Compra</th>
+          <th scope="col" class="num">Unidades</th>
+          <th scope="col" class="num">Recibido</th>
+          @if (canReadCost()) {
+            <th scope="col" class="num">Costo unit. neto</th>
+            <th scope="col" class="num">Subtotal neto</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of order.lines ?? []; track line.id ?? line.productId) {
+          <tr>
+            <td class="mono">{{ line.sku || '—' }}</td>
+            <td>{{ line.name || '—' }}</td>
+            <td class="num">
+              {{ line.qtyPurchaseUnits ?? 0 | qty }}
+              {{ line.purchaseUnitName || 'u' }}
+            </td>
+            <td class="num">{{ line.qtyOrdered ?? 0 | qty }}</td>
+            <td class="num">{{ line.qtyReceived ?? 0 | qty }}</td>
+            @if (canReadCost()) {
+              <td class="num">{{ line.unitCostNet | clp }}</td>
+              <td class="num">{{ line.lineNetTotal | clp }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (canReadCost()) {
+    <div class="totals-box">
+      <div>
+        <span>Neto:</span> <strong>{{ order.netTotal | clp }}</strong>
+      </div>
+      <div>
+        <span>IVA:</span> <strong>{{ order.taxTotal | clp }}</strong>
+      </div>
+      <div class="totals-box__total">
+        <span>Total:</span> <strong>{{ order.total | clp }}</strong>
+      </div>
+    </div>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="actions">
+  <button mat-stroked-button type="button" (click)="trigger('pdf')">
+    <mat-icon aria-hidden="true">picture_as_pdf</mat-icon>
+    PDF
+  </button>
+
+  @if (canCancel()) {
+    <button mat-button type="button" class="destructive-text" (click)="trigger('cancel')">
+      Cancelar OC
+    </button>
+  }
+
+  @if (canEdit()) {
+    <button mat-stroked-button type="button" (click)="trigger('edit')">Editar borrador</button>
+  }
+
+  @if (canSend()) {
+    <button mat-flat-button type="button" (click)="trigger('send')">Enviar orden</button>
+  }
+
+  @if (canReceive()) {
+    <button mat-flat-button type="button" (click)="trigger('receive')">Recepcionar OC</button>
+  }
+
+  <button mat-button type="button" mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

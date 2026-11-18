@@ -1,0 +1,200 @@
+<h2 mat-dialog-title>
+  @if (isEdit) {
+    Editar recepción {{ data.receipt?.number }}
+  } @else if (hasPurchaseOrder) {
+    Recepcionar orden {{ orderNumber() || '' }}
+  } @else {
+    Nueva recepción sin orden de compra
+  }
+</h2>
+
+@if (loading() || saving()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Procesando recepción" />
+}
+
+<form [formGroup]="form" (ngSubmit)="saveDraft()">
+  <mat-dialog-content class="content">
+    @if (serverError(); as err) {
+      <p class="server-error" role="alert">{{ err }}</p>
+    }
+
+    @if (hasPurchaseOrder) {
+      <div class="summary-box">
+        <div><strong>Orden de compra:</strong> {{ orderNumber() || '—' }}</div>
+        <div><strong>Proveedor:</strong> {{ supplierLabel() || '—' }}</div>
+      </div>
+    } @else {
+      <mat-form-field appearance="outline">
+        <mat-label>Proveedor</mat-label>
+        <mat-select formControlName="supplierId">
+          @for (sup of suppliers(); track sup.id) {
+            <mat-option [value]="sup.id">
+              {{ sup.tradeName || sup.legalName }} ({{ sup.rut }})
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.controls.supplierId.hasError('required')) {
+          <mat-error>Selecciona un proveedor.</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    <div class="doc-fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Documento del proveedor</mat-label>
+        <mat-select formControlName="supplierDocumentType">
+          @for (opt of docTypeOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      @if (form.controls.supplierDocumentType.value !== 'NONE') {
+        <mat-form-field appearance="outline">
+          <mat-label>Número de documento</mat-label>
+          <input matInput formControlName="supplierDocumentNumber" maxlength="30" />
+          @if (form.controls.supplierDocumentNumber.hasError('required')) {
+            <mat-error>El número de documento es obligatorio.</mat-error>
+          }
+        </mat-form-field>
+      }
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observaciones</mat-label>
+      <textarea matInput formControlName="notes" rows="2" maxlength="2000"></textarea>
+    </mat-form-field>
+
+    @if (!hasPurchaseOrder) {
+      <div class="product-picker">
+        <mat-form-field appearance="outline" class="picker-input" subscriptSizing="dynamic">
+          <mat-label>Agregar producto</mat-label>
+          <input
+            matInput
+            [formControl]="searchControl"
+            placeholder="Buscar por SKU, código de barras o nombre"
+            (keydown.enter)="$event.preventDefault(); searchCatalogProducts()"
+          />
+        </mat-form-field>
+        <button mat-stroked-button type="button" (click)="searchCatalogProducts()">Buscar</button>
+      </div>
+
+      @if (productResults().length > 0) {
+        <div class="picker-results">
+          @for (prod of productResults(); track prod.id) {
+            <button mat-stroked-button type="button" (click)="addProductLine(prod)">
+              <mat-icon aria-hidden="true">add</mat-icon>
+              {{ prod.sku }} — {{ prod.name }}
+            </button>
+          }
+        </div>
+      }
+    }
+
+    <div class="lines-list" formArrayName="lines">
+      @for (lineGroup of linesArray.controls; track $index; let idx = $index) {
+        @let meta = metaAt(idx);
+        <div class="line-card" [formGroupName]="idx">
+          <div class="line-card__header">
+            <div>
+              <strong>{{ meta?.name || 'Producto' }}</strong>
+              <span class="sku">SKU: {{ meta?.sku || '—' }}</span>
+              @if (meta?.lotControlled) {
+                <span class="lot-badge">Controlado por lote</span>
+              }
+            </div>
+
+            <div class="line-card__header-right">
+              @if (meta?.qtyExpected !== null && meta?.qtyExpected !== undefined) {
+                <span class="expected">Pendiente OC: {{ meta?.qtyExpected | qty }}</span>
+              }
+              @if (!hasPurchaseOrder || linesArray.length > 1) {
+                <button
+                  mat-icon-button
+                  type="button"
+                  aria-label="Quitar línea"
+                  (click)="removeLine(idx)"
+                >
+                  <mat-icon aria-hidden="true">delete_outline</mat-icon>
+                </button>
+              }
+            </div>
+          </div>
+
+          <div class="line-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Cantidad recibida</mat-label>
+              <input matInput type="number" min="0" step="any" formControlName="qtyReceived" />
+              @if (lineGroup.controls.qtyReceived.hasError('required')) {
+                <mat-error>Obligatorio.</mat-error>
+              } @else if (lineGroup.controls.qtyReceived.hasError('min')) {
+                <mat-error>Debe ser ≥ 0.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Cantidad rechazada</mat-label>
+              <input matInput type="number" min="0" step="any" formControlName="qtyRejected" />
+              @if (lineGroup.controls.qtyRejected.hasError('rejectedExceedsReceived')) {
+                <mat-error>No puede superar lo recibido.</mat-error>
+              }
+            </mat-form-field>
+
+            @if (canReadCost()) {
+              <mat-form-field appearance="outline">
+                <mat-label>Costo unit. neto</mat-label>
+                <input matInput type="number" min="0" step="1" formControlName="unitCostNet" />
+                @if (lineGroup.controls.unitCostNet.hasError('min')) {
+                  <mat-error>Debe ser ≥ 0.</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            <mat-form-field appearance="outline">
+              <mat-label> Número de lote{{ meta?.lotControlled ? ' *' : '' }} </mat-label>
+              <input matInput formControlName="lotNumber" maxlength="40" />
+              @if (lineGroup.controls.lotNumber.hasError('required')) {
+                <mat-error>El número de lote es obligatorio para este producto.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label> Fecha de vencimiento{{ meta?.lotControlled ? ' *' : '' }} </mat-label>
+              <input matInput type="date" formControlName="expiryDate" />
+              @if (lineGroup.controls.expiryDate.hasError('required')) {
+                <mat-error>La fecha de vencimiento es obligatoria para este producto.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="col-reason">
+              <mat-label>Motivo de diferencia</mat-label>
+              <input matInput formControlName="differenceReason" maxlength="250" />
+              @if (lineGroup.controls.differenceReason.hasError('differenceReasonRequired')) {
+                <mat-error>Indica el motivo de diferencia respecto a la OC.</mat-error>
+              }
+            </mat-form-field>
+          </div>
+        </div>
+      }
+    </div>
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button mat-stroked-button type="submit" [disabled]="saving() || loading()">
+      Guardar borrador
+    </button>
+    @if (canConfirm()) {
+      <button
+        mat-flat-button
+        type="button"
+        [disabled]="saving() || loading()"
+        (click)="saveAndConfirm()"
+      >
+        Guardar y confirmar
+      </button>
+    }
+  </mat-dialog-actions>
+</form>

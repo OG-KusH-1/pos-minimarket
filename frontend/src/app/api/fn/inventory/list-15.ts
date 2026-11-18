@@ -7,27 +7,25 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { PageResponseStockMovementResponse } from '../../models/page-response-stock-movement-response';
+import { PageResponseStockResponse } from '../../models/page-response-stock-response';
 
 export interface List15$Params {
-  productId: number;
-  from?: string;
-  to?: string;
-  movementType?: 'INITIAL' | 'PURCHASE_RECEIPT' | 'SALE' | 'SALE_VOID' | 'SALE_RETURN' | 'SHRINKAGE' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT' | 'TRANSFER_OUT' | 'TRANSFER_IN';
-  lotId?: number;
+  q?: string;
+  categoryId?: number;
+  status?: 'OK' | 'BELOW_MIN' | 'ZERO' | 'ABOVE_MAX';
+  lotControlled?: boolean;
   page?: number;
   size?: number;
   sort?: Array<string>;
 }
 
-export function list15(http: HttpClient, rootUrl: string, params: List15$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockMovementResponse>> {
+export function list15(http: HttpClient, rootUrl: string, params?: List15$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockResponse>> {
   const rb = new RequestBuilder(rootUrl, list15.PATH, 'get');
   if (params) {
-    rb.query('productId', params.productId, {});
-    rb.query('from', params.from, {});
-    rb.query('to', params.to, {});
-    rb.query('movementType', params.movementType, {});
-    rb.query('lotId', params.lotId, {});
+    rb.query('q', params.q, {});
+    rb.query('categoryId', params.categoryId, {});
+    rb.query('status', params.status, {});
+    rb.query('lotControlled', params.lotControlled, {});
     rb.query('page', params.page, {});
     rb.query('size', params.size, {});
     rb.query('sort', params.sort, {});
@@ -38,9 +36,9 @@ export function list15(http: HttpClient, rootUrl: string, params: List15$Params,
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<PageResponseStockMovementResponse>;
+      return r as StrictHttpResponse<PageResponseStockResponse>;
     })
   );
 }
 
-list15.PATH = '/api/v1/kardex';
+list15.PATH = '/api/v1/stock';

@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiConfiguration } from '../../../../api/api-configuration';
 import { authorize } from '../../../../api/fn/sales/authorize';
-import { create6 } from '../../../../api/fn/sales/create-6';
+import { create7 } from '../../../../api/fn/sales/create-7';
 import { voidAuthorization } from '../../../../api/fn/sales/void-authorization';
 import { CardAuthorizationResponse } from '../../../../api/models/card-authorization-response';
 import { CreateSaleRequest } from '../../../../api/models/create-sale-request';
@@ -92,7 +92,7 @@ export class PaymentService {
     return this.overrideService.withMultipleSupervisorOverrides(
       (overrideTokenHeader) =>
         unwrapApiResponse(
-          create6(
+          create7(
             this.http,
             this.apiConfig.rootUrl,
             {

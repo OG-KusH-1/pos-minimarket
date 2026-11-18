@@ -1,0 +1,124 @@
+<h2 mat-dialog-title class="dialog-title">
+  <span>Recepción {{ receipt.number }}</span>
+  <span
+    class="badge"
+    [class.badge--draft]="receipt.status === 'DRAFT'"
+    [class.badge--confirmed]="receipt.status === 'CONFIRMED'"
+    [class.badge--cancelled]="receipt.status === 'CANCELLED'"
+  >
+    {{ statusLabel }}
+  </span>
+</h2>
+
+<mat-dialog-content class="content">
+  <dl class="meta-grid">
+    <div>
+      <dt>Proveedor</dt>
+      <dd>{{ receipt.supplier?.tradeName || receipt.supplier?.legalName || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Orden de compra</dt>
+      <dd>{{ receipt.purchaseOrderNumber || 'Sin OC' }}</dd>
+    </div>
+    <div>
+      <dt>Documento proveedor</dt>
+      <dd>
+        {{ docTypeLabel }}
+        @if (receipt.supplierDocumentNumber) {
+          #{{ receipt.supplierDocumentNumber }}
+        }
+      </dd>
+    </div>
+    <div>
+      <dt>Confirmada</dt>
+      <dd>{{ receivedAtLabel }}</dd>
+    </div>
+    @if (receipt.notes) {
+      <div class="span-2">
+        <dt>Observaciones</dt>
+        <dd>{{ receipt.notes }}</dd>
+      </div>
+    }
+  </dl>
+
+  <div class="table-wrap">
+    <table class="detail-table">
+      <thead>
+        <tr>
+          <th scope="col">SKU</th>
+          <th scope="col">Producto</th>
+          <th scope="col" class="num">Esperado</th>
+          <th scope="col" class="num">Recibido</th>
+          <th scope="col" class="num">Rechazado</th>
+          <th scope="col">Lote / Vencimiento</th>
+          <th scope="col">Motivo diferencia</th>
+          @if (canReadCost()) {
+            <th scope="col" class="num">Costo unit. neto</th>
+          }
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of receipt.lines ?? []; track line.id ?? line.productId) {
+          <tr>
+            <td class="mono">{{ line.sku || '—' }}</td>
+            <td>{{ line.name || '—' }}</td>
+            <td class="num">{{ line.qtyExpected ?? 0 | qty }}</td>
+            <td class="num">{{ line.qtyReceived ?? 0 | qty }}</td>
+            <td class="num">{{ line.qtyRejected ?? 0 | qty }}</td>
+            <td>
+              @if (line.lotNumber) {
+                <span>{{ line.lotNumber }}</span>
+                @if (line.expiryDate) {
+                  <span class="sub-info"> ({{ formatExpiry(line.expiryDate) }})</span>
+                }
+              } @else {
+                —
+              }
+            </td>
+            <td>{{ line.differenceReason || '—' }}</td>
+            @if (canReadCost()) {
+              <td class="num">{{ line.unitCostNet | clp }}</td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (canReadCost()) {
+    <div class="totals-box">
+      <div>
+        <span>Total neto aceptado:</span> <strong>{{ receipt.netTotal | clp }}</strong>
+      </div>
+    </div>
+
+    @if (receipt.costChanges && receipt.costChanges.length > 0) {
+      <div class="cost-changes">
+        <h3>Cambios en costo promedio ponderado</h3>
+        <ul>
+          @for (chg of receipt.costChanges; track chg.productId) {
+            <li>
+              Producto #{{ chg.productId }}: {{ chg.oldAvgCost | clp }} →
+              <strong>{{ chg.newAvgCost | clp }}</strong>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  @if (canCancel()) {
+    <button mat-button type="button" class="destructive-text" (click)="trigger('cancel')">
+      Cancelar borrador
+    </button>
+  }
+  @if (canEdit()) {
+    <button mat-stroked-button type="button" (click)="trigger('edit')">Editar</button>
+  }
+  @if (canConfirm()) {
+    <button mat-flat-button type="button" (click)="trigger('confirm')">Confirmar recepción</button>
+  }
+  <button mat-button type="button" mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

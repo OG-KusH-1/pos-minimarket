@@ -1,0 +1,146 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Órdenes de compra</h1>
+      <p class="subtitle">Gestión de órdenes de compra emitidas desde {{ activeStoreName() }}.</p>
+    </div>
+
+    @if (canCreate()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Nueva orden de compra
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Buscar</mat-label>
+      <input matInput formControlName="q" placeholder="Número OC o proveedor" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Origen</mat-label>
+      <mat-select formControlName="origin">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of originOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Proveedor</mat-label>
+      <mat-select formControlName="supplierId">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (sup of suppliers(); track sup.id) {
+          <mat-option [value]="sup.id">{{ sup.tradeName || sup.legalName }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  @if (filterError(); as rangeErr) {
+    <p class="filter-error" role="alert">{{ rangeErr }}</p>
+  }
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de órdenes de compra"
+    emptyMessage="No hay órdenes de compra que coincidan con los filtros."
+  />
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--draft]="row.status === 'DRAFT'"
+      [class.badge--sent]="row.status === 'SENT'"
+      [class.badge--partial]="row.status === 'PARTIALLY_RECEIVED'"
+      [class.badge--received]="row.status === 'RECEIVED'"
+      [class.badge--cancelled]="row.status === 'CANCELLED'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #totalTpl let-row>
+    {{ row.total | clp }}
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="rowMenu"
+      [attr.aria-label]="'Acciones para orden ' + (row.number ?? row.id)"
+    >
+      <mat-icon aria-hidden="true">more_vert</mat-icon>
+    </button>
+
+    <mat-menu #rowMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openDetail(row)">
+        <mat-icon aria-hidden="true">visibility</mat-icon>
+        <span>Ver detalle</span>
+      </button>
+
+      <button mat-menu-item type="button" (click)="downloadPdf(row.id, row.number)">
+        <mat-icon aria-hidden="true">picture_as_pdf</mat-icon>
+        <span>Descargar PDF</span>
+      </button>
+
+      @if (canCreate() && isDraftRow(row)) {
+        <button mat-menu-item type="button" (click)="openEdit(row)">
+          <mat-icon aria-hidden="true">edit</mat-icon>
+          <span>Editar borrador</span>
+        </button>
+      }
+
+      @if (canSend() && isDraftRow(row)) {
+        <button mat-menu-item type="button" (click)="openSend(row)">
+          <mat-icon aria-hidden="true">send</mat-icon>
+          <span>Enviar orden</span>
+        </button>
+      }
+
+      @if (canReceiveRow(row)) {
+        <button mat-menu-item type="button" (click)="goToReceiveOrder(row.id)">
+          <mat-icon aria-hidden="true">inventory_2</mat-icon>
+          <span>Recepcionar OC</span>
+        </button>
+      }
+
+      @if (canCancelRow(row)) {
+        <button mat-menu-item type="button" (click)="openCancel(row)">
+          <mat-icon aria-hidden="true">cancel</mat-icon>
+          <span>Cancelar OC</span>
+        </button>
+      }
+    </mat-menu>
+  </ng-template>
+</section>

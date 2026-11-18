@@ -1,0 +1,153 @@
+<h2 mat-dialog-title>
+  {{ isEdit ? 'Editar orden de compra ' + existing?.number : 'Nueva orden de compra' }}
+</h2>
+
+@if (saving() || loadingCatalog()) {
+  <mat-progress-bar mode="indeterminate" aria-label="Cargando datos de la orden" />
+}
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="content">
+    @if (serverError(); as err) {
+      <p class="server-error" role="alert">{{ err }}</p>
+    }
+
+    <div class="header-fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Proveedor</mat-label>
+        <mat-select formControlName="supplierId">
+          @for (supplier of suppliers(); track supplier.id) {
+            <mat-option [value]="supplier.id">
+              {{ supplier.tradeName || supplier.legalName }} ({{ supplier.rut }})
+            </mat-option>
+          }
+        </mat-select>
+        @if (form.controls.supplierId.hasError('required')) {
+          <mat-error>Selecciona un proveedor.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Fecha esperada de entrega</mat-label>
+        <input matInput type="date" formControlName="expectedDate" [min]="minExpectedDate" />
+        @if (form.controls.expectedDate.hasError('minDate')) {
+          <mat-error>La fecha esperada debe ser igual o posterior a hoy.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Observaciones</mat-label>
+      <textarea matInput formControlName="notes" rows="2" maxlength="2000"></textarea>
+    </mat-form-field>
+
+    <div class="lines-header">
+      <h3>Líneas de la orden</h3>
+      <button mat-stroked-button type="button" (click)="addLine()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Agregar línea
+      </button>
+    </div>
+
+    @if (linesArray.hasError('duplicateProducts')) {
+      <p class="field-error" role="alert">
+        No puedes repetir el mismo producto en más de una línea.
+      </p>
+    }
+
+    @if (
+      form.controls.supplierId.value !== null && productOptions().length === 0 && !loadingCatalog()
+    ) {
+      <p class="info-hint">
+        Este proveedor aún no tiene productos asociados activos. Asócialos en Proveedores para
+        seleccionarlos aquí.
+      </p>
+    }
+
+    <div class="lines-list" formArrayName="lines">
+      @for (lineGroup of linesArray.controls; track $index; let idx = $index) {
+        <div class="line-row" [formGroupName]="idx">
+          <mat-form-field appearance="outline" class="col-product">
+            <mat-label>Producto</mat-label>
+            <mat-select
+              formControlName="productId"
+              (selectionChange)="onProductSelected(idx, $event.value)"
+            >
+              @for (opt of productOptions(); track opt.productId) {
+                <mat-option [value]="opt.productId">
+                  {{ opt.sku ? opt.sku + ' — ' : '' }}{{ opt.name }} ({{ opt.purchaseUnitName }} ×
+                  {{ opt.unitsPerPurchaseUnit }})
+                </mat-option>
+              }
+            </mat-select>
+            @if (lineGroup.controls.productId.hasError('required')) {
+              <mat-error>Requerido.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="col-qty">
+            <mat-label>Cantidad</mat-label>
+            <input
+              matInput
+              type="number"
+              min="0.001"
+              step="any"
+              formControlName="qtyPurchaseUnits"
+            />
+            @if (optionForLine(lineGroup.controls.productId.value); as opt) {
+              <span matTextSuffix>{{ opt.purchaseUnitName }}</span>
+            }
+            @if (
+              lineGroup.controls.qtyPurchaseUnits.hasError('required') ||
+              lineGroup.controls.qtyPurchaseUnits.hasError('positive')
+            ) {
+              <mat-error>Mayor a 0.</mat-error>
+            }
+          </mat-form-field>
+
+          @if (canReadCost()) {
+            <mat-form-field appearance="outline" class="col-cost">
+              <mat-label>Costo unit. neto</mat-label>
+              <input matInput type="number" min="0" step="1" formControlName="unitCostNet" />
+              @if (lineGroup.controls.unitCostNet.hasError('min')) {
+                <mat-error>≥ 0.</mat-error>
+              }
+            </mat-form-field>
+
+            <div class="col-subtotal">
+              <span class="sub-label">Subtotal</span>
+              <strong>{{ estimatedLineNet(idx) | clp }}</strong>
+            </div>
+          }
+
+          <button
+            mat-icon-button
+            type="button"
+            class="remove-btn"
+            aria-label="Eliminar línea"
+            [disabled]="linesArray.length <= 1"
+            (click)="removeLine(idx)"
+          >
+            <mat-icon aria-hidden="true">delete_outline</mat-icon>
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (canReadCost()) {
+      <div class="total-bar">
+        <span>Total neto estimado:</span>
+        <strong>{{ estimatedOrderNet() | clp }}</strong>
+      </div>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">
+      Cancelar
+    </button>
+    <button mat-flat-button type="submit" [disabled]="saving()">
+      {{ isEdit ? 'Guardar cambios' : 'Crear borrador' }}
+    </button>
+  </mat-dialog-actions>
+</form>

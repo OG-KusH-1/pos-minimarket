@@ -11,9 +11,9 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { create5 } from '../../../api/fn/catalog/create-5';
-import { list4 } from '../../../api/fn/catalog/list-4';
-import { update5 } from '../../../api/fn/catalog/update-5';
+import { create6 } from '../../../api/fn/catalog/create-6';
+import { list5 } from '../../../api/fn/catalog/list-5';
+import { update6 } from '../../../api/fn/catalog/update-6';
 import { ScaleBarcodeConfigRequest } from '../../../api/models/scale-barcode-config-request';
 import { ScaleBarcodeConfigResponse } from '../../../api/models/scale-barcode-config-response';
 import { StrictHttpResponse } from '../../../api/strict-http-response';
@@ -95,7 +95,7 @@ export class ScaleService {
 
   /** Lista todas las configuraciones de códigos de balanza registradas. */
   listConfigs(context?: HttpContext): Observable<ScaleBarcodeConfigResponse[]> {
-    return unwrapApiResponse(list4(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list5(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Crea una nueva configuración de código de balanza EAN-13. */
@@ -103,7 +103,7 @@ export class ScaleService {
     body: ScaleBarcodeConfigRequest,
     context?: HttpContext,
   ): Observable<ScaleBarcodeConfigResponse> {
-    return unwrapApiResponse(create5(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create6(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza una configuración de código de balanza existente. */
@@ -112,6 +112,6 @@ export class ScaleService {
     body: ScaleBarcodeConfigRequest,
     context?: HttpContext,
   ): Observable<ScaleBarcodeConfigResponse> {
-    return unwrapApiResponse(update5(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update6(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 }

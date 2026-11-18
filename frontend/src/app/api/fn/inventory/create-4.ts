@@ -7,14 +7,14 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { StockAdjustmentRequest } from '../../models/stock-adjustment-request';
-import { StockAdjustmentResponse } from '../../models/stock-adjustment-response';
+import { StockTransferRequest } from '../../models/stock-transfer-request';
+import { StockTransferResponse } from '../../models/stock-transfer-response';
 
 export interface Create4$Params {
-      body: StockAdjustmentRequest
+      body: StockTransferRequest
 }
 
-export function create4(http: HttpClient, rootUrl: string, params: Create4$Params, context?: HttpContext): Observable<StrictHttpResponse<StockAdjustmentResponse>> {
+export function create4(http: HttpClient, rootUrl: string, params: Create4$Params, context?: HttpContext): Observable<StrictHttpResponse<StockTransferResponse>> {
   const rb = new RequestBuilder(rootUrl, create4.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
@@ -25,9 +25,9 @@ export function create4(http: HttpClient, rootUrl: string, params: Create4$Param
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<StockAdjustmentResponse>;
+      return r as StrictHttpResponse<StockTransferResponse>;
     })
   );
 }
 
-create4.PATH = '/api/v1/stock-adjustments';
+create4.PATH = '/api/v1/stock-transfers';

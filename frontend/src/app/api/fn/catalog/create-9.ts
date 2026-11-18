@@ -7,14 +7,14 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { CategoryRequest } from '../../models/category-request';
-import { CategoryResponse } from '../../models/category-response';
+import { ProductRequest } from '../../models/product-request';
+import { ProductResponse } from '../../models/product-response';
 
 export interface Create9$Params {
-      body: CategoryRequest
+      body: ProductRequest
 }
 
-export function create9(http: HttpClient, rootUrl: string, params: Create9$Params, context?: HttpContext): Observable<StrictHttpResponse<CategoryResponse>> {
+export function create9(http: HttpClient, rootUrl: string, params: Create9$Params, context?: HttpContext): Observable<StrictHttpResponse<ProductResponse>> {
   const rb = new RequestBuilder(rootUrl, create9.PATH, 'post');
   if (params) {
     rb.body(params.body, 'application/json');
@@ -25,9 +25,9 @@ export function create9(http: HttpClient, rootUrl: string, params: Create9$Param
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<CategoryResponse>;
+      return r as StrictHttpResponse<ProductResponse>;
     })
   );
 }
 
-create9.PATH = '/api/v1/categories';
+create9.PATH = '/api/v1/products';

@@ -7,22 +7,27 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { PageResponseStockAdjustmentResponse } from '../../models/page-response-stock-adjustment-response';
+import { PageResponseStockTransferResponse } from '../../models/page-response-stock-transfer-response';
 
 export interface List3$Params {
 
 /**
- * Filtrar por estado del ajuste.
+ * Dirección respecto al local activo (in o out).
  */
-  status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
+  direction?: string;
 
 /**
- * Fecha inicial inclusive (YYYY-MM-DD, zona de negocio).
+ * Filtrar por estado de la transferencia.
+ */
+  status?: 'DRAFT' | 'SENT' | 'RECEIVED' | 'CANCELLED';
+
+/**
+ * Fecha inicial inclusive (YYYY-MM-DD, zona horaria de negocio).
  */
   from?: string;
 
 /**
- * Fecha final inclusive (YYYY-MM-DD, zona de negocio).
+ * Fecha final inclusive (YYYY-MM-DD, zona horaria de negocio).
  */
   to?: string;
   page?: number;
@@ -30,9 +35,10 @@ export interface List3$Params {
   sort?: Array<string>;
 }
 
-export function list3(http: HttpClient, rootUrl: string, params?: List3$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockAdjustmentResponse>> {
+export function list3(http: HttpClient, rootUrl: string, params?: List3$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockTransferResponse>> {
   const rb = new RequestBuilder(rootUrl, list3.PATH, 'get');
   if (params) {
+    rb.query('direction', params.direction, {});
     rb.query('status', params.status, {});
     rb.query('from', params.from, {});
     rb.query('to', params.to, {});
@@ -46,9 +52,9 @@ export function list3(http: HttpClient, rootUrl: string, params?: List3$Params, 
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<PageResponseStockAdjustmentResponse>;
+      return r as StrictHttpResponse<PageResponseStockTransferResponse>;
     })
   );
 }
 
-list3.PATH = '/api/v1/stock-adjustments';
+list3.PATH = '/api/v1/stock-transfers';

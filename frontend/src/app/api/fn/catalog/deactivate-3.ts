@@ -28,4 +28,4 @@ export function deactivate3(http: HttpClient, rootUrl: string, params: Deactivat
   );
 }
 
-deactivate3.PATH = '/api/v1/categories/{id}/deactivate';
+deactivate3.PATH = '/api/v1/products/{id}/deactivate';

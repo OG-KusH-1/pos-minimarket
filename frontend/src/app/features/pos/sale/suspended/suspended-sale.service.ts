@@ -2,9 +2,9 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { ApiConfiguration } from '../../../../api/api-configuration';
-import { get1 } from '../../../../api/fn/catalog/get-1';
+import { get2 } from '../../../../api/fn/catalog/get-2';
 import { delete$ } from '../../../../api/fn/sales/delete';
-import { list7 } from '../../../../api/fn/sales/list-7';
+import { list9 } from '../../../../api/fn/sales/list-9';
 import { resume } from '../../../../api/fn/sales/resume';
 import { suspend } from '../../../../api/fn/sales/suspend';
 import { CartQuoteResponse } from '../../../../api/models/cart-quote-response';
@@ -39,7 +39,7 @@ export class SuspendedSaleService {
 
   /** Lista las ventas suspendidas vigentes de la terminal activa (`GET /pos/suspended-sales`). */
   list(context?: HttpContext): Observable<SuspendedSaleResponse[]> {
-    return unwrapApiResponse(list7(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Suspende el carrito actual de la terminal (`POST /pos/suspended-sales`). */
@@ -149,7 +149,7 @@ export class SuspendedSaleService {
 
     const requests = uniqueIds.map((id) =>
       unwrapApiResponse(
-        get1(this.http, this.apiConfig.rootUrl, { id }, withoutErrorNotification()),
+        get2(this.http, this.apiConfig.rootUrl, { id }, withoutErrorNotification()),
       ).pipe(
         map((product) => [id, product] as const),
         catchError(() => of([id, null] as const)),

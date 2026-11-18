@@ -11,9 +11,9 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { get1 } from '../../../api/fn/catalog/get-1';
-import { list6 } from '../../../api/fn/catalog/list-6';
-import { list15, List15$Params } from '../../../api/fn/inventory/list-15';
+import { get2 } from '../../../api/fn/catalog/get-2';
+import { list8 } from '../../../api/fn/catalog/list-8';
+import { list18, List18$Params } from '../../../api/fn/inventory/list-18';
 import { PageResponseStockMovementResponse } from '../../../api/models/page-response-stock-movement-response';
 import { ProductResponse } from '../../../api/models/product-response';
 import { ProductSummary } from '../../../api/models/product-summary';
@@ -111,17 +111,17 @@ export class KardexService {
    * Lista los movimientos de stock de un producto en el local activo (`productId` obligatorio).
    */
   listMovements(
-    params: List15$Params,
+    params: List18$Params,
     context?: HttpContext,
   ): Observable<PageResponseStockMovementResponse> {
-    return unwrapApiResponse(list15(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list18(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Busca productos del catálogo por nombre o SKU para el selector de producto del kardex. */
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list6(
+      list8(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -136,6 +136,6 @@ export class KardexService {
 
   /** Obtiene el detalle de un producto por ID (útil al entrar por `?productId=...`). */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get1(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 }

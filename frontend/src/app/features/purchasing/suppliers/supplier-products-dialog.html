@@ -1,0 +1,85 @@
+<div class="dialog-header" mat-dialog-title>
+  <div>
+    <h2>Productos de {{ data.supplier.legalName }}</h2>
+    <span class="rut-subtitle">RUT {{ data.supplier.rut | rut }}</span>
+  </div>
+  @if (canManage()) {
+    <button mat-flat-button type="button" (click)="openCreate()">
+      <mat-icon aria-hidden="true">add</mat-icon>
+      Asociar producto
+    </button>
+  }
+</div>
+
+<mat-dialog-content>
+  <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar producto o SKU</mat-label>
+      <input matInput formControlName="q" placeholder="SKU, nombre o código proveedor" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">Filtrar</button>
+    <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Productos asociados al proveedor"
+    emptyMessage="Este proveedor no tiene productos asociados con los filtros actuales."
+  />
+
+  <ng-template #preferredTpl let-row>
+    @if (row.isPreferred) {
+      <span class="badge preferred">Preferido</span>
+    } @else {
+      <span>—</span>
+    }
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span class="badge" [class.active]="row.active" [class.inactive]="!row.active">
+      {{ row.active ? 'Activo' : 'Inactivo' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button
+      mat-icon-button
+      type="button"
+      [matMenuTriggerFor]="rowMenu"
+      aria-label="Acciones de asociación"
+    >
+      <mat-icon aria-hidden="true">more_vert</mat-icon>
+    </button>
+    <mat-menu #rowMenu="matMenu">
+      <button mat-menu-item type="button" (click)="openEdit(row)">
+        <mat-icon aria-hidden="true">edit</mat-icon>
+        <span>Editar</span>
+      </button>
+      @if (row.active && !row.isPreferred) {
+        <button mat-menu-item type="button" (click)="markAsPreferred(row)">
+          <mat-icon aria-hidden="true">star</mat-icon>
+          <span>Marcar preferido</span>
+        </button>
+      }
+      <button mat-menu-item type="button" (click)="toggleActive(row)">
+        <mat-icon aria-hidden="true">{{ row.active ? 'block' : 'check_circle' }}</mat-icon>
+        <span>{{ row.active ? 'Desactivar' : 'Activar' }}</span>
+      </button>
+    </mat-menu>
+  </ng-template>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null">Cerrar</button>
+</mat-dialog-actions>

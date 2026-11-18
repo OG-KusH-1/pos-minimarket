@@ -11,11 +11,11 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { activate3 } from '../../../api/fn/catalog/activate-3';
-import { create9 } from '../../../api/fn/catalog/create-9';
-import { deactivate3 } from '../../../api/fn/catalog/deactivate-3';
-import { list9 } from '../../../api/fn/catalog/list-9';
-import { update9 } from '../../../api/fn/catalog/update-9';
+import { activate5 } from '../../../api/fn/catalog/activate-5';
+import { create13 } from '../../../api/fn/catalog/create-13';
+import { deactivate5 } from '../../../api/fn/catalog/deactivate-5';
+import { list12 } from '../../../api/fn/catalog/list-12';
+import { update13 } from '../../../api/fn/catalog/update-13';
 import { CategoryRequest } from '../../../api/models/category-request';
 import { CategoryResponse } from '../../../api/models/category-response';
 import { StrictHttpResponse } from '../../../api/strict-http-response';
@@ -109,12 +109,12 @@ export class CategoriesService {
    * @param context Contexto HTTP opcional (p. ej. `withoutErrorNotification()`).
    */
   listCategories(tree = true, context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, { tree }, context));
+    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, { tree }, context));
   }
 
   /** Crea una categoría raíz o una subcategoría (máximo dos niveles). */
   createCategory(body: CategoryRequest, context?: HttpContext): Observable<CategoryResponse> {
-    return unwrapApiResponse(create9(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create13(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza nombre, código o categoría padre de una categoría existente. */
@@ -123,12 +123,12 @@ export class CategoriesService {
     body: CategoryRequest,
     context?: HttpContext,
   ): Observable<CategoryResponse> {
-    return unwrapApiResponse(update9(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update13(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Desactiva una categoría (falla con `ENTITY_IN_USE` si tiene productos activos). */
   deactivateCategory(id: number): Observable<void> {
-    return deactivate3(this.http, this.apiConfig.rootUrl, { id }).pipe(
+    return deactivate5(this.http, this.apiConfig.rootUrl, { id }).pipe(
       map(() => undefined),
       unwrapApiError(),
     );
@@ -136,7 +136,7 @@ export class CategoriesService {
 
   /** Reactiva una categoría previamente desactivada. */
   activateCategory(id: number): Observable<void> {
-    return activate3(this.http, this.apiConfig.rootUrl, { id }).pipe(
+    return activate5(this.http, this.apiConfig.rootUrl, { id }).pipe(
       map(() => undefined),
       unwrapApiError(),
     );

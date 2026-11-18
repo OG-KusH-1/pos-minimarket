@@ -3,10 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { effective } from '../../../api/fn/organization/effective';
-import { get2 } from '../../../api/fn/organization/get-2';
-import { list1 } from '../../../api/fn/organization/list-1';
-import { list13, List13$Params } from '../../../api/fn/organization/list-13';
-import { update4 } from '../../../api/fn/organization/update-4';
+import { get3 } from '../../../api/fn/organization/get-3';
+import { list2 } from '../../../api/fn/organization/list-2';
+import { list16, List16$Params } from '../../../api/fn/organization/list-16';
+import { update5 } from '../../../api/fn/organization/update-5';
 import { CompanyResponse } from '../../../api/models/company-response';
 import { JsonNode } from '../../../api/models/json-node';
 import { SettingResponse } from '../../../api/models/setting-response';
@@ -30,12 +30,12 @@ export class SettingsService {
    * `X-Store-Id`) o para el local activo del contexto si se omite.
    */
   listSettings(
-    params?: List13$Params,
+    params?: List16$Params,
     storeId?: number | null,
     context?: HttpContext,
   ): Observable<SettingItem[]> {
     return unwrapApiResponse(
-      list13(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
+      list16(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
     ).pipe(map((items) => items.map((item) => this.toSettingItem(item))));
   }
 
@@ -66,7 +66,7 @@ export class SettingsService {
     context?: HttpContext,
   ): Observable<SettingItem> {
     return unwrapApiResponse(
-      update4(
+      update5(
         httpForStore(this.http, storeId),
         this.apiConfig.rootUrl,
         {
@@ -84,13 +84,13 @@ export class SettingsService {
   /** Lista los locales activos accesibles para poblar el selector de local (`GET /api/v1/stores`). */
   listStores(context?: HttpContext): Observable<StoreResponse[]> {
     return unwrapApiResponse(
-      list1(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }, context),
+      list2(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }, context),
     ).pipe(map((page) => page.content ?? []));
   }
 
   /** Obtiene los datos de la empresa para mostrar la vista previa realista del ticket. */
   getCompany(context?: HttpContext): Observable<CompanyResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   private toSettingItem(raw: SettingResponse): SettingItem {
