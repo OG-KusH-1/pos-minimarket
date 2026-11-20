@@ -6,6 +6,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { provideRouter } from '@angular/router';
 import { provideApiConfiguration } from '../../../api/api-configuration';
 import { CartQuoteResponse } from '../../../api/models/cart-quote-response';
+import { CustomerResponse } from '../../../api/models/customer-response';
 import { Line } from '../../../api/models/line';
 import { ScanResultResponse } from '../../../api/models/scan-result-response';
 import { AuthService } from '../../../core/auth/auth.service';
@@ -13,6 +14,7 @@ import { buildTokenResponse } from '../../../core/auth/auth.testing';
 import { errorInterceptor } from '../../../core/http/error.interceptor';
 import { storeContextInterceptor } from '../../../core/store-context/store-context.interceptor';
 import { StoreContextService } from '../../../core/store-context/store-context.service';
+import { POS_CART_STORAGE_KEY } from './cart/pos-cart.models';
 import { Sale } from './sale';
 import { BarcodeScannerDetector } from './search/barcode-scanner-detector';
 
@@ -546,12 +548,21 @@ describe('Sale (POS Parte 1)', () => {
       }),
     );
 
+    // El ticket consulta el documento tributario de la venta: 204 = pendiente de emisión.
+    http!.expectOne('/api/v1/sales/800/tax-document').flush(null, {
+      status: 204,
+      statusText: 'No Content',
+    });
+
     await vi.waitFor(() => {
       TestBed.tick();
       fixture.detectChanges();
       expect(
         document.querySelector('pos-ticket-dialog [data-testid="ticket-number"]')?.textContent,
       ).toContain('V-00800');
+      expect(
+        document.querySelector('pos-ticket-dialog [data-testid="tax-document-pending"]'),
+      ).not.toBeNull();
       expect((fixture.nativeElement as HTMLElement).querySelectorAll('.cart-row').length).toBe(0);
       expect(
         (fixture.nativeElement as HTMLElement).querySelector(
@@ -802,6 +813,10 @@ describe('Sale (POS Parte 1)', () => {
     });
 
     http!.expectOne('/api/v1/sales/810/ticket').flush(jsonBlob({ number: 'V-00810' }));
+    http!.expectOne('/api/v1/sales/810/tax-document').flush(null, {
+      status: 204,
+      statusText: 'No Content',
+    });
   }, 20000);
 
   it('pasa totalGross (no totalPayable) al diálogo de cobro cuando quote incluye roundingAdjustment !== 0', async () => {
@@ -864,6 +879,231 @@ describe('Sale (POS Parte 1)', () => {
     await vi.waitFor(() => {
       TestBed.tick();
       expect(document.querySelector('pos-payment-dialog')).toBeNull();
+    });
+  }, 20000);
+});
+
+describe('Sale: cliente de la venta (cableado T77)', () => {
+  let fixture: ComponentFixture<Sale>;
+  let http: HttpTestingController | undefined;
+
+  /** Cliente de ejemplo con fiado habilitado (como el devuelto por `GET /customers/{id}`). */
+  function creditCustomer(id: number, name = 'María González'): CustomerResponse {
+    return {
+      id,
+      rut: '12345678-5',
+      name,
+      email: 'maria@correo.cl',
+      creditEnabled: true,
+      creditLimit: 50000,
+      creditBalance: 45000,
+      availableCredit: 5000,
+      active: true,
+      version: 1,
+    };
+  }
+
+  /** Línea cotizada que corresponde al carrito persistido de ejemplo (Leche Entera 1L). */
+  function lecheLine(): Line {
+    return {
+      lineNumber: 1,
+      productId: 33,
+      name: 'Leche Entera 1L',
+      quantity: 1,
+      unitPriceGross: 1250,
+      lineSubtotalGross: 1250,
+      promotionDiscount: 0,
+      manualDiscount: 0,
+      proratedDiscount: 0,
+      lineTotalGross: 1250,
+    };
+  }
+
+  /** Persiste en `localStorage` un carrito con la línea de ejemplo y el cliente indicado. */
+  function seedPersistedCart(customerId: number | null): void {
+    localStorage.setItem(
+      POS_CART_STORAGE_KEY,
+      JSON.stringify({
+        version: 1,
+        idempotencyKey: 'idem-customer-cart',
+        lines: [
+          {
+            lineId: 'line-customer-1',
+            productId: 33,
+            sku: 'SKU-33',
+            name: 'Leche Entera 1L',
+            saleType: 'UNIT',
+            unitOfMeasure: 'UNIT',
+            unitPriceGross: 1250,
+            quantity: 1,
+            restricted: false,
+          },
+        ],
+        totalDiscount: null,
+        ageConfirmed: false,
+        customerId,
+      }),
+    );
+  }
+
+  /** Crea la pantalla de venta con el carrito persistido sembrado (recarga de página). */
+  function createSaleWithPersistedCart(customerId: number | null): void {
+    localStorage.clear();
+    seedPersistedCart(customerId);
+    fixture = TestBed.createComponent(Sale);
+    fixture.detectChanges();
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+
+    TestBed.configureTestingModule({
+      providers: [
+        provideApiConfiguration(''),
+        provideRouter([]),
+        provideHttpClient(withInterceptors([errorInterceptor, storeContextInterceptor])),
+        provideHttpClientTesting(),
+        { provide: MatSnackBar, useValue: { open: vi.fn() } },
+      ],
+    });
+    http = TestBed.inject(HttpTestingController);
+
+    TestBed.inject(AuthService).login({ username: 'cajero1', password: 'secret' }).subscribe();
+    http.expectOne('/api/v1/auth/login').flush(
+      buildTokenResponse({
+        permissions: ['sales:pos:operate', 'sales:discount:apply'],
+        user: { limits: { DISCOUNT_ITEM_MAX_PCT: 10 } },
+      }),
+    );
+
+    const storeContext = TestBed.inject(StoreContextService);
+    storeContext.setStore(10);
+    storeContext.setTerminal(2);
+  });
+
+  afterEach(() => {
+    document
+      .querySelectorAll('iframe[data-testid="ticket-print-iframe"]')
+      .forEach((el) => el.remove());
+    localStorage.clear();
+    try {
+      TestBed.inject(MatDialog).closeAll();
+    } catch {
+      // Ignora si no hay diálogos
+    }
+    try {
+      http?.verify();
+    } finally {
+      TestBed.resetTestingModule();
+    }
+  });
+
+  it('restaura la ficha del cliente de un carrito persistido y cotiza con customerId', async () => {
+    createSaleWithPersistedCart(7);
+
+    const sessionReq = http!.expectOne('/api/v1/cash-sessions/current');
+    sessionReq.flush(jsonBlob({ id: 77, number: 'CJ-02-001', status: 'OPEN' }));
+
+    // El carrito traía customerId 7: la pantalla resuelve la ficha vía GET /customers/7
+    // (la petición nace del efecto de sincronización durante la primera detección).
+    await vi.waitFor(() => {
+      const customerReq = http!.expectOne('/api/v1/customers/7');
+      expect(customerReq.request.method).toBe('GET');
+      customerReq.flush(jsonBlob(creditCustomer(7)));
+    });
+
+    // La recotización del carrito restaurado incluye al cliente asociado.
+    await vi.waitFor(() => {
+      const quoteReq = http!.expectOne('/api/v1/pos/cart/quote');
+      expect(quoteReq.request.body.customerId).toBe(7);
+      quoteReq.flush(jsonBlob(makeQuote([lecheLine()])));
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      const summary = el.querySelector<HTMLElement>('[data-testid="customer-summary"]');
+      expect(summary).not.toBeNull();
+      expect(summary?.textContent).toContain('María González');
+      expect(summary?.textContent).toContain('Fiado habilitado');
+      // El carrito restaurado sigue visible junto a la ficha del cliente.
+      expect(el.querySelectorAll('.cart-row')).toHaveLength(1);
+    });
+  }, 20000);
+
+  it('propaga el cliente elegido en el selector al store y lo quita con «Quitar cliente»', async () => {
+    createSaleWithPersistedCart(null);
+
+    const sessionReq = http!.expectOne('/api/v1/cash-sessions/current');
+    sessionReq.flush(jsonBlob({ id: 77, number: 'CJ-02-001', status: 'OPEN' }));
+
+    await vi.waitFor(() => {
+      const quoteReq = http!.expectOne('/api/v1/pos/cart/quote');
+      expect(quoteReq.request.body.customerId).toBeUndefined();
+      quoteReq.flush(jsonBlob(makeQuote([lecheLine()])));
+    });
+
+    const el = fixture.nativeElement as HTMLElement;
+    const input = el.querySelector<HTMLInputElement>('[data-pos-customer-input]')!;
+    expect(input).not.toBeNull();
+
+    // Búsqueda incremental por nombre (mismo servicio del selector).
+    input.value = 'fernández';
+    input.dispatchEvent(new Event('input'));
+
+    await vi.waitFor(() => {
+      const searchReq = http!.expectOne((r) => r.url === '/api/v1/customers');
+      expect(searchReq.request.method).toBe('GET');
+      expect(searchReq.request.params.get('q')).toBe('fernández');
+      searchReq.flush(
+        jsonBlob({
+          content: [creditCustomer(8, 'María Fernández')],
+          page: 0,
+          size: 20,
+          sort: ['name,asc'],
+          totalElements: 1,
+          totalPages: 1,
+        }),
+      );
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(el.querySelectorAll('.result-row')).toHaveLength(1);
+    });
+
+    // Enter selecciona el resultado resaltado y asocia al cliente en el store.
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', cancelable: true }));
+
+    await vi.waitFor(() => {
+      const quoteReq = http!.expectOne('/api/v1/pos/cart/quote');
+      expect(quoteReq.request.body.customerId).toBe(8);
+      quoteReq.flush(jsonBlob(makeQuote([lecheLine()])));
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      const summary = el.querySelector<HTMLElement>('[data-testid="customer-summary"]');
+      expect(summary?.textContent).toContain('María Fernández');
+    });
+
+    // La ficha ya estaba resuelta por el selector: el efecto de sincronización no vuelve
+    // a consultar al backend por el cliente recién asociado.
+    expect(http!.match((r) => r.url === '/api/v1/customers/8')).toHaveLength(0);
+
+    // «Quitar cliente» vuelve a anónima la venta y recotifica sin customerId.
+    el.querySelector<HTMLButtonElement>('[data-testid="customer-clear-btn"]')!.click();
+
+    await vi.waitFor(() => {
+      const quoteReq = http!.expectOne('/api/v1/pos/cart/quote');
+      expect(quoteReq.request.body.customerId).toBeUndefined();
+      quoteReq.flush(jsonBlob(makeQuote([lecheLine()])));
+    });
+
+    await vi.waitFor(() => {
+      fixture.detectChanges();
+      expect(el.querySelector('[data-testid="customer-summary"]')).toBeNull();
+      expect(el.querySelector<HTMLInputElement>('[data-pos-customer-input]')).not.toBeNull();
     });
   }, 20000);
 });

@@ -11,16 +11,16 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../api/api-configuration';
-import { get2 } from '../../api/fn/catalog/get-2';
-import { list9 } from '../../api/fn/catalog/list-9';
+import { get3 } from '../../api/fn/catalog/get-3';
+import { list11 } from '../../api/fn/catalog/list-11';
 import { download } from '../../api/fn/files/download';
 import { upload } from '../../api/fn/files/upload';
-import { list18 } from '../../api/fn/inventory/list-18';
+import { list23 } from '../../api/fn/inventory/list-23';
 import { listUsers } from '../../api/fn/security/list-users';
 import { approve1 } from '../../api/fn/shrinkage/approve-1';
 import { create6 } from '../../api/fn/shrinkage/create-6';
-import { getById4 } from '../../api/fn/shrinkage/get-by-id-4';
-import { list5, List5$Params } from '../../api/fn/shrinkage/list-5';
+import { getById5 } from '../../api/fn/shrinkage/get-by-id-5';
+import { list6, List6$Params } from '../../api/fn/shrinkage/list-6';
 import { reject1 } from '../../api/fn/shrinkage/reject-1';
 import { FileResponse } from '../../api/models/file-response';
 import { LotResponse } from '../../api/models/lot-response';
@@ -125,15 +125,15 @@ export class ShrinkageService {
 
   /** Lista las mermas del local activo con paginación, orden y filtros (`status`, `shrinkageType`, `productId`, `from`, `to`). */
   listShrinkages(
-    params?: List5$Params,
+    params?: List6$Params,
     context?: HttpContext,
   ): Observable<PageResponseShrinkageResponse> {
-    return unwrapApiResponse(list5(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list6(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de una merma del local activo por identificador. */
   getShrinkage(id: number, context?: HttpContext): Observable<ShrinkageResponse> {
-    return unwrapApiResponse(getById4(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(getById5(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /**
@@ -209,7 +209,7 @@ export class ShrinkageService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list9(
+      list11(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -225,7 +225,7 @@ export class ShrinkageService {
 
   /** Obtiene la ficha completa de un producto para conocer `lotControlled` y `unitOfMeasure`. */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Lista lotes con saldo disponible de un producto en el local activo. */
@@ -235,7 +235,7 @@ export class ShrinkageService {
     context?: HttpContext,
   ): Observable<LotResponse[]> {
     return unwrapApiResponse(
-      list18(
+      list23(
         this.http,
         this.apiConfig.rootUrl,
         {

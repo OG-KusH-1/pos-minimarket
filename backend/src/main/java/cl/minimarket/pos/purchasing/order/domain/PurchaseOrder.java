@@ -1,5 +1,6 @@
 package cl.minimarket.pos.purchasing.order.domain;
 
+import cl.minimarket.pos.purchasing.PurchaseOrderOrigin;
 import cl.minimarket.pos.shared.persistence.AuditableEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;

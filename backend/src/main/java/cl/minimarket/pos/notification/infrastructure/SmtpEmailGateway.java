@@ -32,9 +32,10 @@ public class SmtpEmailGateway implements EmailGateway {
         Objects.requireNonNull(delivery, "delivery");
         try {
             MimeMessage mimeMessage = mailSender.createMimeMessage();
-            boolean multipart = delivery.attachment() != null;
+            // multipart=true siempre: setText(textoPlano, html) exige modo multipart aunque no
+            // haya adjuntos, y los correos de la outbox pueden ser solo texto+HTML (T72).
             MimeMessageHelper helper = new MimeMessageHelper(
-                    mimeMessage, multipart, StandardCharsets.UTF_8.name());
+                    mimeMessage, true, StandardCharsets.UTF_8.name());
             helper.setFrom(properties.getFrom());
             helper.setTo(delivery.toAddress());
             helper.setSubject(delivery.subject());

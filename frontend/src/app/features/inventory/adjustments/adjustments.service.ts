@@ -11,13 +11,13 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { get2 } from '../../../api/fn/catalog/get-2';
-import { list9 } from '../../../api/fn/catalog/list-9';
+import { get3 } from '../../../api/fn/catalog/get-3';
+import { list11 } from '../../../api/fn/catalog/list-11';
 import { approve } from '../../../api/fn/inventory/approve';
 import { create5 } from '../../../api/fn/inventory/create-5';
-import { getById3 } from '../../../api/fn/inventory/get-by-id-3';
-import { list18 } from '../../../api/fn/inventory/list-18';
-import { list4, List4$Params } from '../../../api/fn/inventory/list-4';
+import { getById4 } from '../../../api/fn/inventory/get-by-id-4';
+import { list23 } from '../../../api/fn/inventory/list-23';
+import { list5, List5$Params } from '../../../api/fn/inventory/list-5';
 import { reject } from '../../../api/fn/inventory/reject';
 import { LotResponse } from '../../../api/models/lot-response';
 import { PageResponseStockAdjustmentResponse } from '../../../api/models/page-response-stock-adjustment-response';
@@ -120,15 +120,15 @@ export class AdjustmentsService {
 
   /** Lista los ajustes de stock del local activo con paginación, orden y filtros (`status`, `from`, `to`). */
   listAdjustments(
-    params?: List4$Params,
+    params?: List5$Params,
     context?: HttpContext,
   ): Observable<PageResponseStockAdjustmentResponse> {
-    return unwrapApiResponse(list4(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list5(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de un ajuste de stock del local activo por identificador. */
   getAdjustment(id: number, context?: HttpContext): Observable<StockAdjustmentResponse> {
-    return unwrapApiResponse(getById3(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(getById4(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /**
@@ -183,7 +183,7 @@ export class AdjustmentsService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list9(
+      list11(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -199,7 +199,7 @@ export class AdjustmentsService {
 
   /** Obtiene la ficha completa de un producto para conocer `lotControlled`, `shelfLifeDays` y unidad. */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Lista lotes de un producto en el local activo para seleccionar lote en líneas de ajuste. */
@@ -209,7 +209,7 @@ export class AdjustmentsService {
     context?: HttpContext,
   ): Observable<LotResponse[]> {
     return unwrapApiResponse(
-      list18(
+      list23(
         this.http,
         this.apiConfig.rootUrl,
         {

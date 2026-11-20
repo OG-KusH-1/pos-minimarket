@@ -11,12 +11,12 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { get2 } from '../../../api/fn/catalog/get-2';
-import { list9 } from '../../../api/fn/catalog/list-9';
-import { list18, List18$Params } from '../../../api/fn/inventory/list-18';
-import { list20, List20$Params } from '../../../api/fn/inventory/list-20';
+import { get3 } from '../../../api/fn/catalog/get-3';
+import { list11 } from '../../../api/fn/catalog/list-11';
+import { list23, List23$Params } from '../../../api/fn/inventory/list-23';
+import { list25, List25$Params } from '../../../api/fn/inventory/list-25';
 import { suggestFefo, SuggestFefo$Params } from '../../../api/fn/inventory/suggest-fefo';
-import { update10 } from '../../../api/fn/inventory/update-10';
+import { update11 } from '../../../api/fn/inventory/update-11';
 import { FefoSuggestionResponse } from '../../../api/models/fefo-suggestion-response';
 import { LotResponse } from '../../../api/models/lot-response';
 import { LotUpdateRequest } from '../../../api/models/lot-update-request';
@@ -120,8 +120,8 @@ export class LotsService {
    * Lista los lotes del local activo con paginación, orden y filtros (`productId`, `status`,
    * `withStock`, `expiringWithinDays`, `q`).
    */
-  listLots(params?: List18$Params, context?: HttpContext): Observable<PageResponseLotResponse> {
-    return unwrapApiResponse(list18(this.http, this.apiConfig.rootUrl, params, context));
+  listLots(params?: List23$Params, context?: HttpContext): Observable<PageResponseLotResponse> {
+    return unwrapApiResponse(list23(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /**
@@ -129,7 +129,7 @@ export class LotsService {
    * versión optimista (`version`, `409 CONCURRENT_MODIFICATION`).
    */
   updateLot(id: number, body: LotUpdateRequest, context?: HttpContext): Observable<LotResponse> {
-    return unwrapApiResponse(update10(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update11(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /**
@@ -137,10 +137,10 @@ export class LotsService {
    * (`GET /api/v1/expiry-alerts`).
    */
   listExpiryAlerts(
-    params?: List20$Params,
+    params?: List25$Params,
     context?: HttpContext,
   ): Observable<PageResponseExpiryAlertResponse> {
-    return unwrapApiResponse(list20(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list25(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /**
@@ -158,7 +158,7 @@ export class LotsService {
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     const trimmed = q.trim();
     return unwrapApiResponse(
-      list9(
+      list11(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -174,6 +174,6 @@ export class LotsService {
 
   /** Obtiene la ficha completa de un producto por ID. */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 }

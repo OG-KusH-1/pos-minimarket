@@ -31,7 +31,7 @@
             mat-stroked-button
             type="button"
             data-testid="last-sale-ticket-btn"
-            (click)="openTicketDialog(lastSaleId, lastSale.number, false)"
+            (click)="openTicketDialog(lastSaleId, lastSale.number, false, lastSale.emailTo)"
           >
             <mat-icon aria-hidden="true">receipt_long</mat-icon>
             Ticket {{ lastSale.number ?? '#' + lastSaleId }}
@@ -319,6 +319,20 @@
         </mat-card>
       }
 
+      <!--
+        Cliente de la venta (HU-POS-16): búsqueda por RUT/nombre, ficha de fiado y «Quitar
+        cliente». La selección se propaga a PosCartStore (customerId persistido con el carrito)
+        y habilita el pago fiado en el cobro cuando el cliente tiene crédito.
+      -->
+      <mat-card class="summary-card" appearance="outlined" data-testid="customer-selector-card">
+        <pos-customer-selector
+          [customer]="selectedCustomer()"
+          [disabled]="!hasStoreAndTerminal()"
+          (customerSelected)="onCustomerSelected($event)"
+          (customerCleared)="onCustomerCleared()"
+        />
+      </mat-card>
+
       <mat-card class="summary-card" appearance="outlined">
         <div class="summary-header">
           <h2>Resumen</h2>
@@ -391,8 +405,8 @@
         </div>
 
         <!--
-          Punto de montaje reservado para T47 (Parte 2: Cobrar F10, Suspender F8, Retomar F9,
-          Finalizar F12) y futura extensión de fiado / cliente en T77.
+          Acciones del flujo de venta (Parte 2: Cobrar F10, Suspender F8, Retomar F9,
+          Finalizar F12). El cliente/fiado se gestiona en el selector superior y en el cobro.
         -->
         <div class="part2-actions" aria-label="Acciones de flujo de venta">
           <button

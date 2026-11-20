@@ -1,0 +1,165 @@
+<h2 mat-dialog-title>Devolución — venta {{ data.saleNumber ?? '#' + data.saleId }}</h2>
+
+<form [formGroup]="form" (ngSubmit)="submit()">
+  <mat-dialog-content class="dialog-content">
+    @if (returnDeadline; as deadline) {
+      <p class="deadline-hint" data-testid="return-deadline-hint">
+        <mat-icon aria-hidden="true">event</mat-icon>
+        Plazo para devolver esta venta: {{ formatDateTime(deadline) }}
+      </p>
+    }
+
+    <div class="table-toolbar">
+      <button
+        mat-stroked-button
+        type="button"
+        [disabled]="maxFillable() === 0 || submitting()"
+        data-testid="fill-max-btn"
+        (click)="fillMaxQuantities()"
+      >
+        <mat-icon aria-hidden="true">done_all</mat-icon>
+        Devolver todo lo posible
+      </button>
+      <span class="estimated-refund" data-testid="estimated-refund">
+        Reembolso estimado: <strong>{{ estimatedRefund() | clp }}</strong>
+      </span>
+    </div>
+
+    <div class="lines-table-wrapper">
+      <table class="lines-table" aria-label="Líneas devolvibles de la venta">
+        <thead>
+          <tr>
+            <th scope="col">Producto</th>
+            <th scope="col" class="col-num">Vendida</th>
+            <th scope="col" class="col-num">Devuelta</th>
+            <th scope="col" class="col-num">Máx. devolvible</th>
+            <th scope="col" class="col-qty">A devolver</th>
+            <th scope="col" class="col-restock">
+              <div class="restock-header">
+                <mat-checkbox
+                  [checked]="allRestock()"
+                  [indeterminate]="someRestock()"
+                  [disabled]="submitting()"
+                  aria-label="Reingresar al stock todas las líneas"
+                  (change)="toggleAllRestock($event.checked)"
+                />
+                <span>Reingresar al stock</span>
+              </div>
+            </th>
+            <th scope="col" class="col-num">Reembolso</th>
+          </tr>
+        </thead>
+        <tbody formArrayName="lines">
+          @for (row of rows; track row.saleLineId; let i = $index) {
+            <tr [formGroupName]="i" [attr.data-testid]="'return-line-' + row.saleLineId">
+              <td class="col-product">
+                <span class="line-name">{{ row.name }}</span>
+                @if (row.saleType === 'WEIGHT') {
+                  <span class="tag tag--weight">Pesable</span>
+                } @else if (row.saleType === 'PACK') {
+                  <span class="tag tag--pack">Pack</span>
+                }
+              </td>
+              <td class="col-num">
+                {{ row.quantity | qty }}{{ row.saleType === 'WEIGHT' ? ' kg' : ' u' }}
+              </td>
+              <td class="col-num">{{ row.returnedQuantity | qty }}</td>
+              <td class="col-num col-max">{{ row.returnableQuantity | qty }}</td>
+              <td class="col-qty">
+                <div class="qty-cell">
+                  <input
+                    matInput
+                    type="number"
+                    formControlName="quantity"
+                    [attr.min]="0"
+                    [attr.max]="row.returnableQuantity"
+                    [attr.step]="row.integerQuantity ? 1 : 0.001"
+                    [attr.inputmode]="row.integerQuantity ? 'numeric' : 'decimal'"
+                    [attr.aria-label]="'Cantidad a devolver de ' + row.name"
+                  />
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    class="max-btn"
+                    [disabled]="row.returnableQuantity <= 0 || submitting()"
+                    [attr.aria-label]="'Devolver el máximo de ' + row.name"
+                    (click)="setMaxQuantity(i)"
+                  >
+                    Máx.
+                  </button>
+                </div>
+                @if (quantityErrorHint(i); as hint) {
+                  <span class="qty-error" role="alert">{{ hint }}</span>
+                }
+              </td>
+              <td class="col-restock">
+                <mat-checkbox
+                  formControlName="restock"
+                  [disabled]="submitting()"
+                  [attr.aria-label]="'Reingresar ' + row.name + ' al stock'"
+                />
+              </td>
+              <td class="col-num">{{ lineRefund(i) | clp }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="reason-fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Motivo de la devolución</mat-label>
+        <mat-select formControlName="reasonCode" data-testid="return-reason-select">
+          @for (option of reasonOptions; track option.code) {
+            <mat-option [value]="option.code">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+        @if (form.controls.reasonCode.hasError('required')) {
+          <mat-error>El motivo es obligatorio.</mat-error>
+        } @else if (form.controls.reasonCode.getError('server'); as serverMsg) {
+          <mat-error>{{ serverMsg }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Detalle (opcional)</mat-label>
+        <textarea
+          matInput
+          rows="2"
+          formControlName="reasonText"
+          placeholder="Ej. Cliente devuelve 1 unidad sin usar"
+        ></textarea>
+        <mat-hint align="end">{{ form.controls.reasonText.value.length }} / 500</mat-hint>
+        @if (form.controls.reasonText.hasError('maxlength')) {
+          <mat-error>Máximo 500 caracteres.</mat-error>
+        } @else if (form.controls.reasonText.getError('server'); as serverMsg) {
+          <mat-error>{{ serverMsg }}</mat-error>
+        }
+      </mat-form-field>
+    </div>
+
+    @if (errorMessage(); as error) {
+      <p class="error-banner" role="alert" data-testid="return-error-banner">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ error }}</span>
+      </p>
+    }
+  </mat-dialog-content>
+
+  <mat-dialog-actions align="end">
+    <button mat-button type="button" [disabled]="submitting()" (click)="cancel()">Cancelar</button>
+    <button
+      mat-flat-button
+      type="submit"
+      class="confirm-btn"
+      [disabled]="submitting() || !hasSelectedLines()"
+      data-testid="confirm-return-btn"
+    >
+      @if (submitting()) {
+        <mat-spinner diameter="18" />
+      } @else {
+        Confirmar devolución
+      }
+    </button>
+  </mat-dialog-actions>
+</form>

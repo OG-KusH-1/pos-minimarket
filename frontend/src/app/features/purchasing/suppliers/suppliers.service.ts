@@ -11,19 +11,19 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list9, List9$Params } from '../../../api/fn/catalog/list-9';
+import { list11, List11$Params } from '../../../api/fn/catalog/list-11';
 import { activate1 } from '../../../api/fn/purchasing/activate-1';
-import { activate4 } from '../../../api/fn/purchasing/activate-4';
+import { activate5 } from '../../../api/fn/purchasing/activate-5';
 import { create1 } from '../../../api/fn/purchasing/create-1';
-import { create11 } from '../../../api/fn/purchasing/create-11';
+import { create12 } from '../../../api/fn/purchasing/create-12';
 import { deactivate1 } from '../../../api/fn/purchasing/deactivate-1';
-import { deactivate4 } from '../../../api/fn/purchasing/deactivate-4';
+import { deactivate5 } from '../../../api/fn/purchasing/deactivate-5';
 import { get } from '../../../api/fn/purchasing/get';
-import { list1, List1$Params } from '../../../api/fn/purchasing/list-1';
+import { list2, List2$Params } from '../../../api/fn/purchasing/list-2';
 import { listBySupplier, ListBySupplier$Params } from '../../../api/fn/purchasing/list-by-supplier';
 import { markPreferred } from '../../../api/fn/purchasing/mark-preferred';
 import { update2 } from '../../../api/fn/purchasing/update-2';
-import { update9 } from '../../../api/fn/purchasing/update-9';
+import { update10 } from '../../../api/fn/purchasing/update-10';
 import { PageResponseProductSummary } from '../../../api/models/page-response-product-summary';
 import { PageResponseProductSupplierResponse } from '../../../api/models/page-response-product-supplier-response';
 import { PageResponseSupplierSummary } from '../../../api/models/page-response-supplier-summary';
@@ -113,10 +113,10 @@ export class SuppliersService {
 
   /** Lista proveedores paginados y filtrados por texto (RUT o nombre) y estado. */
   listSuppliers(
-    params?: List1$Params,
+    params?: List2$Params,
     context?: HttpContext,
   ): Observable<PageResponseSupplierSummary> {
-    return unwrapApiResponse(list1(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list2(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de un proveedor, incluyendo `version` para edición optimista. */
@@ -161,7 +161,7 @@ export class SuppliersService {
     body: ProductSupplierRequest,
     context?: HttpContext,
   ): Observable<ProductSupplierResponse> {
-    return unwrapApiResponse(create11(this.http, this.apiConfig.rootUrl, { body }, context));
+    return unwrapApiResponse(create12(this.http, this.apiConfig.rootUrl, { body }, context));
   }
 
   /** Actualiza una asociación producto-proveedor existente. */
@@ -170,17 +170,17 @@ export class SuppliersService {
     body: ProductSupplierRequest,
     context?: HttpContext,
   ): Observable<ProductSupplierResponse> {
-    return unwrapApiResponse(update9(this.http, this.apiConfig.rootUrl, { id, body }, context));
+    return unwrapApiResponse(update10(this.http, this.apiConfig.rootUrl, { id, body }, context));
   }
 
   /** Activa una asociación producto-proveedor. */
   activateProductSupplier(id: number, context?: HttpContext): Observable<void> {
-    return unwrapApiResponse(activate4(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(activate5(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Desactiva una asociación producto-proveedor. */
   deactivateProductSupplier(id: number, context?: HttpContext): Observable<void> {
-    return unwrapApiResponse(deactivate4(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(deactivate5(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /** Marca una asociación como proveedor preferido único del producto. */
@@ -190,9 +190,9 @@ export class SuppliersService {
 
   /** Busca productos del catálogo para asociar a un proveedor. */
   searchProducts(
-    params?: List9$Params,
+    params?: List11$Params,
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
-    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
   }
 }

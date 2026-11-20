@@ -1,0 +1,212 @@
+<h2 mat-dialog-title>Cuenta corriente — {{ data.customerName }}</h2>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando cuenta del cliente" />
+  }
+
+  @if (loadError(); as message) {
+    <div class="alert" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <section class="summary" aria-label="Estado de la cuenta">
+    <div class="summary-item">
+      <span class="summary-label">Deuda actual</span>
+      <span class="summary-value" [class.debt]="debt() > 0">{{ money(debt()) }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Cupo</span>
+      <span class="summary-value">{{ money(creditLimit()) }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Disponible</span>
+      <span class="summary-value">{{ money(availableCredit()) }}</span>
+    </div>
+    <div class="summary-item">
+      <span class="summary-label">Fiado</span>
+      <span
+        class="status-badge"
+        [class.active]="creditEnabled()"
+        [class.inactive]="!creditEnabled()"
+      >
+        {{ creditEnabled() ? 'Habilitado' : 'No habilitado' }}
+      </span>
+    </div>
+  </section>
+
+  <section aria-label="Cartola de movimientos de la cuenta">
+    <h3 class="section-title">Cartola de movimientos</h3>
+
+    @if (movements().length === 0 && !loading()) {
+      <p class="empty">Sin movimientos registrados.</p>
+    } @else {
+      <table class="cartola">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Tipo</th>
+            <th scope="col" class="end">Monto</th>
+            <th scope="col" class="end">Saldo</th>
+            <th scope="col">Detalle</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (movement of movements(); track movement.id) {
+            <tr>
+              <td>{{ formatOccurredAt(movement.occurredAt) }}</td>
+              <td>
+                {{ movementTypeLabel(movement.movementType) }}
+                @if (movement.movementType === 'PAYMENT' && movement.paymentMethod) {
+                  <span class="method">({{ paymentMethodLabel(movement.paymentMethod) }})</span>
+                }
+              </td>
+              <td
+                class="end"
+                [class.positive]="(movement.amount ?? 0) > 0"
+                [class.negative]="(movement.amount ?? 0) < 0"
+              >
+                {{ money(movement.amount) }}
+              </td>
+              <td class="end">{{ money(movement.balanceAfter) }}</td>
+              <td>
+                {{ movement.saleNumber || movement.notes || '—' }}
+                @if (movement.username) {
+                  <span class="method">— {{ movement.username }}</span>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+
+      <div class="pager">
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Página anterior de la cartola"
+          [disabled]="page() === 0 || loading()"
+          (click)="goToPage(page() - 1)"
+        >
+          <mat-icon aria-hidden="true">chevron_left</mat-icon>
+        </button>
+        <span
+          >Página {{ page() + 1 }} de {{ totalPages() }} ({{ totalElements() }} movimientos)</span
+        >
+        <button
+          mat-icon-button
+          type="button"
+          aria-label="Página siguiente de la cartola"
+          [disabled]="page() + 1 >= totalPages() || loading()"
+          (click)="goToPage(page() + 1)"
+        >
+          <mat-icon aria-hidden="true">chevron_right</mat-icon>
+        </button>
+      </div>
+    }
+  </section>
+
+  <div class="operations">
+    <section class="operation" aria-label="Registrar abono">
+      <h3 class="section-title">Registrar abono</h3>
+      <p class="hint">
+        Deuda actual: {{ money(debt()) }}. El abono no puede excederla; en efectivo suma al esperado
+        del turno de caja abierto.
+      </p>
+
+      @if (paymentError(); as message) {
+        <div class="alert" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      <form [formGroup]="paymentForm" (ngSubmit)="submitPayment()" class="op-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Monto (CLP)</mat-label>
+          <input matInput type="number" formControlName="amount" min="1" />
+          <mat-hint>Máximo abonable: {{ money(debt()) }}</mat-hint>
+          @if (paymentForm.controls.amount.hasError('required')) {
+            <mat-error>El monto es obligatorio.</mat-error>
+          } @else if (paymentForm.controls.amount.hasError('min')) {
+            <mat-error>El monto debe ser mayor que cero.</mat-error>
+          } @else if (paymentForm.controls.amount.hasError('exceedsDebt')) {
+            <mat-error>El monto excede la deuda actual ({{ money(debt()) }}).</mat-error>
+          } @else if (paymentForm.controls.amount.hasError('server')) {
+            <mat-error>{{ paymentForm.controls.amount.getError('server') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Medio de pago</mat-label>
+          <mat-select formControlName="paymentMethod">
+            @for (option of paymentMethodOptions; track option.value) {
+              <mat-option [value]="option.value">{{ option.label }}</mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Referencia</mat-label>
+          <input matInput formControlName="reference" maxlength="100" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Notas</mat-label>
+          <input matInput formControlName="notes" maxlength="500" />
+        </mat-form-field>
+
+        <button mat-flat-button type="submit" [disabled]="savingPayment()">Registrar abono</button>
+      </form>
+    </section>
+
+    <section class="operation" aria-label="Ajuste de cuenta">
+      <h3 class="section-title">Ajuste de cuenta</h3>
+      <p class="hint">
+        Corrige la deuda manualmente: positivo aumenta la deuda, negativo la reduce. Queda auditado;
+        el monto está acotado por rol (CREDIT_ADJUSTMENT_MAX_AMOUNT).
+      </p>
+
+      @if (adjustmentError(); as message) {
+        <div class="alert" role="alert">
+          <mat-icon aria-hidden="true">error_outline</mat-icon>
+          <span>{{ message }}</span>
+        </div>
+      }
+
+      <form [formGroup]="adjustmentForm" (ngSubmit)="submitAdjustment()" class="op-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Monto del ajuste (CLP)</mat-label>
+          <input matInput type="number" formControlName="amount" />
+          @if (adjustmentForm.controls.amount.hasError('required')) {
+            <mat-error>El monto es obligatorio.</mat-error>
+          } @else if (adjustmentForm.controls.amount.hasError('nonZero')) {
+            <mat-error>El monto debe ser distinto de cero.</mat-error>
+          } @else if (adjustmentForm.controls.amount.hasError('limitExceeded')) {
+            <mat-error>El ajuste excede el máximo permitido para tu rol.</mat-error>
+          } @else if (adjustmentForm.controls.amount.hasError('server')) {
+            <mat-error>{{ adjustmentForm.controls.amount.getError('server') }}</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Motivo (auditoría)</mat-label>
+          <input matInput formControlName="reason" maxlength="500" />
+          @if (adjustmentForm.controls.reason.hasError('required')) {
+            <mat-error>Indica el motivo del ajuste.</mat-error>
+          }
+        </mat-form-field>
+
+        <button mat-stroked-button type="submit" [disabled]="savingAdjustment()">
+          Registrar ajuste
+        </button>
+      </form>
+    </section>
+  </div>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="close()" cdkFocusInitial>Cerrar</button>
+</mat-dialog-actions>

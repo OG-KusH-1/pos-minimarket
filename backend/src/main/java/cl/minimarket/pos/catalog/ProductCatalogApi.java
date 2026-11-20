@@ -91,6 +91,23 @@ public interface ProductCatalogApi {
     List<Long> nonPackProductIds();
 
     /**
+     * Devuelve la cadena de categorías de la categoría indicada, desde ella misma hasta la raíz
+     * (inclusive): {@code [categoryId, parentId, ...]}.
+     *
+     * <p>La usa {@code replenishment} para la resolución de parámetros por nivel de categoría
+     * ({@code PLAN.md} C.2: subcategoría y después categoría padre). El catálogo define dos
+     * niveles (B.3), de modo que la lista tiene a lo más dos elementos, pero el contrato admite
+     * jerarquías más profundas.
+     *
+     * @param categoryId identificador de la categoría
+     * @return cadena de categorías, de la más específica a la más general; nunca vacía
+     * @throws cl.minimarket.pos.shared.error.BusinessException {@code NOT_FOUND} si la categoría
+     *         no existe
+     * @since T80 (reabastecimiento)
+     */
+    List<Long> categoryChain(Long categoryId);
+
+    /**
      * Crea un producto desde el módulo {@code dataexchange} (importación masiva).
      *
      * @param command datos normalizados de importación

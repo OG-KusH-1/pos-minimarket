@@ -7,23 +7,25 @@ import { filter, map } from 'rxjs/operators';
 import { StrictHttpResponse } from '../../strict-http-response';
 import { RequestBuilder } from '../../request-builder';
 
-import { PageResponseExpiryAlertResponse } from '../../models/page-response-expiry-alert-response';
+import { PageResponseStockResponse } from '../../models/page-response-stock-response';
 
 export interface List20$Params {
-
-/**
- * Ventana en días (>= 0); si se omite usa alerts.expiry.days_ahead.
- */
-  days?: number;
+  q?: string;
+  categoryId?: number;
+  status?: 'OK' | 'BELOW_MIN' | 'ZERO' | 'ABOVE_MAX';
+  lotControlled?: boolean;
   page?: number;
   size?: number;
   sort?: Array<string>;
 }
 
-export function list20(http: HttpClient, rootUrl: string, params?: List20$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseExpiryAlertResponse>> {
+export function list20(http: HttpClient, rootUrl: string, params?: List20$Params, context?: HttpContext): Observable<StrictHttpResponse<PageResponseStockResponse>> {
   const rb = new RequestBuilder(rootUrl, list20.PATH, 'get');
   if (params) {
-    rb.query('days', params.days, {});
+    rb.query('q', params.q, {});
+    rb.query('categoryId', params.categoryId, {});
+    rb.query('status', params.status, {});
+    rb.query('lotControlled', params.lotControlled, {});
     rb.query('page', params.page, {});
     rb.query('size', params.size, {});
     rb.query('sort', params.sort, {});
@@ -34,9 +36,9 @@ export function list20(http: HttpClient, rootUrl: string, params?: List20$Params
   ).pipe(
     filter((r: any): r is HttpResponse<any> => r instanceof HttpResponse),
     map((r: HttpResponse<any>) => {
-      return r as StrictHttpResponse<PageResponseExpiryAlertResponse>;
+      return r as StrictHttpResponse<PageResponseStockResponse>;
     })
   );
 }
 
-list20.PATH = '/api/v1/expiry-alerts';
+list20.PATH = '/api/v1/stock';

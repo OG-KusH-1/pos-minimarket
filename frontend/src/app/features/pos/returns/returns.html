@@ -1,0 +1,342 @@
+<section class="pos-returns-page" aria-label="Anulación y devolución de ventas">
+  <header class="pos-header">
+    <div class="pos-title-group">
+      <h1>Devoluciones</h1>
+      <span class="pos-context-label">
+        Anulación y devolución de ventas
+        @if (storeContext.activeStore(); as store) {
+          · {{ store.name }}
+        }
+      </span>
+    </div>
+  </header>
+
+  @if (statusNotice(); as notice) {
+    <div
+      class="pos-banner"
+      [class.pos-banner--info]="notice.severity === 'info'"
+      [class.pos-banner--warn]="notice.severity === 'warning'"
+      [class.pos-banner--error]="notice.severity === 'error'"
+      role="status"
+      data-testid="returns-status-notice"
+    >
+      <mat-icon aria-hidden="true">
+        @switch (notice.severity) {
+          @case ('error') {
+            error_outline
+          }
+          @case ('warning') {
+            warning_amber
+          }
+          @default {
+            info
+          }
+        }
+      </mat-icon>
+      <span>{{ notice.message }}</span>
+    </div>
+  }
+
+  <mat-card class="search-card" appearance="outlined">
+    <form class="search-form" (ngSubmit)="searchSale()">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Folio o número de venta</mat-label>
+        <input
+          matInput
+          type="text"
+          [formControl]="searchControl"
+          #searchInput
+          placeholder="Ej. L01-V-000123 o 123"
+          autocomplete="off"
+          data-testid="sale-number-input"
+        />
+      </mat-form-field>
+      <button mat-flat-button type="submit" [disabled]="searching()" data-testid="search-sale-btn">
+        @if (searching()) {
+          <mat-spinner diameter="18" />
+        } @else {
+          <mat-icon aria-hidden="true">search</mat-icon>
+        }
+        Buscar
+      </button>
+      @if (sale() !== null) {
+        <button
+          mat-stroked-button
+          type="button"
+          data-testid="clear-screen-btn"
+          (click)="clearScreen()"
+        >
+          <mat-icon aria-hidden="true">delete_sweep</mat-icon>
+          Limpiar
+        </button>
+      }
+    </form>
+    <p class="search-hint">
+      Ingresa el número impreso en el ticket y pulsa <kbd>Enter</kbd> (<kbd>F2</kbd> vuelve al campo
+      de búsqueda).
+    </p>
+  </mat-card>
+
+  @if (sale(); as saleLoaded) {
+    <div class="returns-workspace">
+      <div class="sale-column" aria-label="Detalle de la venta">
+        <mat-card class="sale-card" appearance="outlined" data-testid="sale-detail-card">
+          <div class="sale-heading">
+            <h2>Venta {{ saleLoaded.number ?? '#' + saleLoaded.id }}</h2>
+            <mat-chip-set aria-label="Estado de la venta">
+              <mat-chip
+                [class.chip--voided]="saleLoaded.status === 'VOIDED'"
+                [class.chip--returned]="
+                  saleLoaded.status === 'PARTIALLY_RETURNED' || saleLoaded.status === 'RETURNED'
+                "
+                data-testid="sale-status-chip"
+              >
+                {{ saleStatusLabel(saleLoaded.status) }}
+              </mat-chip>
+            </mat-chip-set>
+          </div>
+
+          <dl class="sale-meta">
+            <div class="meta-item">
+              <dt>Fecha</dt>
+              <dd>{{ formatDateTime(saleLoaded.soldAt) || '—' }}</dd>
+            </div>
+            <div class="meta-item">
+              <dt>Cajero</dt>
+              <dd>{{ saleLoaded.cashier?.fullName ?? saleLoaded.cashier?.username ?? '—' }}</dd>
+            </div>
+            @if (saleLoaded.customer; as customer) {
+              <div class="meta-item">
+                <dt>Cliente</dt>
+                <dd>{{ customer.name }}</dd>
+              </div>
+            }
+            <div class="meta-item">
+              <dt>Total pagado</dt>
+              <dd>{{ saleLoaded.totalPayable | clp }}</dd>
+            </div>
+          </dl>
+
+          <div class="lines-table-wrapper">
+            <table class="sale-lines-table" aria-label="Líneas de la venta">
+              <thead>
+                <tr>
+                  <th scope="col" class="col-index">#</th>
+                  <th scope="col">Producto</th>
+                  <th scope="col" class="col-num">Cant.</th>
+                  <th scope="col" class="col-num">Devuelta</th>
+                  <th scope="col" class="col-num">P. unit.</th>
+                  <th scope="col" class="col-num">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (line of saleLoaded.lines ?? []; track line.id ?? $index; let i = $index) {
+                  <tr>
+                    <td class="col-index">{{ i + 1 }}</td>
+                    <td>
+                      <span class="line-name">{{ line.name }}</span>
+                      @if (line.sku) {
+                        <span class="line-sku">{{ line.sku }}</span>
+                      }
+                    </td>
+                    <td class="col-num">{{ line.quantity | qty }}</td>
+                    <td class="col-num">{{ line.returnedQuantity ?? 0 | qty }}</td>
+                    <td class="col-num">{{ line.unitPriceGross | clp }}</td>
+                    <td class="col-num">{{ line.lineTotalGross | clp }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="payments-and-returns">
+            <div>
+              <h3>Pagos</h3>
+              <ul class="plain-list">
+                @for (payment of saleLoaded.payments ?? []; track payment.id ?? $index) {
+                  <li>
+                    {{ paymentMethodLabel(payment.method) }} · {{ payment.amount | clp }}
+                    @if (payment.status === 'REVERSED') {
+                      <span class="tag tag--reversed">Reversado</span>
+                    }
+                  </li>
+                }
+              </ul>
+            </div>
+            @if ((saleLoaded.returns ?? []).length > 0) {
+              <div>
+                <h3>Operaciones anteriores</h3>
+                <ul class="plain-list">
+                  @for (previous of saleLoaded.returns; track previous.id ?? $index) {
+                    <li>
+                      {{ returnTypeLabel(previous.returnType) }} {{ previous.number }} ·
+                      {{ previous.refundTotal | clp }}
+                    </li>
+                  }
+                </ul>
+              </div>
+            }
+          </div>
+        </mat-card>
+      </div>
+
+      <aside class="actions-column" aria-label="Acciones de anulación y devolución">
+        <mat-card class="meta-card" appearance="outlined" data-testid="returnable-meta-card">
+          <div class="meta-row">
+            <mat-icon aria-hidden="true">event</mat-icon>
+            <span>
+              Plazo para devolver:
+              <strong>{{ formatDateTime(returnable()?.returnDeadline) || '—' }}</strong>
+            </span>
+          </div>
+          <div class="meta-row">
+            <mat-icon aria-hidden="true">{{ canVoid() ? 'check_circle' : 'cancel' }}</mat-icon>
+            <span>
+              Anulación permitida: <strong>{{ canVoid() ? 'sí' : 'no' }}</strong>
+            </span>
+          </div>
+          @if (loadingReturnable()) {
+            <span class="loading-pill">Consultando líneas devolvibles…</span>
+          }
+        </mat-card>
+
+        <mat-card class="action-card" appearance="outlined" data-testid="void-card">
+          <div class="action-heading">
+            <mat-icon aria-hidden="true">block</mat-icon>
+            <h2>Anular venta completa</h2>
+          </div>
+          <p class="action-description">
+            Reingresa todo el stock (SALE_VOID), reversa los pagos y emite la nota de crédito.
+          </p>
+          <form [formGroup]="voidForm" (ngSubmit)="submitVoid()">
+            <mat-form-field appearance="outline">
+              <mat-label>Motivo de la anulación</mat-label>
+              <mat-select formControlName="reasonCode" data-testid="void-reason-select">
+                @for (option of reasonOptions; track option.code) {
+                  <mat-option [value]="option.code">{{ option.label }}</mat-option>
+                }
+              </mat-select>
+              @if (voidForm.controls.reasonCode.hasError('required')) {
+                <mat-error>El motivo es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Detalle (opcional)</mat-label>
+              <textarea
+                matInput
+                rows="2"
+                formControlName="reasonText"
+                placeholder="Ej. Cliente se arrepiente antes de retirarse"
+              ></textarea>
+              <mat-hint align="end">{{ voidForm.controls.reasonText.value.length }} / 500</mat-hint>
+              @if (voidForm.controls.reasonText.hasError('maxlength')) {
+                <mat-error>Máximo 500 caracteres.</mat-error>
+              }
+            </mat-form-field>
+            <button
+              mat-flat-button
+              type="submit"
+              class="destructive-btn"
+              [disabled]="!canVoid() || submittingVoid() || searching()"
+              [matTooltip]="voidDisabledHint()"
+              data-testid="void-sale-btn"
+            >
+              @if (submittingVoid()) {
+                <mat-spinner diameter="18" />
+              } @else {
+                Anular venta completa
+              }
+            </button>
+          </form>
+          @if (!canVoid()) {
+            <p class="action-hint">{{ voidDisabledHint() }}</p>
+          }
+        </mat-card>
+
+        <mat-card class="action-card" appearance="outlined" data-testid="return-card">
+          <div class="action-heading">
+            <mat-icon aria-hidden="true">assignment_return</mat-icon>
+            <h2>Devolución parcial</h2>
+          </div>
+          <p class="action-description">
+            Elige líneas y cantidades con tope en lo devolvible real; lo no reingresado queda como
+            merma por daño pendiente de aprobación.
+          </p>
+          <button
+            mat-flat-button
+            type="button"
+            [disabled]="!canReturn() || searching()"
+            data-testid="open-return-dialog-btn"
+            (click)="openReturnDialog()"
+          >
+            <mat-icon aria-hidden="true">assignment_return</mat-icon>
+            Seleccionar líneas a devolver
+          </button>
+          @if (!canReturn() && returnable() !== null && !loadingReturnable()) {
+            <p class="action-hint">No queda cantidad devolvible en esta venta.</p>
+          }
+        </mat-card>
+
+        @if (operationResult(); as result) {
+          <mat-card class="result-card" appearance="outlined" data-testid="operation-result-card">
+            <div class="action-heading">
+              <mat-icon aria-hidden="true">receipt_long</mat-icon>
+              <h2>{{ returnTypeLabel(result.returnType) }} {{ result.number }}</h2>
+            </div>
+            <dl class="sale-meta">
+              <div class="meta-item">
+                <dt>Reembolso total</dt>
+                <dd>{{ result.refundTotal | clp }}</dd>
+              </div>
+              <div class="meta-item">
+                <dt>Registrada por</dt>
+                <dd>{{ result.createdBy ?? '—' }}</dd>
+              </div>
+              <div class="meta-item">
+                <dt>Fecha</dt>
+                <dd>{{ formatDateTime(result.createdAt) || '—' }}</dd>
+              </div>
+            </dl>
+            <h3>Efecto en stock por línea</h3>
+            <ul class="plain-list">
+              @for (line of result.lines ?? []; track line.saleLineId ?? $index) {
+                <li>
+                  {{ line.name }} × {{ line.quantity | qty }} · {{ line.refundAmount | clp }}
+                  @if (line.restock !== false) {
+                    <span class="tag tag--restock">Reingresado al stock</span>
+                  } @else {
+                    <span class="tag tag--merma">Merma por daño (pendiente de aprobación)</span>
+                  }
+                </li>
+              }
+            </ul>
+            @if ((result.refunds ?? []).length > 0) {
+              <h3>Reembolsos</h3>
+              <ul class="plain-list">
+                @for (refund of result.refunds; track $index) {
+                  <li>{{ paymentMethodLabel(refund.method) }} · {{ refund.amount | clp }}</li>
+                }
+              </ul>
+            }
+          </mat-card>
+        }
+
+        <div class="keyboard-strip" aria-label="Atajos de teclado">
+          <span><kbd>Enter</kbd> Buscar</span>
+          <span><kbd>F2</kbd> Volver al campo</span>
+          <span><kbd>Esc</kbd> Cerrar diálogo</span>
+        </div>
+      </aside>
+    </div>
+  } @else if (!searching()) {
+    <div class="empty-state" data-testid="returns-empty-state">
+      <mat-icon aria-hidden="true">assignment_return</mat-icon>
+      <h3>Busca una venta para anularla o recibir su devolución</h3>
+      <p>
+        Ingresa el folio o número del ticket (p. ej. <code>L01-V-000123</code>). El backend valida
+        permisos, turno y plazo; si tu rol no tiene permiso directo, se pedirá autorización de
+        supervisor.
+      </p>
+    </div>
+  }
+</section>

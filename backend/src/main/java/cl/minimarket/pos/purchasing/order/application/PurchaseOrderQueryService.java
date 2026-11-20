@@ -1,6 +1,6 @@
 package cl.minimarket.pos.purchasing.order.application;
 
-import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderOrigin;
+import cl.minimarket.pos.purchasing.PurchaseOrderOrigin;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderStatus;
 import cl.minimarket.pos.shared.error.BusinessException;
 import cl.minimarket.pos.shared.error.ErrorCode;

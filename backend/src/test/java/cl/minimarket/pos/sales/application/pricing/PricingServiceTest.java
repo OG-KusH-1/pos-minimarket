@@ -7,7 +7,7 @@ import cl.minimarket.pos.catalog.RestrictedType;
 import cl.minimarket.pos.catalog.SaleType;
 import cl.minimarket.pos.catalog.UnitOfMeasure;
 import cl.minimarket.pos.organization.SettingsApi;
-import cl.minimarket.pos.promotions.application.NoopPromotionEngine;
+import cl.minimarket.pos.promotions.PromotionResult;
 import cl.minimarket.pos.sales.application.pricing.PricingModels.DiscountSpec;
 import cl.minimarket.pos.sales.application.pricing.PricingModels.LineInput;
 import cl.minimarket.pos.sales.application.pricing.PricingModels.PaymentInput;
@@ -76,7 +76,7 @@ class PricingServiceTest {
         );
         pricingService = new PricingService(
                 productCatalogApi,
-                new NoopPromotionEngine(),
+                context -> PromotionResult.empty(),
                 roleLimitApi,
                 supervisorOverrideApi,
                 settingsApi,

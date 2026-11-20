@@ -1,0 +1,237 @@
+<section class="page" aria-label="Documentos tributarios">
+  <header class="page-header">
+    <div>
+      <h1>Documentos tributarios</h1>
+      <p class="subtitle">
+        Boletas y notas de crédito simuladas emitidas en {{ activeStoreName() }}.
+      </p>
+    </div>
+  </header>
+
+  <mat-card appearance="outlined" class="lookup-card">
+    <div class="lookup-header">
+      <mat-icon aria-hidden="true">search</mat-icon>
+      <h2>Documento de una venta</h2>
+    </div>
+    <p class="lookup-hint">
+      Consulta la boleta de una venta por su identificador. Si aún no aparece, la emisión asíncrona
+      sigue en curso (estado pendiente).
+    </p>
+
+    <form
+      class="lookup-form"
+      data-testid="sale-lookup-form"
+      [formGroup]="lookupForm"
+      (ngSubmit)="lookupSaleDocument()"
+    >
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="sale-id-field">
+        <mat-label>ID de la venta</mat-label>
+        <input
+          matInput
+          type="number"
+          min="1"
+          data-testid="sale-id-input"
+          formControlName="saleId"
+          placeholder="Ej. 152"
+        />
+        @if (lookupForm.controls.saleId.hasError('required')) {
+          <mat-error>Escribe el identificador de la venta.</mat-error>
+        } @else if (lookupForm.controls.saleId.hasError('min')) {
+          <mat-error>Debe ser un identificador mayor que 0.</mat-error>
+        }
+      </mat-form-field>
+      <button
+        mat-flat-button
+        type="submit"
+        data-testid="sale-lookup-btn"
+        [disabled]="lookupLoading()"
+      >
+        @if (lookupLoading()) {
+          Consultando...
+        } @else {
+          Consultar
+        }
+      </button>
+    </form>
+
+    @if (lookupError(); as errMsg) {
+      <div class="lookup-banner lookup-banner--error" role="alert" data-testid="sale-tax-doc-error">
+        <mat-icon aria-hidden="true">error_outline</mat-icon>
+        <span>{{ errMsg }}</span>
+      </div>
+    }
+
+    @if (lookupLoading()) {
+      <div class="lookup-loading">
+        <mat-spinner diameter="18" />
+        <span>Consultando documento de la venta...</span>
+      </div>
+    }
+
+    @if (lookup(); as result) {
+      @if (result.document; as doc) {
+        <div
+          class="lookup-result"
+          data-testid="sale-tax-doc-result"
+          [attr.data-sale-id]="result.saleId"
+        >
+          <div class="result-info">
+            <span class="result-title">
+              {{ documentTypeLabel(doc) }}
+              @if (doc.folio !== undefined) {
+                folio {{ doc.folio }}
+              }
+            </span>
+            <span
+              class="status-chip"
+              [class.status-chip--issued]="doc.status === 'ISSUED'"
+              [class.status-chip--pending]="doc.status === 'PENDING'"
+              [class.status-chip--failed]="doc.status === 'REJECTED' || doc.status === 'ERROR'"
+            >
+              {{ statusLabel(doc.status) }}
+            </span>
+            <span class="result-meta">
+              Venta #{{ result.saleId }} · Total: {{ doc.totalAmount | clp }} ·
+              {{ formatDateTime(doc.issuedAt) }}
+            </span>
+          </div>
+          <div class="result-actions">
+            @if (canRetry() && retryable(doc)) {
+              <button
+                mat-stroked-button
+                type="button"
+                data-testid="sale-doc-retry-btn"
+                [disabled]="isRetryBusy(doc.id)"
+                (click)="retryDocument(doc)"
+              >
+                <mat-icon aria-hidden="true">refresh</mat-icon>
+                Reintentar
+              </button>
+            }
+            @if (canEmail()) {
+              <button
+                mat-stroked-button
+                type="button"
+                data-testid="sale-email-btn"
+                (click)="openEmailDialog(result.saleId)"
+              >
+                <mat-icon aria-hidden="true">mail</mat-icon>
+                Enviar por correo
+              </button>
+            }
+          </div>
+        </div>
+      } @else {
+        <div
+          class="lookup-banner lookup-banner--info"
+          role="status"
+          data-testid="sale-tax-doc-pending"
+        >
+          <mat-icon aria-hidden="true">schedule</mat-icon>
+          <span>
+            La boleta de la venta #{{ result.saleId }} aún no se emite (204 del backend: emisión
+            asíncrona en curso). Vuelve a consultar en unos segundos; la venta no se ve afectada.
+          </span>
+        </div>
+        @if (canEmail()) {
+          <div class="pending-email-row">
+            <button
+              mat-stroked-button
+              type="button"
+              data-testid="sale-email-btn"
+              (click)="openEmailDialog(result.saleId)"
+            >
+              <mat-icon aria-hidden="true">mail</mat-icon>
+              Enviar comprobante por correo
+            </button>
+          </div>
+        }
+      }
+    }
+  </mat-card>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of statusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="documentType">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of typeOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="folio-field">
+      <mat-label>Folio</mat-label>
+      <input matInput type="number" min="1" formControlName="folio" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Desde</mat-label>
+      <input matInput type="date" formControlName="from" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Hasta</mat-label>
+      <input matInput type="date" formControlName="to" />
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Documentos tributarios del local"
+    emptyMessage="No hay documentos tributarios con los filtros seleccionados."
+  />
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="status-chip"
+      [class.status-chip--issued]="row.status === 'ISSUED'"
+      [class.status-chip--pending]="row.status === 'PENDING'"
+      [class.status-chip--failed]="row.status === 'REJECTED' || row.status === 'ERROR'"
+    >
+      {{ statusLabel(row.status) }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <div class="row-actions">
+      <button
+        mat-button
+        type="button"
+        [attr.data-testid]="'doc-detail-btn-' + row.id"
+        (click)="openDetail(row)"
+      >
+        Detalle
+      </button>
+      @if (canRetry() && retryable(row)) {
+        <button
+          mat-stroked-button
+          type="button"
+          [attr.data-testid]="'doc-retry-btn-' + row.id"
+          [disabled]="isRetryBusy(row.id)"
+          (click)="retryDocument(row)"
+        >
+          <mat-icon aria-hidden="true">refresh</mat-icon>
+          Reintentar
+        </button>
+      }
+    </div>
+  </ng-template>
+</section>

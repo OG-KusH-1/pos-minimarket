@@ -11,7 +11,7 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list2 } from '../../../api/fn/organization/list-2';
+import { list3 } from '../../../api/fn/organization/list-3';
 import { createUser } from '../../../api/fn/security/create-user';
 import { disableUser } from '../../../api/fn/security/disable-user';
 import { enableUser } from '../../../api/fn/security/enable-user';
@@ -182,7 +182,7 @@ export class UsersService {
   /** Obtiene los locales activos accesibles para el usuario actual. */
   listStores(): Observable<StoreResponse[]> {
     return unwrapApiResponse(
-      list2(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }),
+      list3(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }),
     ).pipe(map((page) => page.content ?? []));
   }
 }

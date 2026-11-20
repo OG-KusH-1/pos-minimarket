@@ -160,6 +160,12 @@ describe('TicketComponent, IframeTicketPrinter y PosTicketDialog', () => {
     expect(ticketReq.request.method).toBe('GET');
     ticketReq.flush(jsonBlob(buildTicket()));
 
+    // El diálogo consulta además el documento tributario de la venta (cableado T77):
+    // 204 = la boleta sigue pendiente de emisión asíncrona.
+    const taxReq = http!.expectOne('/api/v1/sales/501/tax-document');
+    expect(taxReq.request.method).toBe('GET');
+    taxReq.flush(null, { status: 204, statusText: 'No Content' });
+
     await vi.waitFor(() => {
       TestBed.tick();
       expect(printSpy).toHaveBeenCalledTimes(1);

@@ -1,10 +1,10 @@
 package cl.minimarket.pos.purchasing.order.web;
 
+import cl.minimarket.pos.purchasing.PurchaseOrderOrigin;
 import cl.minimarket.pos.purchasing.order.application.PurchaseOrderQueryService.PurchaseOrderDetail;
 import cl.minimarket.pos.purchasing.order.application.PurchaseOrderQueryService.PurchaseOrderLineView;
 import cl.minimarket.pos.purchasing.order.application.PurchaseOrderQueryService.StoreView;
 import cl.minimarket.pos.purchasing.order.application.PurchaseOrderQueryService.SupplierView;
-import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderOrigin;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 

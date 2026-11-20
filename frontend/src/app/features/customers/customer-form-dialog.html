@@ -1,0 +1,76 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+
+<mat-dialog-content>
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" aria-label="Cargando cliente" />
+  }
+
+  @if (errorMessage(); as message) {
+    <div class="alert" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+      @if (concurrentConflict()) {
+        <button mat-stroked-button type="button" (click)="reloadCustomer()">Recargar</button>
+      }
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="customer-form">
+    <mat-form-field appearance="outline">
+      <mat-label>RUT</mat-label>
+      <input matInput formControlName="rut" (blur)="onRutBlur()" placeholder="12.345.678-5" />
+      @if (form.controls.rut.hasError('required')) {
+        <mat-error>El RUT es obligatorio.</mat-error>
+      } @else if (form.controls.rut.hasError('rut')) {
+        <mat-error>El RUT no es válido (verifica el dígito verificador).</mat-error>
+      } @else if (form.controls.rut.hasError('rutInvalid')) {
+        <mat-error>El RUT ingresado no es válido.</mat-error>
+      } @else if (form.controls.rut.hasError('duplicated')) {
+        <mat-error>Ya existe un cliente con este RUT.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre</mat-label>
+      <input matInput formControlName="name" maxlength="200" />
+      @if (form.controls.name.hasError('required')) {
+        <mat-error>El nombre es obligatorio.</mat-error>
+      } @else if (form.controls.name.hasError('minlength')) {
+        <mat-error>El nombre debe tener al menos 2 caracteres.</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Teléfono</mat-label>
+      <input matInput formControlName="phone" maxlength="30" />
+      @if (form.controls.phone.hasError('server')) {
+        <mat-error>{{ form.controls.phone.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Correo electrónico</mat-label>
+      <input matInput formControlName="email" maxlength="150" />
+      @if (form.controls.email.hasError('email')) {
+        <mat-error>El correo no tiene un formato válido.</mat-error>
+      } @else if (form.controls.email.hasError('server')) {
+        <mat-error>{{ form.controls.email.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Dirección</mat-label>
+      <input matInput formControlName="address" maxlength="250" />
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">Cancelar</button>
+  <button mat-flat-button type="button" (click)="submit()" [disabled]="saving() || loading()">
+    @if (saving()) {
+      <mat-progress-bar mode="indeterminate" aria-label="Guardando cliente" />
+    }
+    {{ isEdit ? 'Guardar cambios' : 'Crear cliente' }}
+  </button>
+</mat-dialog-actions>

@@ -2,11 +2,18 @@ import { CartLineInput } from '../../../../api/models/cart-line-input';
 import { DiscountInput } from '../../../../api/models/discount-input';
 import { SaleResponse } from '../../../../api/models/sale-response';
 
-/** Medios de pago habilitados en el POS para la Fase 1 (`CUSTOMER_CREDIT` se habilita en T77). */
+/** Medios de pago electrónicos del POS (los que autorizan contra `/pos/card-payments` o transferencia). */
 export type PosElectronicPaymentMethod = 'DEBIT' | 'CREDIT' | 'TRANSFER';
 
-/** Todos los medios de pago disponibles en el modal de cobro POS (Fase 1). */
-export type PosPaymentMethod = 'CASH' | PosElectronicPaymentMethod;
+/**
+ * Medio de pago fiado (`HU-POS-16`): carga el monto indicado a la cuenta del cliente asociado
+ * a la venta. Solo se ofrece cuando el cliente tiene `creditEnabled`; el backend valida el
+ * permiso `customers:credit:sell` y el cupo en `POST /sales` (`API.md` F.2/F.3).
+ */
+export type PosCreditPaymentMethod = 'CUSTOMER_CREDIT';
+
+/** Todos los medios de pago disponibles en el modal de cobro POS. */
+export type PosPaymentMethod = 'CASH' | PosElectronicPaymentMethod | PosCreditPaymentMethod;
 
 /** Autorización de tarjeta aprobada vía `POST /pos/card-payments` pendiente de captura en venta. */
 export interface AuthorizedCardPayment {
@@ -25,6 +32,16 @@ export interface TransferPaymentEntry {
   readonly method: 'TRANSFER';
   readonly amount: number;
   readonly transferReference: string;
+}
+
+/**
+ * Pago a fiado agregado al cobro (`CUSTOMER_CREDIT`): monto que se cargará a la cuenta
+ * (deuda) del cliente seleccionado en la venta. A lo más una entrada por cobro.
+ */
+export interface CustomerCreditPaymentEntry {
+  readonly localId: string;
+  readonly method: 'CUSTOMER_CREDIT';
+  readonly amount: number;
 }
 
 /** Desglose reactivo del cálculo de redondeo Ley 20.956 y vuelto para efectivo/mixto. */
@@ -51,6 +68,11 @@ export interface PosPaymentDialogData {
   readonly idempotencyKey: string;
   readonly initialOverrideTokens: readonly string[];
   readonly cashRoundingEnabled?: boolean;
+  /**
+   * `true` cuando el cliente asociado a la venta tiene fiado habilitado (`creditEnabled`).
+   * Habilita el medio de pago `CUSTOMER_CREDIT` en el diálogo (`HU-POS-16`).
+   */
+  readonly customerCreditEnabled?: boolean;
 }
 
 /** Resultado devuelto al completar el cobro desde {@link PosPaymentDialog}. */

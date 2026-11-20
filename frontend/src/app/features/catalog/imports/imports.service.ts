@@ -11,12 +11,12 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list13 } from '../../../api/fn/catalog/list-13';
-import { list15 } from '../../../api/fn/catalog/list-15';
+import { list16 } from '../../../api/fn/catalog/list-16';
+import { list18 } from '../../../api/fn/catalog/list-18';
 import { confirm1 } from '../../../api/fn/data-exchange/confirm-1';
-import { create15 } from '../../../api/fn/data-exchange/create-15';
+import { create17 } from '../../../api/fn/data-exchange/create-17';
 import { export$, Export$Params } from '../../../api/fn/data-exchange/export';
-import { get5 } from '../../../api/fn/data-exchange/get-5';
+import { get7 } from '../../../api/fn/data-exchange/get-7';
 import { template } from '../../../api/fn/data-exchange/template';
 import { CategoryResponse } from '../../../api/models/category-response';
 import { DataExchangeImportJobResponse } from '../../../api/models/data-exchange-import-job-response';
@@ -175,7 +175,7 @@ export class ImportsService {
     context?: HttpContext,
   ): Observable<DataExchangeImportJobResponse> {
     return unwrapApiResponse(
-      create15(
+      create17(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -191,7 +191,7 @@ export class ImportsService {
 
   /** Consulta el estado, resumen y errores de un trabajo de importación (`GET /api/v1/catalog/imports/{id}`). */
   getImport(id: number, context?: HttpContext): Observable<DataExchangeImportJobResponse> {
-    return unwrapApiResponse(get5(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get7(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /**
@@ -244,13 +244,13 @@ export class ImportsService {
 
   /** Lista el árbol de categorías para los filtros de exportación. */
   listCategories(context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree: true }, context));
+    return unwrapApiResponse(list16(this.http, this.apiConfig.rootUrl, { tree: true }, context));
   }
 
   /** Lista las marcas activas para los filtros de exportación. */
   listBrands(context?: HttpContext): Observable<PageResponseBrandResponse> {
     return unwrapApiResponse(
-      list15(this.http, this.apiConfig.rootUrl, { active: true, page: 0, size: 200 }, context),
+      list18(this.http, this.apiConfig.rootUrl, { active: true, page: 0, size: 200 }, context),
     );
   }
 }

@@ -1,0 +1,34 @@
+.credit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+
+  .full-width {
+    width: 100%;
+  }
+}
+
+.toggle-row {
+  padding: 8px 0;
+}
+
+.customer-line {
+  margin: 0 0 8px;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--mat-sys-error-container);
+  color: var(--mat-sys-on-error-container);
+
+  mat-icon {
+    flex-shrink: 0;
+  }
+}

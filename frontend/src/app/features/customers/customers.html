@@ -1,0 +1,105 @@
+<section class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Clientes</h1>
+      <p class="subtitle">
+        Gestión de clientes y cuenta corriente (fiado): cupos, abonos y cartola de movimientos.
+      </p>
+    </div>
+
+    @if (canManageCustomers()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Nuevo cliente
+      </button>
+    }
+  </header>
+
+  <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" class="search-field">
+      <mat-label>Buscar por RUT o nombre</mat-label>
+      <input matInput formControlName="q" placeholder="12.345.678-5 o María Pérez" />
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activos</mat-option>
+        <mat-option [value]="false">Inactivos</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Deuda</mat-label>
+      <mat-select formControlName="withDebt">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Con deuda</mat-option>
+        <mat-option [value]="false">Sin deuda</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">Filtrar</button>
+    <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de clientes"
+    emptyMessage="No se encontraron clientes con los filtros aplicados."
+  />
+
+  <ng-template #creditTpl let-row>
+    @if (row.creditEnabled) {
+      <span class="status-badge active">Habilitado</span>
+    } @else {
+      <span class="status-badge inactive">No habilitado</span>
+    }
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span class="status-badge" [class.active]="row.active" [class.inactive]="!row.active">
+      {{ row.active ? 'Activo' : 'Inactivo' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <div class="row-actions">
+      @if (canRegisterPayment() || canManageCredit()) {
+        <button mat-button type="button" (click)="openAccount(row)">
+          <mat-icon aria-hidden="true">account_balance_wallet</mat-icon>
+          Cuenta
+        </button>
+      }
+      @if (canManageCustomers() || canManageCredit()) {
+        <button
+          mat-icon-button
+          type="button"
+          [matMenuTriggerFor]="customerMenu"
+          aria-label="Más acciones del cliente"
+        >
+          <mat-icon aria-hidden="true">more_vert</mat-icon>
+        </button>
+        <mat-menu #customerMenu="matMenu">
+          @if (canManageCustomers()) {
+            <button mat-menu-item type="button" (click)="openEdit(row)">
+              <mat-icon aria-hidden="true">edit</mat-icon>
+              <span>Editar</span>
+            </button>
+            <button mat-menu-item type="button" (click)="toggleActive(row)">
+              <mat-icon aria-hidden="true">{{ row.active ? 'block' : 'check_circle' }}</mat-icon>
+              <span>{{ row.active ? 'Desactivar' : 'Activar' }}</span>
+            </button>
+          }
+          @if (canManageCredit()) {
+            <button mat-menu-item type="button" (click)="openCreditSettings(row)">
+              <mat-icon aria-hidden="true">credit_card</mat-icon>
+              <span>Configurar fiado</span>
+            </button>
+          }
+        </mat-menu>
+      }
+    </div>
+  </ng-template>
+</section>

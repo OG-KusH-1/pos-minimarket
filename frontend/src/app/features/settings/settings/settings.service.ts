@@ -3,9 +3,9 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { effective } from '../../../api/fn/organization/effective';
-import { get3 } from '../../../api/fn/organization/get-3';
-import { list2 } from '../../../api/fn/organization/list-2';
-import { list17, List17$Params } from '../../../api/fn/organization/list-17';
+import { get5 } from '../../../api/fn/organization/get-5';
+import { list3 } from '../../../api/fn/organization/list-3';
+import { list21, List21$Params } from '../../../api/fn/organization/list-21';
 import { update5 } from '../../../api/fn/organization/update-5';
 import { CompanyResponse } from '../../../api/models/company-response';
 import { JsonNode } from '../../../api/models/json-node';
@@ -30,12 +30,12 @@ export class SettingsService {
    * `X-Store-Id`) o para el local activo del contexto si se omite.
    */
   listSettings(
-    params?: List17$Params,
+    params?: List21$Params,
     storeId?: number | null,
     context?: HttpContext,
   ): Observable<SettingItem[]> {
     return unwrapApiResponse(
-      list17(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
+      list21(httpForStore(this.http, storeId), this.apiConfig.rootUrl, params, context),
     ).pipe(map((items) => items.map((item) => this.toSettingItem(item))));
   }
 
@@ -84,13 +84,13 @@ export class SettingsService {
   /** Lista los locales activos accesibles para poblar el selector de local (`GET /api/v1/stores`). */
   listStores(context?: HttpContext): Observable<StoreResponse[]> {
     return unwrapApiResponse(
-      list2(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }, context),
+      list3(this.http, this.apiConfig.rootUrl, { active: true, size: 200 }, context),
     ).pipe(map((page) => page.content ?? []));
   }
 
   /** Obtiene los datos de la empresa para mostrar la vista previa realista del ticket. */
   getCompany(context?: HttpContext): Observable<CompanyResponse> {
-    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(get5(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   private toSettingItem(raw: SettingResponse): SettingItem {

@@ -1,0 +1,110 @@
+<div class="customer-selector" aria-label="Cliente de la venta">
+  @if (customer(); as selected) {
+    <div class="customer-summary" data-testid="customer-summary">
+      <div class="summary-main">
+        <span class="summary-name">
+          {{ selected.name }}
+          @if (selected.rut) {
+            · {{ selected.rut | rut }}
+          }
+        </span>
+        <span
+          class="summary-credit-state"
+          [class.summary-credit-state--enabled]="selectedCreditState() === 'ENABLED'"
+          [class.summary-credit-state--disabled]="selectedCreditState() !== 'ENABLED'"
+        >
+          {{ selectedCreditLabel() }}
+        </span>
+        <span class="summary-credit-detail" data-testid="customer-credit-detail">
+          @if (selectedCreditState() === 'ENABLED') {
+            Cupo: {{ selected.creditLimit | clp }} · Deuda: {{ selected.creditBalance | clp }} ·
+            Disponible: {{ selected.availableCredit | clp }}
+          } @else {
+            Venta solo con pago inmediato
+          }
+        </span>
+      </div>
+      <button
+        mat-stroked-button
+        type="button"
+        data-testid="customer-clear-btn"
+        (click)="clearCustomer()"
+      >
+        <mat-icon aria-hidden="true">person_remove</mat-icon>
+        Quitar cliente
+      </button>
+    </div>
+  } @else {
+    <div class="search-wrapper">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="customer-field">
+        <mat-label>Cliente de la venta (opcional)</mat-label>
+        <mat-icon matPrefix>person_search</mat-icon>
+        <input
+          #searchInput
+          matInput
+          type="text"
+          autocomplete="off"
+          data-pos-customer-input="true"
+          [formControl]="queryControl"
+          placeholder="RUT o nombre del cliente..."
+          (keydown)="onInputKeydown($event)"
+        />
+        @if (queryControl.value) {
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            aria-label="Limpiar búsqueda de cliente"
+            (click)="queryControl.setValue('')"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+        }
+      </mat-form-field>
+
+      @if (searching()) {
+        <div class="searching-row">
+          <mat-spinner diameter="18" />
+          <span>Buscando clientes...</span>
+        </div>
+      }
+
+      @if (dropdownOpen()) {
+        <div class="results-panel" role="listbox" aria-label="Resultados de clientes">
+          @if (results().length === 0 && !searching()) {
+            <div class="empty-results">
+              Sin coincidencias. Verifica el RUT o usa parte del nombre.
+            </div>
+          } @else {
+            @for (item of results(); track item.id; let idx = $index) {
+              <button
+                type="button"
+                class="result-row"
+                role="option"
+                [attr.aria-selected]="idx === highlightedIndex()"
+                [class.result-row--highlighted]="idx === highlightedIndex()"
+                (click)="selectCustomer(item)"
+              >
+                <div class="result-main">
+                  <span class="result-name">{{ item.name }}</span>
+                  <span class="result-meta">
+                    {{ item.rut | rut }}
+                    @if (item.creditEnabled) {
+                      · Fiado: cupo {{ item.creditLimit | clp }} / deuda
+                      {{ item.creditBalance | clp }}
+                    } @else {
+                      · Sin fiado
+                    }
+                  </span>
+                </div>
+                <mat-icon class="result-icon" aria-hidden="true">
+                  {{ item.creditEnabled ? 'account_balance_wallet' : 'person' }}
+                </mat-icon>
+              </button>
+            }
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

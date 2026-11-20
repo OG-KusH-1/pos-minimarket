@@ -11,10 +11,10 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list13 } from '../../../api/fn/catalog/list-13';
+import { list16 } from '../../../api/fn/catalog/list-16';
 import { alerts } from '../../../api/fn/inventory/alerts';
 import { getByStore } from '../../../api/fn/inventory/get-by-store';
-import { list16, List16$Params } from '../../../api/fn/inventory/list-16';
+import { list20, List20$Params } from '../../../api/fn/inventory/list-20';
 import { updateLimits } from '../../../api/fn/inventory/update-limits';
 import { CategoryResponse } from '../../../api/models/category-response';
 import { PageResponseStockResponse } from '../../../api/models/page-response-stock-response';
@@ -118,8 +118,8 @@ export class StockService {
    * Lista el stock del local activo con paginación, orden y filtros (`q`, `categoryId`, `status`,
    * `lotControlled`).
    */
-  listStock(params?: List16$Params, context?: HttpContext): Observable<PageResponseStockResponse> {
-    return unwrapApiResponse(list16(this.http, this.apiConfig.rootUrl, params, context));
+  listStock(params?: List20$Params, context?: HttpContext): Observable<PageResponseStockResponse> {
+    return unwrapApiResponse(list20(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /**
@@ -153,6 +153,6 @@ export class StockService {
 
   /** Obtiene el árbol de categorías para poblar el filtro por categoría. */
   listCategories(context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree: true }, context));
+    return unwrapApiResponse(list16(this.http, this.apiConfig.rootUrl, { tree: true }, context));
   }
 }

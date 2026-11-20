@@ -1,0 +1,70 @@
+<h2 mat-dialog-title>
+  <mat-icon aria-hidden="true">receipt_long</mat-icon>
+  {{ title }}
+</h2>
+
+<mat-dialog-content>
+  <div class="detail-head" data-testid="tax-document-detail">
+    <span [class]="'status-chip ' + statusClass">{{ statusText }}</span>
+    <span class="source">{{ sourceText }}</span>
+  </div>
+
+  <dl class="detail-list">
+    <div>
+      <dt>Tipo SII</dt>
+      <dd>{{ data.siiTypeCode ?? '—' }}</dd>
+    </div>
+    <div>
+      <dt>Proveedor simulado</dt>
+      <dd>{{ data.provider || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Identificador de seguimiento</dt>
+      <dd class="mono">{{ data.providerTrackId || '—' }}</dd>
+    </div>
+    <div>
+      <dt>Monto neto</dt>
+      <dd class="amount">{{ data.netAmount | clp }}</dd>
+    </div>
+    <div>
+      <dt>Monto exento</dt>
+      <dd class="amount">{{ data.exemptAmount | clp }}</dd>
+    </div>
+    <div>
+      <dt>IVA</dt>
+      <dd class="amount">{{ data.taxAmount | clp }}</dd>
+    </div>
+    <div>
+      <dt>Total</dt>
+      <dd class="amount amount--total">{{ data.totalAmount | clp }}</dd>
+    </div>
+    <div>
+      <dt>Intentos de emisión</dt>
+      <dd>{{ data.attempts ?? 0 }}</dd>
+    </div>
+    <div>
+      <dt>Fecha de emisión</dt>
+      <dd>{{ issuedAtText }}</dd>
+    </div>
+    @if (data.stampText) {
+      <div class="wide">
+        <dt>Timbre</dt>
+        <dd class="mono">{{ data.stampText }}</dd>
+      </div>
+    }
+    @if (data.lastError) {
+      <div class="wide">
+        <dt>Último error</dt>
+        <dd class="error-text">{{ data.lastError }}</dd>
+      </div>
+    }
+  </dl>
+
+  @if (retryableText; as hint) {
+    <p class="retry-hint" role="status">{{ hint }}</p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-flat-button type="button" cdkFocusInitial (click)="close()">Cerrar</button>
+</mat-dialog-actions>

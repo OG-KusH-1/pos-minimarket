@@ -11,13 +11,13 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { list9 } from '../../../api/fn/catalog/list-9';
-import { list13 } from '../../../api/fn/catalog/list-13';
+import { list11 } from '../../../api/fn/catalog/list-11';
+import { list16 } from '../../../api/fn/catalog/list-16';
 import { approve2 } from '../../../api/fn/inventory/approve-2';
 import { cancel2 } from '../../../api/fn/inventory/cancel-2';
-import { create12 } from '../../../api/fn/inventory/create-12';
-import { get4 } from '../../../api/fn/inventory/get-4';
-import { list11, List11$Params } from '../../../api/fn/inventory/list-11';
+import { create13 } from '../../../api/fn/inventory/create-13';
+import { get6 } from '../../../api/fn/inventory/get-6';
+import { list13, List13$Params } from '../../../api/fn/inventory/list-13';
 import { listLines, ListLines$Params } from '../../../api/fn/inventory/list-lines';
 import { recordLines } from '../../../api/fn/inventory/record-lines';
 import { reject2 } from '../../../api/fn/inventory/reject-2';
@@ -126,15 +126,15 @@ export class CountsService {
 
   /** Lista paginada de tomas de inventario del local activo con filtros opcionales. */
   listCounts(
-    params?: List11$Params,
+    params?: List13$Params,
     context?: HttpContext,
   ): Observable<PageResponseInventoryCountResponse> {
-    return unwrapApiResponse(list11(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene la cabecera y progreso actualizado de una toma de inventario. */
   getCount(id: number, context?: HttpContext): Observable<InventoryCountResponse> {
-    return unwrapApiResponse(get4(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get6(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /**
@@ -147,7 +147,7 @@ export class CountsService {
   ): Observable<InventoryCountResponse> {
     const idempotentContext = context?.get(IDEMPOTENT) ? context : withIdempotency(context);
     return unwrapApiResponse(
-      create12(this.http, this.apiConfig.rootUrl, { body }, idempotentContext),
+      create13(this.http, this.apiConfig.rootUrl, { body }, idempotentContext),
     );
   }
 
@@ -198,7 +198,7 @@ export class CountsService {
 
   /** Obtiene el árbol de categorías para seleccionar el alcance de una toma cíclica. */
   listCategories(context?: HttpContext): Observable<CategoryResponse[]> {
-    return unwrapApiResponse(list13(this.http, this.apiConfig.rootUrl, { tree: true }, context));
+    return unwrapApiResponse(list16(this.http, this.apiConfig.rootUrl, { tree: true }, context));
   }
 
   /** Consulta una muestra resumida de productos activos de una categoría para previsualizar el alcance. */
@@ -207,7 +207,7 @@ export class CountsService {
     context?: HttpContext,
   ): Observable<PageResponseProductSummary> {
     return unwrapApiResponse(
-      list9(
+      list11(
         this.http,
         this.apiConfig.rootUrl,
         { categoryId, active: true, page: 0, size: 5, sort: ['name,asc'] },

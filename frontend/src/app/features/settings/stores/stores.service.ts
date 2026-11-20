@@ -9,7 +9,7 @@ import { create3 } from '../../../api/fn/organization/create-3';
 import { deactivate } from '../../../api/fn/organization/deactivate';
 import { deactivate2 } from '../../../api/fn/organization/deactivate-2';
 import { get1 } from '../../../api/fn/organization/get-1';
-import { list2, List2$Params } from '../../../api/fn/organization/list-2';
+import { list3, List3$Params } from '../../../api/fn/organization/list-3';
 import { listByStore } from '../../../api/fn/organization/list-by-store';
 import { update } from '../../../api/fn/organization/update';
 import { update3 } from '../../../api/fn/organization/update-3';
@@ -33,8 +33,8 @@ export class StoresService {
   private readonly apiConfig = inject(ApiConfiguration);
 
   /** Lista los locales paginados (`GET /api/v1/stores`, `[G]`). */
-  listStores(params?: List2$Params, context?: HttpContext): Observable<PageResponseStoreResponse> {
-    return unwrapApiResponse(list2(this.http, this.apiConfig.rootUrl, params, context));
+  listStores(params?: List3$Params, context?: HttpContext): Observable<PageResponseStoreResponse> {
+    return unwrapApiResponse(list3(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle de un local (`GET /api/v1/stores/{id}`, `[G]`). */

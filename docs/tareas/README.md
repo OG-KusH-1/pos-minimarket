@@ -138,26 +138,26 @@ Ejecuta por fase y oleada, de arriba hacia abajo. Las tareas de una misma oleada
 
 | Oleada | Tarea | Tipo | Estado |
 |---|---|---|---|
-| O1 | [T68](T68.md) Promociones: CRUD, GET /pos/promotions/active (la ruta es de promotion… | backend | pendiente |
-| O1 | [T69](T69.md) Clientes y cuenta corriente: CRUD de clientes (incluye activar y desac… | backend | pendiente |
-| O1 | [T70](T70.md) Billing simulado: listener, ElectronicInvoiceProvider, folios, endpoin… | backend | pendiente |
-| O2 | [T71](T71.md) Anulación y devoluciones: reembolsos con gateway y fiado, reingreso o … | backend | pendiente |
-| O3 🔍 | [T72](T72.md) Venta con CUSTOMER_CREDIT (quita el rechazo de la fase 1), override CR… | backend | pendiente |
-| O4 | [T73](T73.md) Regenerar contrato (7) | contrato | pendiente |
-| O5 🔍 | [T74](T74.md) Frontend promociones | frontend | pendiente |
-| O5 🔍 | [T75](T75.md) Frontend clientes y fiado | frontend | pendiente |
-| O5 🔍 | [T76](T76.md) Frontend POS: anulación y devolución | frontend | pendiente |
-| O5 🔍 | [T77](T77.md) Frontend POS: cliente, fiado y correo en la venta; documentos tributar… | frontend | pendiente |
+| O1 | [T68](T68.md) Promociones: CRUD, GET /pos/promotions/active (la ruta es de promotion… | backend | aprobada |
+| O1 | [T69](T69.md) Clientes y cuenta corriente: CRUD de clientes (incluye activar y desac… | backend | aprobada |
+| O1 | [T70](T70.md) Billing simulado: listener, ElectronicInvoiceProvider, folios, endpoin… | backend | aprobada |
+| O2 | [T71](T71.md) Anulación y devoluciones: reembolsos con gateway y fiado, reingreso o … | backend | aprobada |
+| O3 🔍 | [T72](T72.md) Venta con CUSTOMER_CREDIT (quita el rechazo de la fase 1), override CR… | backend | aprobada |
+| O4 | [T73](T73.md) Regenerar contrato (7) | contrato | entregada |
+| O5 🔍 | [T74](T74.md) Frontend promociones | frontend | aprobada |
+| O5 🔍 | [T75](T75.md) Frontend clientes y fiado | frontend | aprobada |
+| O5 🔍 | [T76](T76.md) Frontend POS: anulación y devolución | frontend | aprobada |
+| O5 🔍 | [T77](T77.md) Frontend POS: cliente, fiado y correo en la venta; documentos tributar… | frontend | aprobada |
 
 ### Fase 6
 
 | Oleada | Tarea | Tipo | Estado |
 |---|---|---|---|
-| O1 | [T78](T78.md) Agregado daily_product_sales (job 02:00, recálculo de 3 días, had_stoc… | backend | pendiente |
-| O1 | [T79](T79.md) ReplenishmentCalculator puro (C.3 a C.6) | backend | pendiente |
-| O2 🔍 | [T80](T80.md) Parámetros, corridas, líneas y borradores de OC | backend | pendiente |
-| O3 | [T81](T81.md) Regenerar contrato (8) | contrato | pendiente |
-| O4 🔍 | [T82](T82.md) Frontend reabastecimiento | frontend | pendiente |
+| O1 | [T78](T78.md) Agregado daily_product_sales (job 02:00, recálculo de 3 días, had_stoc… | backend | aprobada |
+| O1 | [T79](T79.md) ReplenishmentCalculator puro (C.3 a C.6) | backend | aprobada |
+| O2 🔍 | [T80](T80.md) Parámetros, corridas, líneas y borradores de OC | backend | aprobada |
+| O3 | [T81](T81.md) Regenerar contrato (8) | contrato | entregada |
+| O4 🔍 | [T82](T82.md) Frontend reabastecimiento | frontend | entregada |
 
 ### Fase 7
 

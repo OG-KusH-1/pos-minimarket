@@ -1,0 +1,59 @@
+<section class="panel">
+  <div class="panel-toolbar">
+    <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+      <mat-form-field appearance="outline" subscriptSizing="dynamic">
+        <mat-label>Alcance</mat-label>
+        <mat-select formControlName="scope">
+          <mat-option [value]="null">Todos</mat-option>
+          @for (opt of scopeOptions; track opt.value) {
+            <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <div class="filter-actions">
+        <button mat-stroked-button type="submit">Filtrar</button>
+        <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+      </div>
+    </form>
+
+    @if (canManage()) {
+      <button mat-flat-button type="button" (click)="openCreateDialog()">
+        <mat-icon>add</mat-icon>
+        Nuevo parámetro
+      </button>
+    }
+  </div>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Parámetros de reabastecimiento"
+    emptyMessage="No hay parámetros configurados; los niveles inferiores usan los valores del GLOBAL."
+  />
+
+  <ng-template #scopeTpl let-row>
+    <span class="scope-chip">{{ scopeText(row) }}</span>
+  </ng-template>
+
+  <ng-template #enabledTpl let-row>
+    @if (row.enabled === null || row.enabled === undefined) {
+      <span class="muted">Hereda</span>
+    } @else if (row.enabled) {
+      <span class="enabled-chip enabled-chip--on">Sí</span>
+    } @else {
+      <span class="enabled-chip enabled-chip--off">No</span>
+    }
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <button mat-button type="button" (click)="openEditDialog(row)">
+      <mat-icon>edit</mat-icon>
+      Editar
+    </button>
+    <button mat-button type="button" class="danger-action" (click)="deleteRow(row)">
+      <mat-icon>delete</mat-icon>
+      Borrar
+    </button>
+  </ng-template>
+</section>

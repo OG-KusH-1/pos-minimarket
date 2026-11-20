@@ -3,6 +3,7 @@ package cl.minimarket.pos.sales.web.sale;
 import cl.minimarket.pos.sales.application.pricing.PaymentMethod;
 import cl.minimarket.pos.sales.application.pricing.PricingModels.DiscountSpec;
 import cl.minimarket.pos.sales.application.pricing.PricingModels.LineInput;
+import cl.minimarket.pos.sales.application.sale.SaleEmailService;
 import cl.minimarket.pos.sales.application.sale.SaleFilter;
 import cl.minimarket.pos.sales.application.sale.SaleQueryService;
 import cl.minimarket.pos.sales.application.sale.SaleService;
@@ -52,15 +53,17 @@ public class SaleController {
 
     private final SaleService saleService;
     private final SaleQueryService queryService;
+    private final SaleEmailService emailService;
 
-    public SaleController(SaleService saleService, SaleQueryService queryService) {
+    public SaleController(SaleService saleService, SaleQueryService queryService, SaleEmailService emailService) {
         this.saleService = saleService;
         this.queryService = queryService;
+        this.emailService = emailService;
     }
 
     /**
      * Registra y cobra una venta en el POS ([I][T][O:DISCOUNT_ITEM_OVER_LIMIT,
-     * DISCOUNT_TOTAL_OVER_LIMIT]).
+     * DISCOUNT_TOTAL_OVER_LIMIT, CREDIT_OVER_LIMIT]).
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -69,9 +72,10 @@ public class SaleController {
     @PreAuthorize("hasAuthority(T(cl.minimarket.pos.shared.security.Permissions).SALES_POS_OPERATE)")
     @Operation(
             summary = "Crear venta en POS",
-            description = "Permiso: sales:pos:operate. Idempotente ([I]) y ligado a terminal ([T]). "
+            description = "Permiso: sales:pos:operate (más customers:credit:sell si el pago es fiado). "
+                    + "Idempotente ([I]) y ligado a terminal ([T]). "
                     + "Acepta múltiples tokens en X-Override-Token separados por coma. "
-                    + "En Fase 1 rechaza CUSTOMER_CREDIT con 400 VALIDATION_ERROR."
+                    + "El fiado exige cliente con crédito habilitado; sobre el cupo requiere override CREDIT_OVER_LIMIT."
     )
     public SaleResponse create(
             @RequestHeader(IdempotencyFilter.KEY_HEADER) UUID idempotencyKey,
@@ -185,6 +189,23 @@ public class SaleController {
             @RequestHeader(value = "X-Override-Token", required = false) String overrideToken
     ) {
         return TicketResponse.from(queryService.reprintTicket(id, overrideToken));
+    }
+
+    /** Envía el comprobante de la venta por correo, encolándolo en la outbox (HU-POS-11). */
+    @PostMapping("/{id}/email")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @PreAuthorize("hasAuthority(T(cl.minimarket.pos.shared.security.Permissions).SALES_POS_OPERATE)")
+    @Operation(
+            summary = "Enviar comprobante de venta por correo",
+            description = "Permiso: sales:pos:operate. Encola el correo en la outbox de notificación y "
+                    + "responde 202 Accepted; si el SMTP está caído la venta no falla y el job de la "
+                    + "outbox reintenta el envío (HU-POS-11)."
+    )
+    public void emailTicket(
+            @PathVariable Long id,
+            @Valid @RequestBody EmailTicketRequest request
+    ) {
+        emailService.sendTicketByEmail(id, request.email());
     }
 
     private static DiscountSpec toDiscountSpec(DiscountInput input) {

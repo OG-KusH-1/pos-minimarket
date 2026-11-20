@@ -1,4 +1,5 @@
 import { ComponentType } from '@angular/cdk/portal';
+import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -18,12 +19,15 @@ import { MatDividerModule } from '@angular/material/divider';
 import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { finalize, firstValueFrom } from 'rxjs';
+import { ApiConfiguration } from '../../../api/api-configuration';
 import { CashSessionResponse } from '../../../api/models/cash-session-response';
+import { CustomerResponse } from '../../../api/models/customer-response';
 import { DiscountInput } from '../../../api/models/discount-input';
 import { Line } from '../../../api/models/line';
 import { PosProductResult } from '../../../api/models/pos-product-result';
 import { RequiredOverride } from '../../../api/models/required-override';
 import { ScanResultResponse } from '../../../api/models/scan-result-response';
+import { get4 } from '../../../api/fn/customers/get-4';
 import { AuthService } from '../../../core/auth/auth.service';
 import { withoutErrorNotification } from '../../../core/http/http-context-tokens';
 import { StoreContextService } from '../../../core/store-context/store-context.service';
@@ -32,6 +36,7 @@ import { ConfirmDialogService } from '../../../shared/ui/confirm-dialog';
 import { CartLine, requiredOverrideKey } from './cart/pos-cart.models';
 import { PosCartApiService } from './cart/pos-cart-api.service';
 import { PosCartStore } from './cart/pos-cart.store';
+import { unwrapApiResponse } from './cart/pos-http.utils';
 import {
   DiscountScope,
   PosDiscountDialog,
@@ -40,6 +45,7 @@ import {
 } from './cart/pos-discount-dialog';
 import { PosOverrideService } from './cart/pos-override.service';
 import { PosQuantityDialog, PosQuantityDialogData } from './cart/pos-quantity-dialog';
+import { PosCustomerSelector } from './customer/pos-customer-selector';
 import { PosKeyAction } from './keyboard/pos-keyboard.models';
 import { PosKeyboardService } from './keyboard/pos-keyboard.service';
 import { PosShortcutsDialog } from './keyboard/pos-shortcuts-dialog';
@@ -65,16 +71,16 @@ interface PosStatusNotice {
 
 /**
  * Pantalla principal del punto de venta (Parte 1: carrito, escáner, cotización, descuentos y
- * confirmación de edad).
+ * confirmación de edad; Partes 2 y 3: cobro, suspensión, ticket, cliente y fiado).
  *
  * Orquesta:
  * - {@link BarcodeScannerDetector} para distinguir lecturas HID rápidas (`< 30 ms`) de teclado.
  * - {@link PosKeyboardService} para los atajos `HU-POS-20` (`F1`–`F12`, `Esc`, `Supr`).
  * - {@link PosCartStore} para persistencia en `localStorage` (`ADR-25`) y cotización server-side.
  * - {@link PosOverrideService} para autorizaciones de supervisor (`L-05`).
- *
- * Los flujos de cobro, ventas suspendidas e impresión de boleta (`F8`–`F12`) se completan en la
- * Parte 2 (`T47`) sobre este contenedor sin romper sus señales ni contratos.
+ * - {@link PosCustomerSelector} para asociar un cliente a la venta (`HU-POS-16`): la selección
+ *   se propaga al store (`setCustomerId`) y, al restaurar un carrito persistido con cliente,
+ *   se resuelve su ficha vía `GET /customers/{id}`.
  */
 @Component({
   selector: 'pos-sale',
@@ -86,6 +92,7 @@ interface PosStatusNotice {
     MatDividerModule,
     MatIconModule,
     MatTooltipModule,
+    PosCustomerSelector,
     PosSearchBar,
     QtyPipe,
   ],
@@ -106,6 +113,8 @@ export class Sale implements OnInit {
   private readonly dialog = inject(MatDialog);
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly http = inject(HttpClient);
+  private readonly apiConfig = inject(ApiConfiguration);
 
   private readonly searchBar = viewChild(PosSearchBar);
 
@@ -116,6 +125,14 @@ export class Sale implements OnInit {
 
   /** Última venta registrada en esta sesión para consulta o reimpresión rápida de ticket. */
   protected readonly lastCompletedSale = signal<SaleResponse | null>(null);
+
+  /**
+   * Cliente asociado a la venta en curso (`HU-POS-16`): ficha mostrada por el selector y
+   * origen del fiado en el cobro. `null` = venta anónima. El identificador canónico vive en
+   * `PosCartStore.customerId` (persistido junto al carrito); esta señal solo sostiene la
+   * ficha resuelta para la UI.
+   */
+  protected readonly selectedCustomer = signal<CustomerResponse | null>(null);
 
   /** Aviso transitorio de operación (éxito, advertencia o cancelación). */
   protected readonly statusNotice = signal<PosStatusNotice | null>(null);
@@ -144,6 +161,24 @@ export class Sale implements OnInit {
       }
       this.lastContextKey = nextKey;
       void this.refreshContextData();
+    });
+
+    // Sincroniza la ficha del cliente con el identificador canónico del carrito: cubre la
+    // selección manual (ya resuelta, no consulta), la restauración de un carrito persistido
+    // con `customerId` (recarga o retomo de venta suspendida) y la limpieza tras cobrar.
+    effect(() => {
+      const customerId = this.cart.customerId();
+      const current = this.selectedCustomer();
+      if (customerId === null) {
+        if (current !== null) {
+          this.selectedCustomer.set(null);
+        }
+        return;
+      }
+      if (current?.id === customerId) {
+        return;
+      }
+      void this.resolveCartCustomer(customerId);
     });
   }
 
@@ -388,6 +423,72 @@ export class Sale implements OnInit {
     }
   }
 
+  /**
+   * Asocia el cliente elegido en el selector a la venta (`HU-POS-16`).
+   *
+   * Propaga el identificador a `PosCartStore.setCustomerId` —que persiste el carrito y
+   * recotifica contra el servidor— y guarda la ficha para el cobro (fiado) y el selector.
+   */
+  protected async onCustomerSelected(customer: CustomerResponse): Promise<void> {
+    const customerId = customer.id;
+    if (customerId === undefined || customerId === null) {
+      this.setNotice('warning', 'El cliente seleccionado no tiene un identificador válido.');
+      this.focusScanInputSoon();
+      return;
+    }
+
+    this.selectedCustomer.set(customer);
+    const quote = await this.cart.setCustomerId(customerId);
+    if (!quote && this.cart.quoteError()) {
+      this.setNotice('error', this.cart.quoteError()!);
+    } else {
+      const label = customer.name ? `Cliente ${customer.name}` : 'Cliente';
+      this.setNotice('info', `${label} asociado a la venta.`);
+    }
+    this.focusScanInputSoon();
+  }
+
+  /** Quita el cliente asociado: la venta vuelve a ser anónima y se recotifica sin `customerId`. */
+  protected async onCustomerCleared(): Promise<void> {
+    this.selectedCustomer.set(null);
+    const quote = await this.cart.setCustomerId(null);
+    if (!quote && this.cart.quoteError()) {
+      this.setNotice('error', this.cart.quoteError()!);
+    } else {
+      this.setNotice('info', 'Cliente quitado: la venta volvió a ser anónima.');
+    }
+    this.focusScanInputSoon();
+  }
+
+  /**
+   * Resuelve la ficha del cliente asociado a un carrito restaurado (`GET /customers/{id}`):
+   * ocurre al recargar la página con carrito persistido o al retomar una venta suspendida
+   * que llevaba cliente. Si el cliente ya no existe o falla la consulta, la venta vuelve a
+   * ser anónima (un `customerId` inválido dejaría la cotización bloqueada en el servidor).
+   */
+  private async resolveCartCustomer(customerId: number): Promise<void> {
+    try {
+      const customer = await firstValueFrom(
+        unwrapApiResponse(
+          get4(this.http, this.apiConfig.rootUrl, { id: customerId }, withoutErrorNotification()),
+        ),
+      );
+      if (this.cart.customerId() !== customerId) {
+        // El carrito cambió mientras se resolvía (selección manual o limpieza): se descarta.
+        return;
+      }
+      this.selectedCustomer.set(customer);
+    } catch {
+      if (this.cart.customerId() === customerId) {
+        await this.cart.setCustomerId(null);
+      }
+      this.setNotice(
+        'warning',
+        'No se pudo recuperar el cliente asociado al carrito; la venta sigue anónima.',
+      );
+    }
+  }
+
   /** Solicita confirmación antes de vaciar el carrito actual (`Esc`). */
   protected async confirmAndClearCart(): Promise<void> {
     if (this.cart.isEmpty()) {
@@ -542,6 +643,8 @@ export class Sale implements OnInit {
       totalGross: this.cart.totalGross(),
       idempotencyKey: this.cart.idempotencyKey(),
       initialOverrideTokens,
+      // El fiado solo se ofrece cuando el cliente asociado tiene crédito habilitado (HU-POS-16).
+      customerCreditEnabled: this.selectedCustomer()?.creditEnabled === true,
     };
 
     this.dialog
@@ -570,7 +673,7 @@ export class Sale implements OnInit {
         );
 
         if (sale.id !== undefined) {
-          this.openTicketDialog(sale.id, sale.number, true);
+          this.openTicketDialog(sale.id, sale.number, true, sale.emailTo);
         } else {
           this.focusScanInputSoon();
         }
@@ -658,8 +761,13 @@ export class Sale implements OnInit {
   }
 
   /** Abre la vista previa e impresión/reimpresión del ticket térmico 80 mm. */
-  protected openTicketDialog(saleId: number, saleNumber?: string, autoPrint = false): void {
-    const data: PosTicketDialogData = { saleId, saleNumber, autoPrint };
+  protected openTicketDialog(
+    saleId: number,
+    saleNumber?: string,
+    autoPrint = false,
+    defaultEmail?: string,
+  ): void {
+    const data: PosTicketDialogData = { saleId, saleNumber, autoPrint, defaultEmail };
     this.dialog
       .open<PosTicketDialog, PosTicketDialogData, void>(PosTicketDialog, {
         data,
@@ -683,7 +791,7 @@ export class Sale implements OnInit {
     }
     const lastSale = this.lastCompletedSale();
     if (lastSale?.id !== undefined) {
-      this.openTicketDialog(lastSale.id, lastSale.number, true);
+      this.openTicketDialog(lastSale.id, lastSale.number, true, lastSale.emailTo);
       return;
     }
     this.setNotice('warning', 'No hay productos en el carrito para finalizar.');

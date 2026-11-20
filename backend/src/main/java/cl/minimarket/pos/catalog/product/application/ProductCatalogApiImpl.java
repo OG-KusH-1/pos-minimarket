@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -257,6 +258,43 @@ public class ProductCatalogApiImpl implements ProductCatalogApi {
     @Transactional(readOnly = true)
     public List<Long> nonPackProductIds() {
         return productRepository.findNonPackProductIds();
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Caminar {@code parent_id} con un bucle (dos niveles según B.3, con tope defensivo contra
+     * ciclos). Si la categoría no existe responde {@code NOT_FOUND}, igual que {@link #getForSale}.
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<Long> categoryChain(Long categoryId) {
+        Objects.requireNonNull(categoryId, "categoryId");
+        List<Long> chain = new ArrayList<>();
+        Long current = categoryId;
+        // Tope defensivo: la jerarquía es de dos niveles (B.3); si algún día se profundiza, el
+        // límite evita un ciclo infinito por datos corruptos.
+        for (int depth = 0; current != null && depth < 20; depth++) {
+            // parent_id puede ser NULL (categoría raíz): la existencia se distingue por filas,
+            // no por el valor de la columna, así que se lee con mapeador propio.
+            List<Long> parents = jdbc.sql("""
+                            SELECT c.parent_id
+                            FROM categories c
+                            WHERE c.id = :id
+                            """)
+                    .param("id", current)
+                    .query((rs, rowNum) -> (Long) rs.getObject("parent_id"))
+                    .list();
+            if (parents.isEmpty()) {
+                throw new BusinessException(ErrorCode.NOT_FOUND, "Categoría no encontrada.");
+            }
+            chain.add(current);
+            current = parents.getFirst();
+        }
+        if (chain.isEmpty()) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Categoría no encontrada.");
+        }
+        return List.copyOf(chain);
     }
 
     @Override

@@ -12,7 +12,7 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { create } from '../../../api/fn/catalog/create';
-import { list } from '../../../api/fn/catalog/list';
+import { list1 } from '../../../api/fn/catalog/list-1';
 import { update1 } from '../../../api/fn/catalog/update-1';
 import { TaxRequest } from '../../../api/models/tax-request';
 import { TaxResponse } from '../../../api/models/tax-response';
@@ -95,7 +95,7 @@ export class TaxesService {
 
   /** Lista todos los impuestos configurados. */
   listTaxes(context?: HttpContext): Observable<TaxResponse[]> {
-    return unwrapApiResponse(list(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list1(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Crea un nuevo impuesto configurable. */

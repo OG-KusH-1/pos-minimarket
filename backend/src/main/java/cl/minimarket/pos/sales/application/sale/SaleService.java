@@ -4,6 +4,8 @@ import cl.minimarket.pos.audit.AuditEvent;
 import cl.minimarket.pos.audit.AuditService;
 import cl.minimarket.pos.cash.CashSessionApi;
 import cl.minimarket.pos.cash.CashSessionRef;
+import cl.minimarket.pos.customers.CustomerCreditApi;
+import cl.minimarket.pos.customers.CustomerCreditSnapshot;
 import cl.minimarket.pos.catalog.ProductCatalogApi;
 import cl.minimarket.pos.catalog.ProductCatalogApi.PackInfo;
 import cl.minimarket.pos.catalog.ProductCatalogApi.ProductSnapshot;
@@ -74,7 +76,8 @@ import java.util.UUID;
  *
  * <p>Ejecuta en una sola transacción ACID: verificación de terminal y turno abierto, cotización
  * autoritativa con {@link PricingService}, validación de edad y overrides, reconciliación de pagos
- * y captura de autorizaciones de tarjeta, descuento de stock (con resolución pack → base) vía
+ * y captura de autorizaciones de tarjeta, cargo a cuenta corriente (fiado) vía
+ * {@link CustomerCreditApi}, descuento de stock (con resolución pack → base) vía
  * {@link StockApi}, persistencia inmutable de cabecera/líneas/impuestos/descuentos/pagos,
  * registro de auditoría y publicación de {@link SaleCompletedEvent}.
  */
@@ -87,6 +90,7 @@ public class SaleService {
     private final CashSessionApi cashSessionApi;
     private final TerminalApi terminalApi;
     private final SupervisorOverrideApi supervisorOverrideApi;
+    private final CustomerCreditApi customerCreditApi;
     private final SequenceService sequenceService;
     private final AuditService auditService;
     private final BusinessClock businessClock;
@@ -108,6 +112,7 @@ public class SaleService {
             CashSessionApi cashSessionApi,
             TerminalApi terminalApi,
             SupervisorOverrideApi supervisorOverrideApi,
+            CustomerCreditApi customerCreditApi,
             SequenceService sequenceService,
             AuditService auditService,
             BusinessClock businessClock,
@@ -128,6 +133,7 @@ public class SaleService {
         this.cashSessionApi = cashSessionApi;
         this.terminalApi = terminalApi;
         this.supervisorOverrideApi = supervisorOverrideApi;
+        this.customerCreditApi = customerCreditApi;
         this.sequenceService = sequenceService;
         this.auditService = auditService;
         this.businessClock = businessClock;
@@ -167,7 +173,8 @@ public class SaleService {
     }
 
     /**
-     * Registra una nueva venta de forma idempotente y atómica.
+     * Registra una nueva venta de forma idempotente y atómica, incluyendo el pago a fiado
+     * ({@code CUSTOMER_CREDIT}) con su cupo y override {@code CREDIT_OVER_LIMIT} (RN-15).
      */
     @Transactional
     public SaleDetail create(CreateSaleCommand command) {
@@ -182,7 +189,7 @@ public class SaleService {
         terminalApi.requireActive(terminalId, storeId);
         CashSessionRef session = cashSessionApi.requireOpen(terminalId);
 
-        validatePaymentsInputPhase1(command.payments());
+        validatePaymentsInput(command);
         validateCustomerIfPresent(command.customerId());
 
         Optional<Sale> existingByKey = saleRepository.findByIdempotencyKey(command.idempotencyKey());
@@ -211,8 +218,16 @@ public class SaleService {
             );
         }
 
+        // Planifica el cargo a cuenta corriente (fiado) y, si excede el cupo, agrega el override
+        // CREDIT_OVER_LIMIT a los overrides requeridos para el emparejamiento de tokens.
+        CreditChargePlan creditChargePlan = planCreditCharge(command);
+        List<RequiredOverride> requiredOverrides = new ArrayList<>(quote.requiredOverrides());
+        if (creditChargePlan != null && creditChargePlan.requiredOverride() != null) {
+            requiredOverrides.add(creditChargePlan.requiredOverride());
+        }
+
         List<OverrideAssignment> overrideAssignments = pairRequiredOverrides(
-                quote.requiredOverrides(),
+                requiredOverrides,
                 command.overrideTokenHeader()
         );
 
@@ -259,6 +274,22 @@ public class SaleService {
                 savedSale.getId()
         );
 
+        // Cargo a la cuenta corriente del cliente (fiado), dentro de la misma transacción de la
+        // venta: si el cliente supera el cupo sin autorización, el cargo lanza CREDIT_LIMIT_EXCEEDED
+        // y toda la venta se revierte (RN-15). Con override consumido se autoriza sobre el cupo.
+        if (creditChargePlan != null && creditChargePlan.amount() != null) {
+            Long creditAuthorizationId = consumedOverrides.creditOverride() != null
+                    ? consumedOverrides.creditOverride().authorizationId()
+                    : null;
+            customerCreditApi.charge(
+                    command.customerId(),
+                    creditChargePlan.amount(),
+                    savedSale.getId(),
+                    storeId,
+                    creditAuthorizationId
+            );
+        }
+
         StockApplicationResult stockApplication = applyStockMovements(
                 savedSale,
                 userId,
@@ -304,32 +335,113 @@ public class SaleService {
         );
     }
 
-    private void validatePaymentsInputPhase1(List<PaymentCommand> payments) {
+    /**
+     * Valida la forma básica de los pagos informados antes de cotizar y conciliar.
+     *
+     * <p>Reglas previas a la cotización ({@code API.md} F.2/F.3):
+     * <ul>
+     *   <li>Debe existir al menos un medio de pago.</li>
+     *   <li>El fiado ({@code CUSTOMER_CREDIT}) exige cliente informado ({@code customerId},
+     *       requisito de F.3) y el permiso {@code customers:credit:sell}.</li>
+     *   <li>Se admite a lo sumo un pago a fiado por venta: cada pago crea un cargo individual en
+     *       la cuenta corriente y una sola fila de pago mantiene el cuadre de RN-07.</li>
+     * </ul>
+     */
+    private void validatePaymentsInput(CreateSaleCommand command) {
+        List<PaymentCommand> payments = command.payments();
         if (payments == null || payments.isEmpty()) {
             throw new BusinessException(
                     ErrorCode.PAYMENT_MISMATCH,
                     "Debe informar al menos un medio de pago."
             );
         }
+        long creditPayments = payments.stream()
+                .filter(p -> p.method() == PaymentMethod.CUSTOMER_CREDIT)
+                .count();
+        if (creditPayments == 0) {
+            return;
+        }
         List<FieldErrorDetail> errors = new ArrayList<>();
-        for (int i = 0; i < payments.size(); i++) {
-            PaymentCommand payment = payments.get(i);
-            if (payment.method() == PaymentMethod.CUSTOMER_CREDIT) {
-                errors.add(new FieldErrorDetail(
-                        "payments[" + i + "].method",
-                        "VALIDATION_ERROR",
-                        "El medio de pago CUSTOMER_CREDIT (fiado) no está habilitado en Fase 1."
-                ));
-            }
+        if (creditPayments > 1) {
+            errors.add(new FieldErrorDetail(
+                    "payments",
+                    "VALIDATION_ERROR",
+                    "Solo se admite un pago con CUSTOMER_CREDIT por venta."
+            ));
+        }
+        if (command.customerId() == null) {
+            errors.add(new FieldErrorDetail(
+                    "customerId",
+                    "REQUIRED",
+                    "El pago con CUSTOMER_CREDIT (fiado) requiere el identificador del cliente."
+            ));
+        }
+        if (!SaleSecuritySupport.hasAuthority(Permissions.CUSTOMERS_CREDIT_SELL)) {
+            throw new BusinessException(
+                    ErrorCode.ACCESS_DENIED,
+                    "La venta a fiado requiere el permiso customers:credit:sell."
+            );
         }
         if (!errors.isEmpty()) {
             throw new BusinessException(
                     ErrorCode.VALIDATION_ERROR,
-                    "El medio de pago CUSTOMER_CREDIT no está habilitado en esta fase.",
+                    "Los pagos informados no son válidos para la venta a fiado.",
                     Map.of(),
                     errors
             );
         }
+    }
+
+    /**
+     * Valida y planifica el cargo a la cuenta corriente del cliente cuando la venta incluye un
+     * pago con {@code CUSTOMER_CREDIT} ({@code MODELO_DATOS.md} B.7, RN-15, HU-POS-16).
+     *
+     * <p>Consulta el estado crediticio vía {@link CustomerCreditApi#creditStatus(Long)}:
+     * <ul>
+     *   <li>Cliente sin fiado habilitado → 422 {@code CREDIT_NOT_ENABLED}.</li>
+     *   <li>Cargo dentro del cupo ({@code balance + amount <= creditLimit}) → se procede sin
+     *       autorización; {@link CustomerCreditApi#charge} revalida con bloqueo de fila.</li>
+     *   <li>Cargo sobre el cupo → devuelve un {@link RequiredOverride} de acción
+     *       {@code CREDIT_OVER_LIMIT} para que {@code POST /sales} responda 422
+     *       {@code OVERRIDE_REQUIRED} si falta el token, o consuma la autorización si viene
+     *       (ADR-19, D.4).</li>
+     * </ul>
+     *
+     * @param command comando de creación de la venta
+     * @return plan de cargo con el monto y el override requerido, o {@code null} si la venta no
+     *         es a fiado; si el monto aún no es válido devuelve un plan sin monto (la
+     *         conciliación de pagos responde con el error correspondiente)
+     */
+    private CreditChargePlan planCreditCharge(CreateSaleCommand command) {
+        PaymentCommand creditPayment = command.payments().stream()
+                .filter(p -> p.method() == PaymentMethod.CUSTOMER_CREDIT)
+                .findFirst()
+                .orElse(null);
+        if (creditPayment == null) {
+            return null;
+        }
+        BigDecimal amount = creditPayment.amount() == null ? null : Rounding.clp(creditPayment.amount());
+        if (amount == null || amount.signum() <= 0) {
+            // La conciliación de pagos rechaza el monto; aquí solo se evita consultar el crédito.
+            return new CreditChargePlan(null, null);
+        }
+        CustomerCreditSnapshot snapshot = customerCreditApi.creditStatus(command.customerId());
+        if (!snapshot.creditEnabled()) {
+            throw new BusinessException(
+                    ErrorCode.CREDIT_NOT_ENABLED,
+                    "El cliente no tiene habilitada la cuenta corriente (fiado)."
+            );
+        }
+        if (snapshot.creditBalance().add(amount).compareTo(snapshot.creditLimit()) > 0) {
+            Map<String, Object> context = new LinkedHashMap<>();
+            context.put("customerId", command.customerId());
+            context.put("customerName", snapshot.name());
+            context.put("amount", amount);
+            context.put("creditLimit", snapshot.creditLimit());
+            context.put("creditBalance", snapshot.creditBalance());
+            return new CreditChargePlan(amount, new RequiredOverride(OverrideAction.CREDIT_OVER_LIMIT, context));
+        }
+        return new CreditChargePlan(amount, null);
     }
 
     private void validateCustomerIfPresent(Long customerId) {
@@ -487,6 +599,10 @@ public class SaleService {
                     );
                 }
                 resolved.add(new ResolvedPayment(cmd.method(), amount, null, BigDecimal.ZERO, null, ref));
+            } else if (cmd.method() == PaymentMethod.CUSTOMER_CREDIT) {
+                // Fiado: el cargo a la cuenta corriente se registra después de persistir la venta
+                // (planCreditCharge + customerCreditApi.charge); no requiere referencia externa.
+                resolved.add(new ResolvedPayment(cmd.method(), amount, null, BigDecimal.ZERO, null, null));
             } else {
                 // DEBIT o CREDIT
                 if (cmd.cardAuthorizationId() == null) {
@@ -688,6 +804,7 @@ public class SaleService {
     ) {
         Map<Integer, ConsumedOverrideDetail> lineOverrides = new HashMap<>();
         ConsumedOverrideDetail totalOverride = null;
+        ConsumedOverrideDetail creditOverride = null;
         String saleIdText = String.valueOf(saleId);
 
         for (OverrideAssignment assignment : assignments) {
@@ -710,10 +827,12 @@ public class SaleService {
                 lineOverrides.put(lineIndex, detail);
             } else if (req.action() == OverrideAction.DISCOUNT_TOTAL_OVER_LIMIT) {
                 totalOverride = detail;
+            } else if (req.action() == OverrideAction.CREDIT_OVER_LIMIT) {
+                creditOverride = detail;
             }
         }
 
-        return new ConsumedOverrides(lineOverrides, totalOverride);
+        return new ConsumedOverrides(lineOverrides, totalOverride, creditOverride);
     }
 
     private StockApplicationResult applyStockMovements(
@@ -1098,8 +1217,20 @@ public class SaleService {
 
     private record ConsumedOverrides(
             Map<Integer, ConsumedOverrideDetail> lineOverrides,
-            ConsumedOverrideDetail totalOverride
+            ConsumedOverrideDetail totalOverride,
+            ConsumedOverrideDetail creditOverride
     ) {
+    }
+
+    /**
+     * Plan del cargo a cuenta corriente (fiado) de una venta.
+     *
+     * @param amount           monto a cargar en CLP (o {@code null} si aún no es válido y la
+     *                         conciliación de pagos responderá con el error)
+     * @param requiredOverride override {@code CREDIT_OVER_LIMIT} requerido cuando el cargo excede
+     *                         el cupo del cliente, o {@code null} si está dentro del cupo
+     */
+    private record CreditChargePlan(BigDecimal amount, RequiredOverride requiredOverride) {
     }
 
     private record ResolvedPayment(

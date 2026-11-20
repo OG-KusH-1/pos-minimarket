@@ -32,6 +32,7 @@ import { ClpPipe } from '../../../../shared/pipes';
 import { extractPosErrorMessage } from '../cart/pos-http.utils';
 import {
   AuthorizedCardPayment,
+  CustomerCreditPaymentEntry,
   PosElectronicPaymentMethod,
   PosPaymentDialogData,
   PosPaymentDialogResult,
@@ -48,6 +49,10 @@ const QUICK_CASH_BILLS = [1000, 2000, 5000, 10000, 20000] as const;
  * Permite combinar pagos electrónicos (`DEBIT` / `CREDIT` autorizados contra `/pos/card-payments`,
  * y `TRANSFER` con referencia) con efectivo (`CASH`), aplicando el redondeo legal chileno
  * (Ley 20.956) sobre el saldo en efectivo y calculando el vuelto en tiempo real.
+ *
+ * Cuando la venta tiene un cliente con fiado habilitado (`customerCreditEnabled`), ofrece
+ * además el medio `CUSTOMER_CREDIT` (`HU-POS-16`): carga todo o parte del saldo a la cuenta
+ * del cliente, combinable con efectivo para el resto.
  *
  * Si el usuario cancela después de haber autorizado una o más tarjetas, las anula
  * automáticamente vía `POST /pos/card-payments/{id}/void` antes de cerrar.
@@ -82,9 +87,13 @@ export class PosPaymentDialog {
 
   protected readonly authorizedCards = signal<readonly AuthorizedCardPayment[]>([]);
   protected readonly transfers = signal<readonly TransferPaymentEntry[]>([]);
+  /** Único cargo a fiado del cobro en curso (`null` = sin fiado agregado). */
+  protected readonly creditEntry = signal<CustomerCreditPaymentEntry | null>(null);
   protected readonly busyAction = signal<'card' | 'void' | 'sale' | null>(null);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly electronicMethod = signal<PosElectronicPaymentMethod>('DEBIT');
+  /** `true` cuando el cliente asociado tiene fiado habilitado (`HU-POS-16`). */
+  protected readonly creditEnabled = this.data.customerCreditEnabled === true;
   protected readonly tenderedValue = signal<number | null>(
     this.paymentService.calculateCashBreakdown(
       this.data.totalGross,
@@ -97,7 +106,8 @@ export class PosPaymentDialog {
   protected readonly nonCashTotal = computed(() => {
     const cardsSum = this.authorizedCards().reduce((acc, card) => acc + card.amount, 0);
     const transfersSum = this.transfers().reduce((acc, tr) => acc + tr.amount, 0);
-    return cardsSum + transfersSum;
+    const creditSum = this.creditEntry()?.amount ?? 0;
+    return cardsSum + transfersSum + creditSum;
   });
 
   protected readonly breakdown = computed(() =>
@@ -147,6 +157,12 @@ export class PosPaymentDialog {
     nonNullable: true,
     validators: [Validators.email, Validators.maxLength(150)],
   });
+
+  /** Monto a cargar a la cuenta del cliente; se prefija con el saldo pendiente del cobro. */
+  protected readonly creditAmountControl = new FormControl<number | null>(
+    Math.max(1, Math.round(this.data.totalGross)),
+    { validators: [Validators.required, Validators.min(1), integerAmountValidator] },
+  );
 
   constructor() {
     this.dialogRef.disableClose = true;
@@ -310,6 +326,51 @@ export class PosPaymentDialog {
     this.syncAfterNonCashChange();
   }
 
+  /**
+   * Agrega el cargo a fiado (`CUSTOMER_CREDIT`) por el monto indicado (`HU-POS-16`).
+   *
+   * El monto no puede superar el saldo pendiente del cobro (el backend rechazaría la venta
+   * con `PAYMENT_MISMATCH`); el cupo del cliente lo valida el servidor en `POST /sales`
+   * (`CREDIT_LIMIT_EXCEEDED` o override `CREDIT_OVER_LIMIT`).
+   */
+  protected addCreditPayment(): void {
+    if (this.busyAction() !== null || this.creditEntry() !== null) {
+      return;
+    }
+    this.errorMessage.set(null);
+    if (this.creditAmountControl.invalid) {
+      this.creditAmountControl.markAsTouched();
+      return;
+    }
+
+    const raw = this.creditAmountControl.value;
+    const amount = raw !== null && Number.isFinite(raw) ? Math.round(raw) : 0;
+    const remaining = this.breakdown().cashDue;
+
+    if (amount <= 0) {
+      this.errorMessage.set('El monto a fiado debe ser mayor que $0.');
+      return;
+    }
+    if (amount > remaining) {
+      this.errorMessage.set(
+        `El monto supera el saldo pendiente ($${remaining.toLocaleString('es-CL')}).`,
+      );
+      return;
+    }
+
+    this.creditEntry.set({ localId: generateUuid(), method: 'CUSTOMER_CREDIT', amount });
+    this.syncAfterNonCashChange();
+  }
+
+  /** Quita el cargo a fiado registrado y devuelve el monto al saldo pendiente. */
+  protected removeCreditPayment(): void {
+    if (this.busyAction() !== null) {
+      return;
+    }
+    this.creditEntry.set(null);
+    this.syncAfterNonCashChange();
+  }
+
   protected async confirmSale(): Promise<void> {
     if (!this.canConfirmSale()) {
       this.cashTenderedControl.markAsTouched();
@@ -333,6 +394,12 @@ export class PosPaymentDialog {
         transferReference: tr.transferReference,
       })),
     ];
+
+    const credit = this.creditEntry();
+    if (credit) {
+      // Fiado: el backend exige `customerId` en la venta y el permiso `customers:credit:sell`.
+      payments.push({ method: 'CUSTOMER_CREDIT', amount: credit.amount });
+    }
 
     if (b.cashDue > 0 && b.cashPayable > 0 && b.tenderedAmount !== null) {
       payments.push({
@@ -411,6 +478,10 @@ export class PosPaymentDialog {
     this.cashTenderedControl.setValue(
       nextBreakdown.cashPayable > 0 ? nextBreakdown.cashPayable : null,
     );
+    // Mantiene el monto a fiado prefijado con el saldo pendiente mientras no haya cargo.
+    if (this.creditEntry() === null) {
+      this.creditAmountControl.setValue(nextBreakdown.cashDue > 0 ? nextBreakdown.cashDue : null);
+    }
   }
 }
 

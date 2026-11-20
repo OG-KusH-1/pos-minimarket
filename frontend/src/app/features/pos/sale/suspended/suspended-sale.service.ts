@@ -2,9 +2,9 @@ import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, firstValueFrom, forkJoin, map, of } from 'rxjs';
 import { ApiConfiguration } from '../../../../api/api-configuration';
-import { get2 } from '../../../../api/fn/catalog/get-2';
-import { delete$ } from '../../../../api/fn/sales/delete';
-import { list10 } from '../../../../api/fn/sales/list-10';
+import { get3 } from '../../../../api/fn/catalog/get-3';
+import { delete1 } from '../../../../api/fn/sales/delete-1';
+import { list12 } from '../../../../api/fn/sales/list-12';
 import { resume } from '../../../../api/fn/sales/resume';
 import { suspend } from '../../../../api/fn/sales/suspend';
 import { CartQuoteResponse } from '../../../../api/models/cart-quote-response';
@@ -39,7 +39,7 @@ export class SuspendedSaleService {
 
   /** Lista las ventas suspendidas vigentes de la terminal activa (`GET /pos/suspended-sales`). */
   list(context?: HttpContext): Observable<SuspendedSaleResponse[]> {
-    return unwrapApiResponse(list10(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list12(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Suspende el carrito actual de la terminal (`POST /pos/suspended-sales`). */
@@ -62,7 +62,7 @@ export class SuspendedSaleService {
     const safeContext = context ?? withoutErrorNotification();
     return this.overrideService.withSupervisorOverride((headers) => {
       const overrideToken = headers[OVERRIDE_TOKEN_HEADER];
-      return delete$(
+      return delete1(
         this.http,
         this.apiConfig.rootUrl,
         {
@@ -149,7 +149,7 @@ export class SuspendedSaleService {
 
     const requests = uniqueIds.map((id) =>
       unwrapApiResponse(
-        get2(this.http, this.apiConfig.rootUrl, { id }, withoutErrorNotification()),
+        get3(this.http, this.apiConfig.rootUrl, { id }, withoutErrorNotification()),
       ).pipe(
         map((product) => [id, product] as const),
         catchError(() => of([id, null] as const)),

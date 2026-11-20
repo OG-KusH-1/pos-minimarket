@@ -179,6 +179,32 @@ public class StockService implements StockApi {
         return inTransitStockQuery.inTransitInbound(storeId);
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public StockLimits limits(Long storeId, Long productId) {
+        Objects.requireNonNull(storeId, "storeId");
+        Objects.requireNonNull(productId, "productId");
+        return jdbc.sql("""
+                SELECT min_qty, max_qty
+                FROM stock
+                WHERE store_id = :storeId AND product_id = :productId
+                """)
+                .param("storeId", storeId)
+                .param("productId", productId)
+                .query((rs, rowNum) -> {
+                    BigDecimal min = rs.getBigDecimal("min_qty");
+                    BigDecimal max = rs.getBigDecimal("max_qty");
+                    return new StockLimits(
+                            min == null ? null : Rounding.quantity(min),
+                            max == null ? null : Rounding.quantity(max));
+                })
+                .optional()
+                .orElse(StockLimits.EMPTY);
+    }
+
     private Map<Long, ProductStockMetadata> loadProducts(List<Long> productIds) {
         List<ProductCatalogApi.ProductSnapshot> snapshots = productCatalogApi.findByIds(productIds);
 

@@ -12,7 +12,7 @@ import {
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
 import { create7 } from '../../../api/fn/catalog/create-7';
-import { list6 } from '../../../api/fn/catalog/list-6';
+import { list7 } from '../../../api/fn/catalog/list-7';
 import { update6 } from '../../../api/fn/catalog/update-6';
 import { ScaleBarcodeConfigRequest } from '../../../api/models/scale-barcode-config-request';
 import { ScaleBarcodeConfigResponse } from '../../../api/models/scale-barcode-config-response';
@@ -95,7 +95,7 @@ export class ScaleService {
 
   /** Lista todas las configuraciones de códigos de balanza registradas. */
   listConfigs(context?: HttpContext): Observable<ScaleBarcodeConfigResponse[]> {
-    return unwrapApiResponse(list6(this.http, this.apiConfig.rootUrl, undefined, context));
+    return unwrapApiResponse(list7(this.http, this.apiConfig.rootUrl, undefined, context));
   }
 
   /** Crea una nueva configuración de código de balanza EAN-13. */

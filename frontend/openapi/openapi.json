@@ -1,6 +1,30 @@
 {
   "components" : {
     "schemas" : {
+      "ActivePromotionResponse" : {
+        "description" : "Promoción vigente en el local y hora actuales.",
+        "properties" : {
+          "id" : {
+            "description" : "Identificador único de la promoción.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "label" : {
+            "description" : "Etiqueta resumida del beneficio (p. ej. 20% DCTO, 3x2).",
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "Nombre visible de la promoción.",
+            "type" : "string"
+          },
+          "promotionType" : {
+            "description" : "Tipo de promoción.",
+            "enum" : [ "PERCENT", "FIXED_AMOUNT", "BUY_X_PAY_Y", "QUANTITY_PRICE", "COMBO" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "AllocationResponse" : {
         "description" : "Asignación sugerida sobre un lote específico.",
         "properties" : {
@@ -994,6 +1018,117 @@
         "required" : [ "lines", "payments" ],
         "type" : "object"
       },
+      "CustomerAccountMovementResponse" : {
+        "description" : "Movimiento de la cartola de cuenta corriente.",
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "balanceAfter" : {
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "movementType" : {
+            "enum" : [ "CHARGE", "PAYMENT", "REVERSAL", "ADJUSTMENT" ],
+            "type" : "string"
+          },
+          "notes" : {
+            "type" : "string"
+          },
+          "occurredAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "paymentMethod" : {
+            "enum" : [ "CASH", "DEBIT", "CREDIT", "TRANSFER", "CUSTOMER_CREDIT" ],
+            "type" : "string"
+          },
+          "saleNumber" : {
+            "type" : "string"
+          },
+          "storeName" : {
+            "type" : "string"
+          },
+          "username" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CustomerAccountStatementResponse" : {
+        "description" : "Estado de cuenta y cartola paginada de movimientos.",
+        "properties" : {
+          "customer" : {
+            "$ref" : "#/components/schemas/CustomerResponse"
+          },
+          "movements" : {
+            "$ref" : "#/components/schemas/PageResponseCustomerAccountMovementResponse"
+          }
+        },
+        "type" : "object"
+      },
+      "CustomerAdjustmentRequest" : {
+        "description" : "Ajuste manual de deuda en cuenta corriente.",
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "reason" : {
+            "maxLength" : 250,
+            "minLength" : 3,
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "reason" ],
+        "type" : "object"
+      },
+      "CustomerCreditSettingsRequest" : {
+        "description" : "Configuración de crédito (fiado) del cliente.",
+        "properties" : {
+          "creditEnabled" : {
+            "type" : "boolean"
+          },
+          "creditLimit" : {
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "reason" : {
+            "maxLength" : 250,
+            "minLength" : 3,
+            "type" : "string"
+          }
+        },
+        "required" : [ "creditEnabled", "creditLimit", "reason" ],
+        "type" : "object"
+      },
+      "CustomerPaymentRequest" : {
+        "description" : "Registro de abono en cuenta corriente (CASH o TRANSFER).",
+        "properties" : {
+          "amount" : {
+            "minimum" : 1,
+            "type" : "number"
+          },
+          "notes" : {
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "paymentMethod" : {
+            "enum" : [ "CASH", "DEBIT", "CREDIT", "TRANSFER", "CUSTOMER_CREDIT" ],
+            "type" : "string"
+          },
+          "reference" : {
+            "maxLength" : 60,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "paymentMethod" ],
+        "type" : "object"
+      },
       "CustomerRef" : {
         "properties" : {
           "id" : {
@@ -1005,6 +1140,92 @@
           },
           "rut" : {
             "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "CustomerRequest" : {
+        "description" : "Datos para crear o actualizar un cliente.",
+        "properties" : {
+          "address" : {
+            "maxLength" : 250,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "email" : {
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "name" : {
+            "maxLength" : 150,
+            "minLength" : 2,
+            "type" : "string"
+          },
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "phone" : {
+            "maxLength" : 30,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "rut" : {
+            "maxLength" : 20,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "CustomerResponse" : {
+        "description" : "Datos y estado crediticio de un cliente.",
+        "properties" : {
+          "active" : {
+            "type" : "boolean"
+          },
+          "address" : {
+            "type" : "string"
+          },
+          "availableCredit" : {
+            "type" : "number"
+          },
+          "creditBalance" : {
+            "type" : "number"
+          },
+          "creditEnabled" : {
+            "type" : "boolean"
+          },
+          "creditLimit" : {
+            "type" : "number"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "phone" : {
+            "type" : "string"
+          },
+          "rut" : {
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int64",
+            "type" : "integer"
           }
         },
         "type" : "object"
@@ -1145,6 +1366,18 @@
         },
         "type" : "object"
       },
+      "EmailTicketRequest" : {
+        "properties" : {
+          "email" : {
+            "format" : "email",
+            "maxLength" : 254,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "email" ],
+        "type" : "object"
+      },
       "ExpiryAlertResponse" : {
         "properties" : {
           "daysToExpiry" : {
@@ -1228,6 +1461,66 @@
             "type" : "integer"
           },
           "url" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "GenerateDraftsRequest" : {
+        "description" : "Generación de borradores de OC por líneas de sugerencia.",
+        "properties" : {
+          "lineIds" : {
+            "description" : "Identificadores de líneas a incluir; vacío u omitido = comportamiento por defecto.",
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "GeneratedOrdersResponse" : {
+        "description" : "Borradores de OC creados desde la corrida.",
+        "properties" : {
+          "purchaseOrders" : {
+            "description" : "Órdenes creadas, una por proveedor.",
+            "items" : {
+              "$ref" : "#/components/schemas/GeneratedPurchaseOrder"
+            },
+            "type" : "array"
+          }
+        },
+        "type" : "object"
+      },
+      "GeneratedPurchaseOrder" : {
+        "description" : "Borrador de OC creado.",
+        "properties" : {
+          "id" : {
+            "description" : "Identificador de la orden.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "linesCount" : {
+            "description" : "Líneas de sugerencia incluidas.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "netTotal" : {
+            "description" : "Total neto (CLP).",
+            "type" : "number"
+          },
+          "number" : {
+            "description" : "Folio de la orden.",
+            "type" : "string"
+          },
+          "supplierId" : {
+            "description" : "Proveedor de la orden.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "supplierName" : {
+            "description" : "Nombre del proveedor.",
             "type" : "string"
           }
         },
@@ -2372,6 +2665,72 @@
         },
         "type" : "object"
       },
+      "PageResponseCustomerAccountMovementResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CustomerAccountMovementResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageResponseCustomerResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CustomerResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PageResponseExpiryAlertResponse" : {
         "properties" : {
           "content" : {
@@ -2603,6 +2962,39 @@
         },
         "type" : "object"
       },
+      "PageResponsePromotionResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PromotionResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PageResponsePurchaseOrderSummary" : {
         "properties" : {
           "content" : {
@@ -2636,11 +3028,110 @@
         },
         "type" : "object"
       },
+      "PageResponseReplenishmentLineResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageResponseReplenishmentRunResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PageResponseRoleResponse" : {
         "properties" : {
           "content" : {
             "items" : {
               "$ref" : "#/components/schemas/RoleResponse"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageResponseSaleReturnResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnResponse"
             },
             "type" : "array"
           },
@@ -2905,6 +3396,39 @@
           "content" : {
             "items" : {
               "$ref" : "#/components/schemas/SupplierSummary"
+            },
+            "type" : "array"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "size" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sort" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "totalElements" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "totalPages" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "PageResponseTaxDocumentResponse" : {
+        "properties" : {
+          "content" : {
+            "items" : {
+              "$ref" : "#/components/schemas/TaxDocumentResponse"
             },
             "type" : "array"
           },
@@ -3515,6 +4039,296 @@
         "required" : [ "taxIds", "vatExempt" ],
         "type" : "object"
       },
+      "PromotionItemRequest" : {
+        "description" : "Regla de alcance por producto, categoría o marca.",
+        "properties" : {
+          "requiredQty" : {
+            "description" : "Cantidad requerida (por defecto 1).",
+            "type" : "number"
+          },
+          "targetId" : {
+            "description" : "Identificador del producto, categoría o marca.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "targetType" : {
+            "description" : "Tipo de objetivo (PRODUCT, CATEGORY, BRAND).",
+            "enum" : [ "PRODUCT", "CATEGORY", "BRAND" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "targetId", "targetType" ],
+        "type" : "object"
+      },
+      "PromotionItemResponse" : {
+        "description" : "Ítem objetivo de una promoción.",
+        "properties" : {
+          "id" : {
+            "description" : "Identificador del ítem.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "requiredQty" : {
+            "description" : "Cantidad requerida.",
+            "type" : "number"
+          },
+          "targetId" : {
+            "description" : "Identificador del producto, categoría o marca.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "targetName" : {
+            "description" : "Nombre del producto, categoría o marca.",
+            "type" : "string"
+          },
+          "targetType" : {
+            "description" : "Tipo de objetivo (PRODUCT, CATEGORY, BRAND).",
+            "enum" : [ "PRODUCT", "CATEGORY", "BRAND" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "PromotionRequest" : {
+        "description" : "Datos para crear o actualizar una promoción.",
+        "properties" : {
+          "allStores" : {
+            "description" : "Indica si aplica a todos los locales (por defecto true).",
+            "type" : "boolean"
+          },
+          "amount" : {
+            "description" : "Monto fijo de descuento o precio unitario para FIXED_AMOUNT / QUANTITY_PRICE.",
+            "type" : "number"
+          },
+          "buyQty" : {
+            "description" : "Cantidad que se lleva en BUY_X_PAY_Y.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "comboPrice" : {
+            "description" : "Precio cerrado del combo en CLP para COMBO.",
+            "type" : "number"
+          },
+          "daysOfWeek" : {
+            "description" : "Días de la semana ISO-8601 (1=lunes..7=domingo); vacío/nulo = todos.",
+            "items" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "description" : {
+            "description" : "Descripción opcional de la promoción (máximo 500 caracteres).",
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "items" : {
+            "description" : "Ítems objetivo de la promoción.",
+            "items" : {
+              "$ref" : "#/components/schemas/PromotionItemRequest"
+            },
+            "minItems" : 1,
+            "type" : "array"
+          },
+          "maxApplicationsPerSale" : {
+            "description" : "Máximo de aplicaciones por venta (opcional, >= 1).",
+            "format" : "int32",
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "minQty" : {
+            "description" : "Cantidad mínima desde la cual aplica QUANTITY_PRICE.",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "Nombre visible de la promoción (3 a 120 caracteres).",
+            "maxLength" : 120,
+            "minLength" : 3,
+            "type" : "string"
+          },
+          "payQty" : {
+            "description" : "Cantidad que se paga en BUY_X_PAY_Y.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "percent" : {
+            "description" : "Porcentaje de descuento en (0, 100] para PERCENT.",
+            "type" : "number"
+          },
+          "priority" : {
+            "description" : "Prioridad ascendente de evaluación (1 a 1000; por defecto 100).",
+            "format" : "int32",
+            "maximum" : 1000,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "promotionType" : {
+            "description" : "Tipo de promoción.",
+            "enum" : [ "PERCENT", "FIXED_AMOUNT", "BUY_X_PAY_Y", "QUANTITY_PRICE", "COMBO" ],
+            "type" : "string"
+          },
+          "stackable" : {
+            "description" : "Indica si es acumulable con otras promociones.",
+            "type" : "boolean"
+          },
+          "storeIds" : {
+            "description" : "Locales habilitados cuando allStores es false.",
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "timeFrom" : {
+            "description" : "Hora inicial en zona de negocio (opcional junto a timeTo).",
+            "format" : "time-local",
+            "type" : "string"
+          },
+          "timeTo" : {
+            "description" : "Hora final en zona de negocio (opcional junto a timeFrom).",
+            "format" : "time-local",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "description" : "Inicio de vigencia UTC (inclusive).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validTo" : {
+            "description" : "Término de vigencia UTC (exclusivo, opcional).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "description" : "Versión optimista (obligatoria en PUT).",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "name", "promotionType", "validFrom" ],
+        "type" : "object"
+      },
+      "PromotionResponse" : {
+        "description" : "Detalle completo de una promoción.",
+        "properties" : {
+          "active" : {
+            "description" : "Indica si la promoción está activa.",
+            "type" : "boolean"
+          },
+          "allStores" : {
+            "description" : "Indica si rige en todos los locales.",
+            "type" : "boolean"
+          },
+          "amount" : {
+            "description" : "Monto de descuento o precio unitario para FIXED_AMOUNT / QUANTITY_PRICE.",
+            "type" : "number"
+          },
+          "buyQty" : {
+            "description" : "Cantidad que se lleva en BUY_X_PAY_Y.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "comboPrice" : {
+            "description" : "Precio cerrado en COMBO.",
+            "type" : "number"
+          },
+          "daysOfWeek" : {
+            "description" : "Días de la semana ISO-8601 (1=lunes..7=domingo).",
+            "items" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "description" : {
+            "description" : "Descripción opcional.",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador único de la promoción.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "items" : {
+            "description" : "Ítems objetivo de la promoción.",
+            "items" : {
+              "$ref" : "#/components/schemas/PromotionItemResponse"
+            },
+            "type" : "array"
+          },
+          "maxApplicationsPerSale" : {
+            "description" : "Máximo de aplicaciones por venta.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "minQty" : {
+            "description" : "Cantidad mínima en QUANTITY_PRICE.",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "Nombre visible.",
+            "type" : "string"
+          },
+          "payQty" : {
+            "description" : "Cantidad que se paga en BUY_X_PAY_Y.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "percent" : {
+            "description" : "Porcentaje de descuento para PERCENT.",
+            "type" : "number"
+          },
+          "priority" : {
+            "description" : "Prioridad ascendente de evaluación.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "promotionType" : {
+            "description" : "Tipo de promoción.",
+            "enum" : [ "PERCENT", "FIXED_AMOUNT", "BUY_X_PAY_Y", "QUANTITY_PRICE", "COMBO" ],
+            "type" : "string"
+          },
+          "stackable" : {
+            "description" : "Indica si es acumulable.",
+            "type" : "boolean"
+          },
+          "storeIds" : {
+            "description" : "Locales habilitados cuando allStores es false.",
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "timeFrom" : {
+            "description" : "Hora de inicio en zona de negocio.",
+            "format" : "time-local",
+            "type" : "string"
+          },
+          "timeTo" : {
+            "description" : "Hora de término en zona de negocio.",
+            "format" : "time-local",
+            "type" : "string"
+          },
+          "validFrom" : {
+            "description" : "Inicio de vigencia UTC.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "validTo" : {
+            "description" : "Término de vigencia UTC (opcional).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "description" : "Versión para bloqueo optimista.",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PurchaseOrderCancelRequest" : {
         "description" : "Motivo de cancelación de la orden de compra.",
         "properties" : {
@@ -3813,6 +4627,367 @@
         },
         "type" : "object"
       },
+      "ReplenishmentLineProduct" : {
+        "description" : "Producto de la sugerencia.",
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "sku" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplenishmentLineResponse" : {
+        "description" : "Sugerencia de reabastecimiento de un producto.",
+        "properties" : {
+          "avgDailyDemand" : {
+            "description" : "Demanda diaria media D (escala 4).",
+            "type" : "number"
+          },
+          "censoredDays" : {
+            "description" : "Días censurados Cd (con quiebre).",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "daysOfCover" : {
+            "description" : "Días de cobertura OH/D (escala 2), o null si D es 0.",
+            "type" : "number"
+          },
+          "demandStd" : {
+            "description" : "Desviación estándar muestral σ (escala 4).",
+            "type" : "number"
+          },
+          "estimatedCost" : {
+            "description" : "Costo estimado de la línea (null sin permiso catalog:cost:read).",
+            "type" : "number"
+          },
+          "estimatedStockoutDate" : {
+            "description" : "Quiebre de stock estimado, o null si D es 0.",
+            "format" : "date",
+            "type" : "string"
+          },
+          "finalPurchaseUnits" : {
+            "description" : "Unidades finales editadas por el usuario, o null si no se editó.",
+            "type" : "number"
+          },
+          "flags" : {
+            "description" : "Flags de calidad y ajustes del cálculo.",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "description" : "Identificador único de la línea.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "inTransit" : {
+            "description" : "En tránsito IT (OC abiertas + transferencias).",
+            "type" : "number"
+          },
+          "leadTimeDays" : {
+            "description" : "Lead time efectivo L en días.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "onHand" : {
+            "description" : "Stock en mano OH.",
+            "type" : "number"
+          },
+          "product" : {
+            "$ref" : "#/components/schemas/ReplenishmentLineProduct",
+            "description" : "Producto evaluado."
+          },
+          "purchaseUnitName" : {
+            "description" : "Nombre de la unidad de compra (null sin proveedor).",
+            "type" : "string"
+          },
+          "reorderPoint" : {
+            "description" : "Punto de reorden ROP (escala 4).",
+            "type" : "number"
+          },
+          "reviewPeriodDays" : {
+            "description" : "Período de revisión R efectivo.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "safetyStock" : {
+            "description" : "Stock de seguridad SS (escala 4).",
+            "type" : "number"
+          },
+          "status" : {
+            "description" : "Estado de la línea.",
+            "enum" : [ "SUGGESTED", "NO_ACTION", "NO_SUPPLIER", "EXCLUDED", "ACCEPTED", "DISCARDED" ],
+            "type" : "string"
+          },
+          "suggestedPurchaseUnits" : {
+            "description" : "Cantidad sugerida en unidades de compra n (escala 3).",
+            "type" : "number"
+          },
+          "suggestedQty" : {
+            "description" : "Cantidad sugerida en unidad base (escala 3).",
+            "type" : "number"
+          },
+          "supplier" : {
+            "$ref" : "#/components/schemas/ReplenishmentLineSupplier",
+            "description" : "Proveedor elegido (null en NO_SUPPLIER)."
+          },
+          "targetLevel" : {
+            "description" : "Nivel objetivo T ya limitado por el tope (escala 4).",
+            "type" : "number"
+          },
+          "unitCostNet" : {
+            "description" : "Costo neto por unidad base (null sin permiso catalog:cost:read).",
+            "type" : "number"
+          },
+          "unitsPerPurchaseUnit" : {
+            "description" : "Unidades base por unidad de compra U (null sin proveedor).",
+            "type" : "number"
+          },
+          "validDays" : {
+            "description" : "Días válidos N de la ventana.",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplenishmentLineSupplier" : {
+        "description" : "Proveedor de la sugerencia.",
+        "properties" : {
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplenishmentLineUpdateRequest" : {
+        "description" : "Edición parcial de una sugerencia.",
+        "properties" : {
+          "finalPurchaseUnits" : {
+            "description" : "Unidades finales de compra (≥ 0; si > 0, ≥ MOQ del proveedor).",
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "productSupplierId" : {
+            "description" : "Asociación producto-proveedor elegida (candidato activo del producto).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "status" : {
+            "description" : "Nuevo estado: ACCEPTED o DISCARDED.",
+            "enum" : [ "SUGGESTED", "NO_ACTION", "NO_SUPPLIER", "EXCLUDED", "ACCEPTED", "DISCARDED" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplenishmentParamsRequest" : {
+        "description" : "Upsert de parámetros por alcance (null hereda).",
+        "properties" : {
+          "categoryId" : {
+            "description" : "Categoría (obligatoria en CATEGORY).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "enabled" : {
+            "description" : "Participación en las corridas; null hereda del nivel superior.",
+            "type" : "boolean"
+          },
+          "minHistoryDays" : {
+            "description" : "Mínimo de días válidos para estimar demanda.",
+            "format" : "int32",
+            "maximum" : 90,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "outlierK" : {
+            "description" : "Multiplicador k del recorte mediana/MAD.",
+            "maximum" : 10,
+            "minimum" : 1,
+            "type" : "number"
+          },
+          "productId" : {
+            "description" : "Producto (obligatorio en PRODUCT).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reviewPeriodDays" : {
+            "description" : "Período R explícito; null usa el automático de C.2.",
+            "format" : "int32",
+            "maximum" : 60,
+            "minimum" : 1,
+            "type" : "integer"
+          },
+          "safetyMinDays" : {
+            "description" : "Días mínimos de stock de seguridad.",
+            "maximum" : 60,
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "scope" : {
+            "description" : "Alcance de la fila (obligatorio).",
+            "enum" : [ "GLOBAL", "STORE", "CATEGORY", "PRODUCT" ],
+            "type" : "string"
+          },
+          "serviceLevelZ" : {
+            "description" : "Factor z del nivel de servicio.",
+            "maximum" : 3.5,
+            "minimum" : 0,
+            "type" : "number"
+          },
+          "shelfLifeFactor" : {
+            "description" : "Fracción de la vida útil utilizable para el tope.",
+            "maximum" : 1,
+            "minimum" : 0.1,
+            "type" : "number"
+          },
+          "storeId" : {
+            "description" : "Local (obligatorio en STORE; opcional en CATEGORY y PRODUCT).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "windowDays" : {
+            "description" : "Ventana W en días.",
+            "format" : "int32",
+            "maximum" : 365,
+            "minimum" : 7,
+            "type" : "integer"
+          }
+        },
+        "required" : [ "scope" ],
+        "type" : "object"
+      },
+      "ReplenishmentParamsResponse" : {
+        "description" : "Parámetros de reabastecimiento por alcance.",
+        "properties" : {
+          "categoryId" : {
+            "description" : "Categoría (solo CATEGORY).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "enabled" : {
+            "description" : "Participación en las corridas (null hereda).",
+            "type" : "boolean"
+          },
+          "id" : {
+            "description" : "Identificador único de la fila.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "minHistoryDays" : {
+            "description" : "Mínimo de días válidos para estimar demanda (null hereda).",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "outlierK" : {
+            "description" : "Multiplicador k del recorte mediana/MAD (null hereda).",
+            "type" : "number"
+          },
+          "productId" : {
+            "description" : "Producto (solo PRODUCT).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reviewPeriodDays" : {
+            "description" : "Período R explícito (null usa el automático de C.2).",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "safetyMinDays" : {
+            "description" : "Días mínimos de stock de seguridad (null hereda).",
+            "type" : "number"
+          },
+          "scope" : {
+            "description" : "Alcance de la fila.",
+            "enum" : [ "GLOBAL", "STORE", "CATEGORY", "PRODUCT" ],
+            "type" : "string"
+          },
+          "serviceLevelZ" : {
+            "description" : "Factor z del nivel de servicio (null hereda).",
+            "type" : "number"
+          },
+          "shelfLifeFactor" : {
+            "description" : "Fracción de vida útil utilizable (null hereda).",
+            "type" : "number"
+          },
+          "storeId" : {
+            "description" : "Local (STORE, o CATEGORY/PRODUCT acotado al local).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "windowDays" : {
+            "description" : "Ventana W en días (null hereda del nivel superior).",
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ReplenishmentRunResponse" : {
+        "description" : "Corrida de reabastecimiento.",
+        "properties" : {
+          "asOfDate" : {
+            "description" : "Fecha de corte (la ventana termina el día anterior).",
+            "format" : "date",
+            "type" : "string"
+          },
+          "countsByStatus" : {
+            "additionalProperties" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "description" : "Conteo de líneas por estado (solo los estados presentes).",
+            "type" : "object"
+          },
+          "error" : {
+            "description" : "Detalle del error si la corrida falló.",
+            "type" : "string"
+          },
+          "finishedAt" : {
+            "description" : "Instante de término (UTC).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "description" : "Identificador único de la corrida.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "linesCount" : {
+            "description" : "Cantidad de líneas evaluadas.",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "startedAt" : {
+            "description" : "Instante de inicio (UTC).",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "description" : "Estado de la corrida.",
+            "enum" : [ "RUNNING", "COMPLETED", "FAILED" ],
+            "type" : "string"
+          },
+          "storeId" : {
+            "description" : "Local de la corrida.",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "RequiredOverride" : {
         "properties" : {
           "action" : {
@@ -3961,6 +5136,17 @@
         },
         "type" : "object"
       },
+      "RunRequest" : {
+        "description" : "Ejecuta una corrida síncrona de reabastecimiento.",
+        "properties" : {
+          "asOfDate" : {
+            "description" : "Fecha de corte; la ventana termina el día anterior. Por defecto, hoy de negocio.",
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "SalePaymentResponse" : {
         "properties" : {
           "amount" : {
@@ -4101,6 +5287,196 @@
         },
         "type" : "object"
       },
+      "SaleReturnLineRequest" : {
+        "properties" : {
+          "quantity" : {
+            "minimum" : 0.001,
+            "type" : "number"
+          },
+          "restock" : {
+            "type" : "boolean"
+          },
+          "saleLineId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "quantity", "saleLineId" ],
+        "type" : "object"
+      },
+      "SaleReturnLineResponse" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "refundAmount" : {
+            "type" : "number"
+          },
+          "restock" : {
+            "type" : "boolean"
+          },
+          "saleLineId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SaleReturnRefundRequest" : {
+        "properties" : {
+          "amount" : {
+            "minimum" : 1,
+            "type" : "number"
+          },
+          "method" : {
+            "enum" : [ "CASH", "DEBIT", "CREDIT", "TRANSFER", "CUSTOMER_CREDIT" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "amount", "method" ],
+        "type" : "object"
+      },
+      "SaleReturnRefundResponse" : {
+        "properties" : {
+          "amount" : {
+            "type" : "number"
+          },
+          "gatewayReference" : {
+            "type" : "string"
+          },
+          "method" : {
+            "enum" : [ "CASH", "DEBIT", "CREDIT", "TRANSFER", "CUSTOMER_CREDIT" ],
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "SaleReturnRequest" : {
+        "properties" : {
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnLineRequest"
+            },
+            "minItems" : 1,
+            "type" : "array"
+          },
+          "reasonCode" : {
+            "enum" : [ "CUSTOMER_REQUEST", "DEFECTIVE", "EXPIRED", "WRONG_ITEM", "CASHIER_ERROR", "PRICE_ERROR", "OTHER" ],
+            "type" : "string"
+          },
+          "reasonText" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "refunds" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnRefundRequest"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "lines", "reasonCode" ],
+        "type" : "object"
+      },
+      "SaleReturnResponse" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnLineResponse"
+            },
+            "type" : "array"
+          },
+          "number" : {
+            "type" : "string"
+          },
+          "reasonCode" : {
+            "enum" : [ "CUSTOMER_REQUEST", "DEFECTIVE", "EXPIRED", "WRONG_ITEM", "CASHIER_ERROR", "PRICE_ERROR", "OTHER" ],
+            "type" : "string"
+          },
+          "reasonText" : {
+            "type" : "string"
+          },
+          "refundTotal" : {
+            "type" : "number"
+          },
+          "refunds" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnRefundResponse"
+            },
+            "type" : "array"
+          },
+          "returnType" : {
+            "enum" : [ "VOID", "RETURN" ],
+            "type" : "string"
+          },
+          "saleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "SaleReturnableLineResponse" : {
+        "properties" : {
+          "name" : {
+            "type" : "string"
+          },
+          "quantity" : {
+            "type" : "number"
+          },
+          "returnableQuantity" : {
+            "type" : "number"
+          },
+          "returnedQuantity" : {
+            "type" : "number"
+          },
+          "saleLineId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "unitRefundAmount" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "SaleReturnableLinesResponse" : {
+        "properties" : {
+          "lines" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SaleReturnableLineResponse"
+            },
+            "type" : "array"
+          },
+          "returnDeadline" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "saleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "voidAllowed" : {
+            "type" : "boolean"
+          }
+        },
+        "type" : "object"
+      },
       "SaleSummary" : {
         "properties" : {
           "cashierName" : {
@@ -4135,6 +5511,21 @@
             "type" : "number"
           }
         },
+        "type" : "object"
+      },
+      "SaleVoidRequest" : {
+        "properties" : {
+          "reasonCode" : {
+            "enum" : [ "CUSTOMER_REQUEST", "DEFECTIVE", "EXPIRED", "WRONG_ITEM", "CASHIER_ERROR", "PRICE_ERROR", "OTHER" ],
+            "type" : "string"
+          },
+          "reasonText" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "reasonCode" ],
         "type" : "object"
       },
       "ScaleBarcodeConfigRequest" : {
@@ -5597,6 +6988,74 @@
         },
         "type" : "object"
       },
+      "TaxDocumentResponse" : {
+        "properties" : {
+          "attempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "documentType" : {
+            "enum" : [ "BOLETA", "BOLETA_EXENTA", "CREDIT_NOTE" ],
+            "type" : "string"
+          },
+          "exemptAmount" : {
+            "type" : "number"
+          },
+          "folio" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "issuedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "lastError" : {
+            "type" : "string"
+          },
+          "netAmount" : {
+            "type" : "number"
+          },
+          "provider" : {
+            "type" : "string"
+          },
+          "providerTrackId" : {
+            "type" : "string"
+          },
+          "saleId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "saleReturnId" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "siiTypeCode" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "stampText" : {
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "PENDING", "ISSUED", "REJECTED", "ERROR" ],
+            "type" : "string"
+          },
+          "taxAmount" : {
+            "type" : "number"
+          },
+          "totalAmount" : {
+            "type" : "number"
+          },
+          "typeLabel" : {
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "TaxRequest" : {
         "properties" : {
           "code" : {
@@ -6168,7 +7627,7 @@
     "/api/v1/audit-log" : {
       "get" : {
         "description" : "Permiso: security:audit:read. Errores: VALIDATION_ERROR, ACCESS_DENIED.",
-        "operationId" : "list_21",
+        "operationId" : "list_26",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -6297,7 +7756,7 @@
     "/api/v1/audit-log/{id}" : {
       "get" : {
         "description" : "Permiso: security:audit:read. Errores: NOT_FOUND, ACCESS_DENIED.",
-        "operationId" : "getById_6",
+        "operationId" : "getById_8",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6561,7 +8020,7 @@
     "/api/v1/brands" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_15",
+        "operationId" : "list_18",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -6620,7 +8079,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:brand:manage",
-        "operationId" : "create_16",
+        "operationId" : "create_18",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -6650,7 +8109,7 @@
     "/api/v1/brands/{id}" : {
       "put" : {
         "description" : "Permiso: catalog:brand:manage",
-        "operationId" : "update_14",
+        "operationId" : "update_16",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6689,7 +8148,7 @@
     "/api/v1/brands/{id}/activate" : {
       "post" : {
         "description" : "Permiso: catalog:brand:manage",
-        "operationId" : "activate_6",
+        "operationId" : "activate_8",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6711,7 +8170,7 @@
     "/api/v1/brands/{id}/deactivate" : {
       "post" : {
         "description" : "Permiso: catalog:brand:manage",
-        "operationId" : "deactivate_6",
+        "operationId" : "deactivate_8",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -6732,7 +8191,7 @@
     },
     "/api/v1/cash-sessions" : {
       "get" : {
-        "operationId" : "list_14",
+        "operationId" : "list_17",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -6871,7 +8330,7 @@
     },
     "/api/v1/cash-sessions/{id}" : {
       "get" : {
-        "operationId" : "get_6",
+        "operationId" : "get_8",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7125,7 +8584,7 @@
     "/api/v1/catalog/imports" : {
       "post" : {
         "description" : "Permiso: catalog:product:import. Errores: FILE_INVALID, IMPORT_INVALID, VALIDATION_ERROR",
-        "operationId" : "create_15",
+        "operationId" : "create_17",
         "parameters" : [ {
           "in" : "query",
           "name" : "importType",
@@ -7224,7 +8683,7 @@
     "/api/v1/catalog/imports/{id}" : {
       "get" : {
         "description" : "Permiso: catalog:product:import. Errores: NOT_FOUND",
-        "operationId" : "get_5",
+        "operationId" : "get_7",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7290,7 +8749,7 @@
     "/api/v1/categories" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_13",
+        "operationId" : "list_16",
         "parameters" : [ {
           "in" : "query",
           "name" : "tree",
@@ -7320,7 +8779,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:category:manage",
-        "operationId" : "create_14",
+        "operationId" : "create_16",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7350,7 +8809,7 @@
     "/api/v1/categories/{id}" : {
       "put" : {
         "description" : "Permiso: catalog:category:manage",
-        "operationId" : "update_13",
+        "operationId" : "update_15",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7389,7 +8848,7 @@
     "/api/v1/categories/{id}/activate" : {
       "post" : {
         "description" : "Permiso: catalog:category:manage",
-        "operationId" : "activate_5",
+        "operationId" : "activate_7",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7411,7 +8870,7 @@
     "/api/v1/categories/{id}/deactivate" : {
       "post" : {
         "description" : "Permiso: catalog:category:manage",
-        "operationId" : "deactivate_5",
+        "operationId" : "deactivate_7",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -7432,7 +8891,7 @@
     },
     "/api/v1/company" : {
       "get" : {
-        "operationId" : "get_3",
+        "operationId" : "get_5",
         "responses" : {
           "200" : {
             "content" : {
@@ -7449,7 +8908,7 @@
         "tags" : [ "Organization" ]
       },
       "put" : {
-        "operationId" : "update_12",
+        "operationId" : "update_14",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7476,10 +8935,427 @@
         "tags" : [ "Organization" ]
       }
     },
+    "/api/v1/customers" : {
+      "get" : {
+        "description" : "Permiso: customers:customer:read",
+        "operationId" : "list_15",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "withDebt",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "creditEnabled",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseCustomerResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Listar clientes",
+        "tags" : [ "Customers" ]
+      },
+      "post" : {
+        "description" : "Permiso: customers:customer:manage",
+        "operationId" : "create_15",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Crear cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}" : {
+      "get" : {
+        "description" : "Permiso: customers:customer:read",
+        "operationId" : "get_4",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Obtener cliente",
+        "tags" : [ "Customers" ]
+      },
+      "put" : {
+        "description" : "Permiso: customers:customer:manage",
+        "operationId" : "update_13",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Actualizar cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/account" : {
+      "get" : {
+        "description" : "Permiso: customers:customer:read",
+        "operationId" : "account",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerAccountStatementResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Obtener estado de cuenta del cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/activate" : {
+      "post" : {
+        "description" : "Permiso: customers:customer:manage",
+        "operationId" : "activate_6",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Activar cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/adjustments" : {
+      "post" : {
+        "description" : "Permiso: customers:credit:manage-limit",
+        "operationId" : "registerAdjustment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerAdjustmentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerAccountMovementResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Registrar ajuste de cuenta corriente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/credit" : {
+      "put" : {
+        "description" : "Permiso: customers:credit:manage-limit",
+        "operationId" : "updateCredit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerCreditSettingsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Configurar crédito del cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/deactivate" : {
+      "post" : {
+        "description" : "Permiso: customers:customer:manage",
+        "operationId" : "deactivate_6",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Desactivar cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
+    "/api/v1/customers/{id}/payments" : {
+      "post" : {
+        "description" : "Permiso: customers:credit:payment",
+        "operationId" : "registerPayment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CustomerPaymentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CustomerAccountMovementResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Registrar abono de cliente",
+        "tags" : [ "Customers" ]
+      }
+    },
     "/api/v1/expiry-alerts" : {
       "get" : {
         "description" : "Permiso: inventory:expiry:read (y catalog:cost:read opcional para valuation). Excluye lotes con saldo 0 y usa por defecto alerts.expiry.days_ahead del local o global.",
-        "operationId" : "list_20",
+        "operationId" : "list_25",
         "parameters" : [ {
           "description" : "Ventana en días (>= 0); si se omite usa alerts.expiry.days_ahead.",
           "in" : "query",
@@ -7628,7 +9504,7 @@
     "/api/v1/goods-receipts" : {
       "get" : {
         "description" : "Permiso: purchasing:order:read. netTotal visible solo con catalog:cost:read.",
-        "operationId" : "list_12",
+        "operationId" : "list_14",
         "parameters" : [ {
           "description" : "Filtrar por estado de la recepción.",
           "in" : "query",
@@ -7738,7 +9614,7 @@
       },
       "post" : {
         "description" : "Permiso: purchasing:receipt:create (+ purchasing:receipt:without-order si no hay OC).",
-        "operationId" : "create_13",
+        "operationId" : "create_14",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -7855,7 +9731,7 @@
       },
       "put" : {
         "description" : "Permiso: purchasing:receipt:create. Solo editable en estado DRAFT.",
-        "operationId" : "update_11",
+        "operationId" : "update_12",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -8057,7 +9933,7 @@
     "/api/v1/inventory-counts" : {
       "get" : {
         "description" : "Permiso: inventory:count:execute",
-        "operationId" : "list_11",
+        "operationId" : "list_13",
         "parameters" : [ {
           "in" : "query",
           "name" : "status",
@@ -8118,7 +9994,7 @@
       },
       "post" : {
         "description" : "Permiso: inventory:count:manage",
-        "operationId" : "create_12",
+        "operationId" : "create_13",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -8148,7 +10024,7 @@
     "/api/v1/inventory-counts/{id}" : {
       "get" : {
         "description" : "Permiso: inventory:count:execute",
-        "operationId" : "get_4",
+        "operationId" : "get_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -8415,7 +10291,7 @@
     "/api/v1/kardex" : {
       "get" : {
         "description" : "Permiso: inventory:kardex:read",
-        "operationId" : "list_19",
+        "operationId" : "list_24",
         "parameters" : [ {
           "in" : "query",
           "name" : "productId",
@@ -8502,7 +10378,7 @@
     "/api/v1/lots" : {
       "get" : {
         "description" : "Permiso: inventory:stock:read. Permite filtrar por producto, días hasta el vencimiento, disponibilidad de stock (withStock), estado y texto libre.",
-        "operationId" : "list_18",
+        "operationId" : "list_23",
         "parameters" : [ {
           "description" : "Filtrar por identificador de producto.",
           "in" : "query",
@@ -8679,7 +10555,7 @@
     "/api/v1/lots/{id}" : {
       "put" : {
         "description" : "Permiso: inventory:lot:update (sensible, auditado como LOT_UPDATED). Exige versión optimista y pertenencia del lote al local activo X-Store-Id.",
-        "operationId" : "update_10",
+        "operationId" : "update_11",
         "parameters" : [ {
           "description" : "Identificador del lote.",
           "in" : "path",
@@ -8945,9 +10821,45 @@
         "tags" : [ "Sales" ]
       }
     },
+    "/api/v1/pos/promotions/active" : {
+      "get" : {
+        "description" : "Permiso: sales:pos:operate. Requiere header X-Store-Id.",
+        "operationId" : "active",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActivePromotionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Lista de promociones vigentes en el local y la hora actuales"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ActivePromotionResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Promociones vigentes en POS",
+        "tags" : [ "Promotions" ]
+      }
+    },
     "/api/v1/pos/suspended-sales" : {
       "get" : {
-        "operationId" : "list_10",
+        "operationId" : "list_12",
         "responses" : {
           "200" : {
             "content" : {
@@ -8996,7 +10908,7 @@
     },
     "/api/v1/pos/suspended-sales/{id}" : {
       "delete" : {
-        "operationId" : "delete",
+        "operationId" : "delete_1",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9053,7 +10965,7 @@
     "/api/v1/product-suppliers" : {
       "post" : {
         "description" : "Permiso: purchasing:product-supplier:manage (sensible, auditado como PRODUCT_SUPPLIER_CHANGED).",
-        "operationId" : "create_11",
+        "operationId" : "create_12",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -9123,7 +11035,7 @@
     "/api/v1/product-suppliers/{id}" : {
       "put" : {
         "description" : "Permiso: purchasing:product-supplier:manage (sensible, auditado como PRODUCT_SUPPLIER_CHANGED).",
-        "operationId" : "update_9",
+        "operationId" : "update_10",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9202,7 +11114,7 @@
     "/api/v1/product-suppliers/{id}/activate" : {
       "post" : {
         "description" : "Permiso: purchasing:product-supplier:manage (sensible, auditado como PRODUCT_SUPPLIER_CHANGED).",
-        "operationId" : "activate_4",
+        "operationId" : "activate_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9230,7 +11142,7 @@
     "/api/v1/product-suppliers/{id}/deactivate" : {
       "post" : {
         "description" : "Permiso: purchasing:product-supplier:manage (sensible, auditado como PRODUCT_SUPPLIER_CHANGED).",
-        "operationId" : "deactivate_4",
+        "operationId" : "deactivate_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9289,7 +11201,7 @@
     "/api/v1/products" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_9",
+        "operationId" : "list_11",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -9386,7 +11298,7 @@
       },
       "post" : {
         "description" : "Permiso: catalog:product:create",
-        "operationId" : "create_10",
+        "operationId" : "create_11",
         "requestBody" : {
           "content" : {
             "application/json" : {
@@ -9498,7 +11410,7 @@
     "/api/v1/products/{id}" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "get_2",
+        "operationId" : "get_3",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9525,7 +11437,7 @@
       },
       "put" : {
         "description" : "Permiso: catalog:product:update",
-        "operationId" : "update_8",
+        "operationId" : "update_9",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9564,7 +11476,7 @@
     "/api/v1/products/{id}/activate" : {
       "post" : {
         "description" : "Permiso: catalog:product:deactivate",
-        "operationId" : "activate_3",
+        "operationId" : "activate_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -9724,7 +11636,7 @@
     "/api/v1/products/{id}/deactivate" : {
       "post" : {
         "description" : "Permiso: catalog:product:deactivate",
-        "operationId" : "deactivate_3",
+        "operationId" : "deactivate_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -10035,10 +11947,342 @@
         "tags" : [ "Catalog" ]
       }
     },
+    "/api/v1/promotions" : {
+      "get" : {
+        "description" : "Permiso: promotions:promotion:read.",
+        "operationId" : "list_10",
+        "parameters" : [ {
+          "description" : "Filtrar por estado activo.",
+          "in" : "query",
+          "name" : "active",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "description" : "Filtrar por tipo de promoción.",
+          "in" : "query",
+          "name" : "type",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "PERCENT", "FIXED_AMOUNT", "BUY_X_PAY_Y", "QUANTITY_PRICE", "COMBO" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtrar promociones vigentes en este instante UTC.",
+          "in" : "query",
+          "name" : "vigentAt",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtrar promociones aplicables a un producto (directo, categoría o marca).",
+          "in" : "query",
+          "name" : "productId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponsePromotionResponse"
+                }
+              }
+            },
+            "description" : "Listado paginado de promociones"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponsePromotionResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por paginación u orden inválidos"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponsePromotionResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          }
+        },
+        "summary" : "Listar promociones",
+        "tags" : [ "Promotions" ]
+      },
+      "post" : {
+        "description" : "Permiso: promotions:promotion:manage.",
+        "operationId" : "create_10",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PromotionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "Promoción creada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          }
+        },
+        "summary" : "Crear promoción",
+        "tags" : [ "Promotions" ]
+      }
+    },
+    "/api/v1/promotions/{id}" : {
+      "get" : {
+        "description" : "Permiso: promotions:promotion:read.",
+        "operationId" : "get_2",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "Detalle de la promoción"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "Promoción no encontrada"
+          }
+        },
+        "summary" : "Obtener promoción",
+        "tags" : [ "Promotions" ]
+      },
+      "put" : {
+        "description" : "Permiso: promotions:promotion:manage.",
+        "operationId" : "update_8",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PromotionRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "Promoción actualizada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "Promoción no encontrada"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PromotionResponse"
+                }
+              }
+            },
+            "description" : "CONCURRENT_MODIFICATION"
+          }
+        },
+        "summary" : "Actualizar promoción",
+        "tags" : [ "Promotions" ]
+      }
+    },
+    "/api/v1/promotions/{id}/activate" : {
+      "post" : {
+        "description" : "Permiso: promotions:promotion:manage.",
+        "operationId" : "activate_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Promoción activada"
+          },
+          "403" : {
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "description" : "Promoción no encontrada"
+          }
+        },
+        "summary" : "Activar promoción",
+        "tags" : [ "Promotions" ]
+      }
+    },
+    "/api/v1/promotions/{id}/deactivate" : {
+      "post" : {
+        "description" : "Permiso: promotions:promotion:manage.",
+        "operationId" : "deactivate_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Promoción desactivada"
+          },
+          "403" : {
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "description" : "Promoción no encontrada"
+          }
+        },
+        "summary" : "Desactivar promoción",
+        "tags" : [ "Promotions" ]
+      }
+    },
     "/api/v1/purchase-orders" : {
       "get" : {
         "description" : "Permiso: purchasing:order:read. Total visible solo con catalog:cost:read.",
-        "operationId" : "list_8",
+        "operationId" : "list_9",
         "parameters" : [ {
           "description" : "Filtrar por estado de la orden.",
           "in" : "query",
@@ -10608,6 +12852,605 @@
         "tags" : [ "Purchasing" ]
       }
     },
+    "/api/v1/replenishment/lines/{id}" : {
+      "patch" : {
+        "description" : "Permiso: replenishment:run:execute. Una línea ya incluida en una OC responde 409 INVALID_STATE_TRANSITION.",
+        "operationId" : "updateLine",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplenishmentLineUpdateRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "Línea actualizada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (comando vacío, MOQ, proveedor no candidato)"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND si la línea no pertenece al local"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE_TRANSITION"
+          }
+        },
+        "summary" : "Editar línea de sugerencia",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/params" : {
+      "get" : {
+        "description" : "Permiso: replenishment:run:read.",
+        "operationId" : "list",
+        "parameters" : [ {
+          "description" : "Filtro por alcance (GLOBAL, STORE, CATEGORY o PRODUCT).",
+          "in" : "query",
+          "name" : "scope",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "GLOBAL", "STORE", "CATEGORY", "PRODUCT" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "Filas de parámetros ordenadas por id"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR si el alcance no existe"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          }
+        },
+        "summary" : "Listar parámetros de reabastecimiento",
+        "tags" : [ "Replenishment" ]
+      },
+      "put" : {
+        "description" : "Permiso: replenishment:params:manage (sensible, auditado). Un valor null hereda del nivel superior.",
+        "operationId" : "upsert",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplenishmentParamsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                }
+              }
+            },
+            "description" : "Fila creada o actualizada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rangos o coherencia de alcance)"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentParamsResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND si el local, la categoría o el producto no existen"
+          }
+        },
+        "summary" : "Crear o reemplazar parámetros por alcance",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/params/{id}" : {
+      "delete" : {
+        "description" : "Permiso: replenishment:params:manage (sensible, auditado). La fila GLOBAL no se puede borrar (409 ENTITY_IN_USE).",
+        "operationId" : "delete",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "204" : {
+            "description" : "Fila borrada"
+          },
+          "403" : {
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "description" : "NOT_FOUND si la fila no existe"
+          },
+          "409" : {
+            "description" : "ENTITY_IN_USE si es la fila GLOBAL"
+          }
+        },
+        "summary" : "Borrar parámetros por alcance",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/runs" : {
+      "get" : {
+        "description" : "Permiso: replenishment:run:read.",
+        "operationId" : "listRuns",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "Página de corridas"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por paginación u orden inválido"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          }
+        },
+        "summary" : "Listar corridas",
+        "tags" : [ "Replenishment" ]
+      },
+      "post" : {
+        "description" : "Permiso: replenishment:run:execute. [I] Idempotency-Key obligatoria; síncrono en el MVP: refresca el agregado diario del rango y luego calcula C.5.",
+        "operationId" : "run",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RunRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "Corrida completada con sus líneas"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (fecha futura, Idempotency-Key)"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "IDEMPOTENCY_CONFLICT / IDEMPOTENCY_IN_PROGRESS"
+          }
+        },
+        "summary" : "Ejecutar corrida de reabastecimiento",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/runs/{id}" : {
+      "get" : {
+        "description" : "Permiso: replenishment:run:read.",
+        "operationId" : "getRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "Corrida con conteo por estado"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReplenishmentRunResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND si la corrida no pertenece al local"
+          }
+        },
+        "summary" : "Obtener corrida",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/runs/{id}/lines" : {
+      "get" : {
+        "description" : "Permiso: replenishment:run:read. Costos visibles solo con catalog:cost:read.",
+        "operationId" : "listLines_1",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Filtro por estado de la línea.",
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "SUGGESTED", "NO_ACTION", "NO_SUPPLIER", "EXCLUDED", "ACCEPTED", "DISCARDED" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro por proveedor elegido.",
+          "in" : "query",
+          "name" : "supplierId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Filtro por flag del cálculo (una sola).",
+          "in" : "query",
+          "name" : "flag",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "NEW_PRODUCT", "SHORT_HISTORY", "CENSORED_DAYS", "OUTLIERS_CAPPED", "SHORT_SHELF_LIFE", "CAPPED_BY_UPPER", "ZERO_DEMAND", "MOQ_APPLIED", "LEAD_TIME_ZERO" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Filtro por categoría del producto (directa o padre).",
+          "in" : "query",
+          "name" : "categoryId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "Página de líneas"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por paginación, orden o filtros inválidos"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseReplenishmentLineResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND si la corrida no pertenece al local"
+          }
+        },
+        "summary" : "Listar líneas de la corrida",
+        "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/replenishment/runs/{id}/purchase-orders" : {
+      "post" : {
+        "description" : "Permisos: replenishment:run:execute + purchasing:order:create. [I] Idempotency-Key obligatoria. Una OC DRAFT por proveedor con origin=REPLENISHMENT y trazabilidad de la corrida.",
+        "operationId" : "generateDrafts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GenerateDraftsRequest"
+              }
+            }
+          }
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedOrdersResponse"
+                }
+              }
+            },
+            "description" : "Borradores creados"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedOrdersResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (líneas inválidas, Idempotency-Key)"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedOrdersResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedOrdersResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND si la corrida no pertenece al local"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GeneratedOrdersResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE_TRANSITION / IDEMPOTENCY_CONFLICT / IDEMPOTENCY_IN_PROGRESS"
+          }
+        },
+        "summary" : "Generar borradores de OC desde la corrida",
+        "tags" : [ "Replenishment" ]
+      }
+    },
     "/api/v1/roles" : {
       "get" : {
         "description" : "Permiso: security:role:read. Errores: UNAUTHENTICATED, ACCESS_DENIED, VALIDATION_ERROR.",
@@ -10880,10 +13723,147 @@
         "tags" : [ "Security" ]
       }
     },
+    "/api/v1/sale-returns" : {
+      "get" : {
+        "description" : "Permiso: sales:sale:read. Alcance P: los cajeros ven solo devoluciones de sus ventas.",
+        "operationId" : "list_22",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "returnType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "VOID", "RETURN" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "saleId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseSaleReturnResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Listar anulaciones y devoluciones",
+        "tags" : [ "Sale Returns" ]
+      }
+    },
+    "/api/v1/sale-returns/{id}" : {
+      "get" : {
+        "description" : "Permiso: sales:sale:read. Alcance P: devoluciones de ventas ajenas responden 404.",
+        "operationId" : "getById_7",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SaleReturnResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Obtener anulación o devolución por id",
+        "tags" : [ "Sale Returns" ]
+      }
+    },
+    "/api/v1/sale-returns/{id}/tax-document" : {
+      "get" : {
+        "description" : "Permiso: sales:sale:read. Responde 204 No Content si aún no se emite.",
+        "operationId" : "getBySaleReturnId",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Nota de crédito emitida"
+          },
+          "204" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Nota de crédito aún pendiente de emisión asíncrona"
+          }
+        },
+        "summary" : "Obtener nota de crédito de una devolución",
+        "tags" : [ "Billing" ]
+      }
+    },
     "/api/v1/sales" : {
       "get" : {
         "description" : "Permiso: sales:sale:read. Alcance P: los cajeros ven solo sus propias ventas.",
-        "operationId" : "list_7",
+        "operationId" : "list_8",
         "parameters" : [ {
           "in" : "query",
           "name" : "from",
@@ -10990,7 +13970,7 @@
         "tags" : [ "Sales" ]
       },
       "post" : {
-        "description" : "Permiso: sales:pos:operate. Idempotente ([I]) y ligado a terminal ([T]). Acepta múltiples tokens en X-Override-Token separados por coma. En Fase 1 rechaza CUSTOMER_CREDIT con 400 VALIDATION_ERROR.",
+        "description" : "Permiso: sales:pos:operate (más customers:credit:sell si el pago es fiado). Idempotente ([I]) y ligado a terminal ([T]). Acepta múltiples tokens en X-Override-Token separados por coma. El fiado exige cliente con crédito habilitado; sobre el cupo requiere override CREDIT_OVER_LIMIT.",
         "operationId" : "create_8",
         "parameters" : [ {
           "in" : "header",
@@ -11065,7 +14045,7 @@
     "/api/v1/sales/{id}" : {
       "get" : {
         "description" : "Permiso: sales:sale:read. Alcance P: ventas ajenas responden 404 NOT_FOUND.",
-        "operationId" : "getById_5",
+        "operationId" : "getById_6",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -11088,6 +14068,38 @@
           }
         },
         "summary" : "Obtener venta por id",
+        "tags" : [ "Sales" ]
+      }
+    },
+    "/api/v1/sales/{id}/email" : {
+      "post" : {
+        "description" : "Permiso: sales:pos:operate. Encola el correo en la outbox de notificación y responde 202 Accepted; si el SMTP está caído la venta no falla y el job de la outbox reintenta el envío (HU-POS-11).",
+        "operationId" : "emailTicket",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EmailTicketRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "Enviar comprobante de venta por correo",
         "tags" : [ "Sales" ]
       }
     },
@@ -11127,6 +14139,138 @@
         "tags" : [ "Sales" ]
       }
     },
+    "/api/v1/sales/{id}/returnable" : {
+      "get" : {
+        "description" : "Permiso: sales:pos:operate. Alcance P: ventas ajenas responden 404 NOT_FOUND.",
+        "operationId" : "returnable",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SaleReturnableLinesResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Consultar líneas devolvibles de una venta",
+        "tags" : [ "Sale Returns" ]
+      }
+    },
+    "/api/v1/sales/{id}/returns" : {
+      "post" : {
+        "description" : "Permiso: sales:return:create (o sales:pos:operate con override SALE_RETURN, sujeto a límite RETURN_MAX_AMOUNT). Idempotente ([I]) y ligado a terminal ([T]).",
+        "operationId" : "createReturn",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-Override-Token",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaleReturnRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SaleReturnResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Registrar devolución de venta",
+        "tags" : [ "Sale Returns" ]
+      }
+    },
+    "/api/v1/sales/{id}/tax-document" : {
+      "get" : {
+        "description" : "Permiso: sales:pos:operate. Alcance P: los cajeros solo consultan sus propias ventas. Responde 204 No Content si aún no se emite.",
+        "operationId" : "getBySaleId",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Documento tributario emitido"
+          },
+          "204" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Documento aún pendiente de emisión asíncrona"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          }
+        },
+        "summary" : "Obtener documento tributario de una venta",
+        "tags" : [ "Billing" ]
+      }
+    },
     "/api/v1/sales/{id}/ticket" : {
       "get" : {
         "description" : "Permiso: sales:pos:operate. La primera impresión es libre; aplica alcance P.",
@@ -11156,10 +14300,64 @@
         "tags" : [ "Sales" ]
       }
     },
+    "/api/v1/sales/{id}/void" : {
+      "post" : {
+        "description" : "Permiso: sales:sale:void (o sales:pos:operate con override SALE_VOID). Idempotente ([I]) y ligado a terminal ([T]). Valida RN-12 (turno original abierto).",
+        "operationId" : "voidSale",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "X-Override-Token",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaleVoidRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "201" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SaleReturnResponse"
+                }
+              }
+            },
+            "description" : "Created"
+          }
+        },
+        "summary" : "Anular venta completa",
+        "tags" : [ "Sale Returns" ]
+      }
+    },
     "/api/v1/scale-barcode-configs" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list_6",
+        "operationId" : "list_7",
         "responses" : {
           "200" : {
             "content" : {
@@ -11248,7 +14446,7 @@
     },
     "/api/v1/settings" : {
       "get" : {
-        "operationId" : "list_17",
+        "operationId" : "list_21",
         "parameters" : [ {
           "in" : "query",
           "name" : "scope",
@@ -11343,7 +14541,7 @@
     "/api/v1/shrinkages" : {
       "get" : {
         "description" : "Permiso: shrinkage:record:read. Filtros opcionales por status, shrinkageType, productId, from y to.",
-        "operationId" : "list_5",
+        "operationId" : "list_6",
         "parameters" : [ {
           "description" : "Filtrar por estado.",
           "in" : "query",
@@ -11523,7 +14721,7 @@
     "/api/v1/shrinkages/{id}" : {
       "get" : {
         "description" : "Permiso: shrinkage:record:read.",
-        "operationId" : "getById_4",
+        "operationId" : "getById_5",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -11738,7 +14936,7 @@
     "/api/v1/stock" : {
       "get" : {
         "description" : "Permiso: inventory:stock:read",
-        "operationId" : "list_16",
+        "operationId" : "list_20",
         "parameters" : [ {
           "in" : "query",
           "name" : "q",
@@ -11815,7 +15013,7 @@
     "/api/v1/stock-adjustments" : {
       "get" : {
         "description" : "Permiso: inventory:adjustment:create. Filtros opcionales por status, from y to en zona horaria de negocio.",
-        "operationId" : "list_4",
+        "operationId" : "list_5",
         "parameters" : [ {
           "description" : "Filtrar por estado del ajuste.",
           "in" : "query",
@@ -11977,7 +15175,7 @@
     "/api/v1/stock-adjustments/{id}" : {
       "get" : {
         "description" : "Permiso: inventory:adjustment:create.",
-        "operationId" : "getById_3",
+        "operationId" : "getById_4",
         "parameters" : [ {
           "in" : "path",
           "name" : "id",
@@ -12192,7 +15390,7 @@
     "/api/v1/stock-transfers" : {
       "get" : {
         "description" : "Permiso: inventory:transfer:read. Filtra por dirección (in/out) respecto al local activo X-Store-Id, estado y rango de fechas.",
-        "operationId" : "list_3",
+        "operationId" : "list_4",
         "parameters" : [ {
           "description" : "Dirección respecto al local activo (in o out).",
           "in" : "query",
@@ -12787,7 +15985,7 @@
     },
     "/api/v1/stores" : {
       "get" : {
-        "operationId" : "list_2",
+        "operationId" : "list_3",
         "parameters" : [ {
           "in" : "query",
           "name" : "active",
@@ -13041,7 +16239,7 @@
     "/api/v1/suppliers" : {
       "get" : {
         "description" : "Permiso: purchasing:supplier:read. Filtra por texto libre (RUT o nombre) y estado.",
-        "operationId" : "list_1",
+        "operationId" : "list_2",
         "parameters" : [ {
           "description" : "Búsqueda por RUT, razón social o nombre de fantasía.",
           "in" : "query",
@@ -13482,10 +16680,205 @@
         "tags" : [ "Purchasing" ]
       }
     },
+    "/api/v1/tax-documents" : {
+      "get" : {
+        "description" : "Permiso: sales:tax-document:read. Filtra por estado, tipo, rango de fechas y folio.",
+        "operationId" : "list_19",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "PENDING", "ISSUED", "REJECTED", "ERROR" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "documentType",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "BOLETA", "BOLETA_EXENTA", "CREDIT_NOTE" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "folio",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "size",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseTaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Página de documentos tributarios"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseTaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageResponseTaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Listar documentos tributarios",
+        "tags" : [ "Billing" ]
+      }
+    },
+    "/api/v1/tax-documents/{id}" : {
+      "get" : {
+        "description" : "Permiso: sales:tax-document:read.",
+        "operationId" : "getById_3",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Documento tributario"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          }
+        },
+        "summary" : "Obtener documento tributario por id",
+        "tags" : [ "Billing" ]
+      }
+    },
+    "/api/v1/tax-documents/{id}/retry" : {
+      "post" : {
+        "description" : "Permiso: sales:tax-document:retry. Solo permitido en estado ERROR o REJECTED; conserva el folio original y audita TAX_DOCUMENT_RETRIED.",
+        "operationId" : "retry",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "Documento actualizado tras el reintento"
+          },
+          "404" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "NOT_FOUND"
+          },
+          "409" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/TaxDocumentResponse"
+                }
+              }
+            },
+            "description" : "INVALID_STATE_TRANSITION"
+          }
+        },
+        "summary" : "Reintentar emisión de documento tributario",
+        "tags" : [ "Billing" ]
+      }
+    },
     "/api/v1/taxes" : {
       "get" : {
         "description" : "Permiso: catalog:product:read",
-        "operationId" : "list",
+        "operationId" : "list_1",
         "responses" : {
           "200" : {
             "content" : {

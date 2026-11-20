@@ -74,4 +74,31 @@ public interface StockApi {
      * @return mapa {@code productId -> cantidad en tránsito} (vacío en Fase 1)
      */
     Map<Long, BigDecimal> inTransitInbound(Long storeId);
+
+    /**
+     * Consulta los límites de stock configurados ({@code min_qty} y {@code max_qty}) de un
+     * producto en un local.
+     *
+     * <p>Los usa {@code replenishment} para armar la entrada del calculador (C.2: los topes
+     * {@code min_qty}/{@code max_qty} provienen de {@code stock}).
+     *
+     * @param storeId   identificador del local
+     * @param productId identificador del producto
+     * @return límites configurados; los valores sin configurar son {@code null}
+     * @since T80 (reabastecimiento)
+     */
+    StockLimits limits(Long storeId, Long productId);
+
+    /**
+     * Límites de stock configurados de un producto en un local ({@code stock.min_qty/max_qty}).
+     *
+     * @param minQuantity stock mínimo, o {@code null} si no está configurado
+     * @param maxQuantity stock máximo, o {@code null} si no está configurado
+     */
+    record StockLimits(BigDecimal minQuantity, BigDecimal maxQuantity) {
+
+        /** Límites vacíos (sin configuración). */
+        public static final StockLimits EMPTY = new StockLimits(null, null);
+    }
 }
+

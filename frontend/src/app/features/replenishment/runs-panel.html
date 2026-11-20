@@ -1,0 +1,54 @@
+<section class="panel">
+  <div class="panel-toolbar">
+    <p class="subtitle">
+      Sugerencias de reabastecimiento calculadas para
+      {{ storeContext.activeStore()?.name ?? 'el local activo' }}.
+    </p>
+
+    @if (canExecute()) {
+      <button mat-flat-button type="button" (click)="executeRun()" [disabled]="executing()">
+        <mat-icon>play_arrow</mat-icon>
+        {{ executing() ? 'Ejecutando…' : 'Ejecutar corrida' }}
+      </button>
+    }
+  </div>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Corridas de reabastecimiento"
+    emptyMessage="No hay corridas registradas; ejecuta la primera para generar sugerencias."
+  />
+
+  <ng-template #startedTpl let-row>
+    <span>{{ startedText(row) }}</span>
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <div class="status-cell">
+      <span
+        class="badge"
+        [class.badge--running]="row.status === 'RUNNING'"
+        [class.badge--completed]="row.status === 'COMPLETED'"
+        [class.badge--failed]="row.status === 'FAILED'"
+      >
+        {{ statusText(row) }}
+      </span>
+      @if (row.status === 'FAILED' && row.error) {
+        <span class="error-detail">{{ row.error }}</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #countsTpl let-row>
+    <button
+      mat-button
+      type="button"
+      class="detail-link"
+      (click)="openDetail(row)"
+      [disabled]="row.id === undefined"
+    >
+      <span class="counts-summary">{{ countsText(row) || '—' }}</span>
+    </button>
+  </ng-template>
+</section>

@@ -302,7 +302,7 @@ Las filas `/catalog/imports*` y `/products/export` pertenecen al módulo `dataex
 | GET | /replenishment/runs/{id} | replenishment:run:read | — | ReplenishmentRunResponse | |
 | GET | /replenishment/runs/{id}/lines | replenishment:run:read | — | Page<ReplenishmentLineResponse> | f: status, supplierId, flag, categoryId |
 | PATCH | /replenishment/lines/{id} | replenishment:run:execute | ReplenishmentLineUpdateRequest | ReplenishmentLineResponse | Si ya está en una OC → ST |
-| POST | /replenishment/runs/{id}/purchase-orders | replenishment:run:execute + purchasing:order:create | GenerateDraftsRequest | GeneratedOrdersResponse | Una OC DRAFT por proveedor (C.5) |
+| POST | /replenishment/runs/{id}/purchase-orders | replenishment:run:execute + purchasing:order:create | GenerateDraftsRequest | GeneratedOrdersResponse | [I]; Una OC DRAFT por proveedor (C.5) |
 
 **Reporting.** Todos aceptan `ReportFilter` y `/export?format=xlsx|pdf` ([+report:export:execute]).
 | Método | Ruta | Permiso | Response | Filtros extra |

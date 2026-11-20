@@ -392,26 +392,10 @@ class SaleControllerIT extends AbstractIntegrationIT {
     }
 
     @Test
-    void customerCreditRejectedInPhase1AndPaymentMismatchReturns422() throws Exception {
+    void paymentMismatchWithoutCashReturns422() throws Exception {
         long productId = createProduct("VTA4-" + suffix, "Arroz 1kg " + suffix,
                 "UNIT", "UNIT", 1500, new BigDecimal("900.0000"), null, null);
         addInitialStock(productId, new BigDecimal("10.000"), new BigDecimal("900.0000"));
-
-        // Fase 1 rechaza CUSTOMER_CREDIT con 400 VALIDATION_ERROR
-        mvc.perform(post("/api/v1/sales")
-                        .header("X-Store-Id", storeId)
-                        .header("X-Terminal-Id", terminalId)
-                        .header("Idempotency-Key", UUID.randomUUID().toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                  "lines": [{ "productId": %d, "quantity": 1 }],
-                                  "payments": [{ "method": "CUSTOMER_CREDIT", "amount": 1500 }]
-                                }
-                                """.formatted(productId))
-                        .with(cashierAuth(cashierId)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
         // Pago insuficiente -> 422 PAYMENT_MISMATCH
         mvc.perform(post("/api/v1/sales")

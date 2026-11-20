@@ -1,0 +1,60 @@
+<h2 mat-dialog-title>Configurar fiado</h2>
+
+<mat-dialog-content>
+  <p class="customer-line">
+    Cliente: <strong>{{ data.customer.name }}</strong>
+    @if (data.customer.creditBalance) {
+      — deuda actual: {{ data.customer.creditBalance | clp }}
+    }
+  </p>
+
+  @if (errorMessage(); as message) {
+    <div class="alert" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="credit-form">
+    <div class="toggle-row">
+      <mat-slide-toggle formControlName="creditEnabled">
+        Fiado habilitado (puede comprar a crédito)
+      </mat-slide-toggle>
+    </div>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Cupo de crédito (CLP)</mat-label>
+      <input
+        matInput
+        type="number"
+        formControlName="creditLimit"
+        min="0"
+        [disabled]="!form.controls.creditEnabled.value"
+      />
+      @if (form.controls.creditLimit.hasError('required')) {
+        <mat-error>El cupo es obligatorio.</mat-error>
+      } @else if (form.controls.creditLimit.hasError('min')) {
+        <mat-error>El cupo no puede ser negativo.</mat-error>
+      } @else if (form.controls.creditLimit.hasError('limitExceeded')) {
+        <mat-error>El cupo excede el máximo asignable para tu rol.</mat-error>
+      } @else if (form.controls.creditLimit.hasError('server')) {
+        <mat-error>{{ form.controls.creditLimit.getError('server') }}</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Motivo del cambio (auditoría)</mat-label>
+      <textarea matInput formControlName="reason" rows="2" maxlength="500"></textarea>
+      @if (form.controls.reason.hasError('required')) {
+        <mat-error>Indica un motivo del cambio: queda registrado en la auditoría.</mat-error>
+      }
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">Cancelar</button>
+  <button mat-flat-button type="button" (click)="submit()" [disabled]="saving()">
+    Guardar configuración
+  </button>
+</mat-dialog-actions>

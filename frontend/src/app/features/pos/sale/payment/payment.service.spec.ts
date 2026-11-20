@@ -250,4 +250,143 @@ describe('PaymentService y PosPaymentDialog', () => {
       await expect(closedPromise).resolves.toBeUndefined();
     }, 20000);
   });
+
+  describe('Fiado CUSTOMER_CREDIT (HU-POS-16)', () => {
+    /** Abre el modal de cobro con una venta de $5.000 para el cliente 7 (con fiado). */
+    function openDialog(overrides: Partial<PosPaymentDialogData>): void {
+      const data: PosPaymentDialogData = {
+        cartLines: [{ productId: 1, quantity: 1 }],
+        totalDiscount: null,
+        customerId: 7,
+        ageConfirmed: false,
+        totalGross: 5000,
+        idempotencyKey: 'idem-fiado-1',
+        initialOverrideTokens: [],
+        ...overrides,
+      };
+      TestBed.inject(MatDialog).open(PosPaymentDialog, { data });
+    }
+
+    it('no ofrece el fiado cuando el cliente no lo tiene habilitado', async () => {
+      openDialog({ customerCreditEnabled: false });
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).not.toBeNull();
+      });
+      const dialogEl = document.querySelector<HTMLElement>('pos-payment-dialog')!;
+      expect(dialogEl.querySelector('[data-testid="add-credit-payment-btn"]')).toBeNull();
+
+      dialogEl.querySelector<HTMLButtonElement>('[data-testid="cancel-payment-btn"]')!.click();
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).toBeNull();
+      });
+    });
+
+    it('agrega fiado por el total, registra el cargo y envía CUSTOMER_CREDIT con customerId', async () => {
+      openDialog({ customerCreditEnabled: true });
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).not.toBeNull();
+      });
+      const dialogEl = document.querySelector<HTMLElement>('pos-payment-dialog')!;
+
+      // El monto a fiado viene prefijado con el total de la venta.
+      const amountInput = dialogEl.querySelector<HTMLInputElement>(
+        '[data-testid="credit-amount-input"]',
+      )!;
+      expect(amountInput.value).toBe('5000');
+
+      dialogEl.querySelector<HTMLButtonElement>('[data-testid="add-credit-payment-btn"]')!.click();
+      TestBed.tick();
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        // El cargo queda registrado y el total cubierto sin efectivo.
+        expect(
+          dialogEl.querySelector('[data-testid="added-credit-payment"]')?.textContent,
+        ).toContain('$5.000');
+        expect(dialogEl.querySelector('[data-testid="payment-fully-covered"]')).not.toBeNull();
+        // Con el cargo ya agregado, el formulario de captura desaparece.
+        expect(dialogEl.querySelector('[data-testid="credit-amount-input"]')).toBeNull();
+      });
+
+      const confirmBtn = dialogEl.querySelector<HTMLButtonElement>(
+        '[data-testid="confirm-payment-btn"]',
+      )!;
+      expect(confirmBtn.disabled).toBe(false);
+      confirmBtn.click();
+
+      const createSaleReq = http!.expectOne('/api/v1/sales');
+      expect(createSaleReq.request.method).toBe('POST');
+      // F.2/F.3: con CUSTOMER_CREDIT la venta exige `customerId` y el monto aplicado.
+      expect(createSaleReq.request.body.customerId).toBe(7);
+      expect(createSaleReq.request.body.payments).toEqual([
+        { method: 'CUSTOMER_CREDIT', amount: 5000 },
+      ]);
+      createSaleReq.flush(jsonBlob({ id: 950, number: 'V-00950', totalPayable: 5000 }));
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).toBeNull();
+      });
+    }, 20000);
+
+    it('valida el monto contra el saldo pendiente y permite fiado parcial combinado con efectivo', async () => {
+      openDialog({ customerCreditEnabled: true });
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).not.toBeNull();
+      });
+      const dialogEl = document.querySelector<HTMLElement>('pos-payment-dialog')!;
+      const amountInput = dialogEl.querySelector<HTMLInputElement>(
+        '[data-testid="credit-amount-input"]',
+      )!;
+
+      // Monto mayor al saldo pendiente: error en línea, sin registrar el cargo.
+      amountInput.value = '9999';
+      amountInput.dispatchEvent(new Event('input'));
+      TestBed.tick();
+      dialogEl.querySelector<HTMLButtonElement>('[data-testid="add-credit-payment-btn"]')!.click();
+      TestBed.tick();
+      expect(dialogEl.querySelector('[data-testid="payment-error-banner"]')?.textContent).toContain(
+        'supera el saldo pendiente',
+      );
+      expect(dialogEl.querySelector('[data-testid="added-credit-payment"]')).toBeNull();
+
+      // Fiado parcial de $2.000: queda efectivo por cobrar de $3.000.
+      amountInput.value = '2000';
+      amountInput.dispatchEvent(new Event('input'));
+      TestBed.tick();
+      dialogEl.querySelector<HTMLButtonElement>('[data-testid="add-credit-payment-btn"]')!.click();
+      TestBed.tick();
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(
+          dialogEl.querySelector('[data-testid="added-credit-payment"]')?.textContent,
+        ).toContain('$2.000');
+        expect(dialogEl.querySelector('[data-testid="cash-payable-pill"]')?.textContent).toContain(
+          '$3.000',
+        );
+      });
+
+      dialogEl.querySelector<HTMLButtonElement>('[data-testid="confirm-payment-btn"]')!.click();
+
+      const createSaleReq = http!.expectOne('/api/v1/sales');
+      expect(createSaleReq.request.body.payments).toEqual([
+        { method: 'CUSTOMER_CREDIT', amount: 2000 },
+        { method: 'CASH', amount: 3000, tenderedAmount: 3000 },
+      ]);
+      createSaleReq.flush(jsonBlob({ id: 951, number: 'V-00951', totalPayable: 5000 }));
+
+      await vi.waitFor(() => {
+        TestBed.tick();
+        expect(document.querySelector('pos-payment-dialog')).toBeNull();
+      });
+    }, 20000);
+  });
 });

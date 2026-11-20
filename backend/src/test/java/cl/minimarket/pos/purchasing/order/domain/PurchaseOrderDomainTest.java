@@ -1,5 +1,6 @@
 package cl.minimarket.pos.purchasing.order.domain;
 
+import cl.minimarket.pos.purchasing.PurchaseOrderOrigin;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;

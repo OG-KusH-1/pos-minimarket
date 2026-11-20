@@ -13,10 +13,10 @@ import cl.minimarket.pos.notification.EmailOutboxApi;
 import cl.minimarket.pos.notification.EmailOutboxApi.EmailMessage;
 import cl.minimarket.pos.purchasing.ProductSupplierApi;
 import cl.minimarket.pos.purchasing.ProductSupplierApi.ProductSupplierInfo;
+import cl.minimarket.pos.purchasing.PurchaseOrderOrigin;
 import cl.minimarket.pos.purchasing.order.application.PurchaseOrderQueryService.PurchaseOrderDetail;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrder;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderLine;
-import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderOrigin;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderRepository;
 import cl.minimarket.pos.purchasing.order.domain.PurchaseOrderStatus;
 import cl.minimarket.pos.purchasing.supplier.domain.Supplier;
@@ -99,8 +99,18 @@ public class PurchaseOrderService {
     public record LineCommand(
             Long productId,
             BigDecimal qtyPurchaseUnits,
-            BigDecimal unitCostNet
+            BigDecimal unitCostNet,
+            Long replenishmentLineId
     ) {
+
+        /**
+         * Constructor de conveniencia sin línea de reabastecimiento: es el que usa la
+         * creación y edición manual desde la web, donde el enlace
+         * {@code replenishment_line_id} no existe.
+         */
+        public LineCommand(Long productId, BigDecimal qtyPurchaseUnits, BigDecimal unitCostNet) {
+            this(productId, qtyPurchaseUnits, unitCostNet, null);
+        }
     }
 
     /** Comando de creación o actualización de una orden de compra. */
@@ -113,11 +123,43 @@ public class PurchaseOrderService {
     ) {
     }
 
-    /** Crea una orden de compra en estado {@code DRAFT} para el local activo. */
+    /**
+     * Crea una orden de compra en estado {@code DRAFT} para el local activo, de origen
+     * {@code MANUAL} (creación manual desde la web, {@code HU-PRV-03}).
+     */
     @Transactional
     public PurchaseOrderDetail create(SaveCommand command) {
         Objects.requireNonNull(command, "command");
         Long storeId = StoreContext.require().storeId();
+        Long id = createDraft(storeId, PurchaseOrderOrigin.MANUAL, null, command);
+        return queryService.getById(id, storeId);
+    }
+
+    /**
+     * Crea una orden de compra en estado {@code DRAFT} para el local y el origen
+     * indicados, sin depender de {@link StoreContext}.
+     *
+     * <p>Es el camino de creación que usa la API pública del módulo
+     * ({@code PurchaseOrderApi.createDrafts}, llamada por {@code replenishment} con
+     * {@code origin=REPLENISHMENT}); la creación manual delega aquí con
+     * {@code origin=MANUAL}. No audita, igual que la creación manual: la bitácora del
+     * módulo registra el envío y la cancelación, no el borrador.
+     *
+     * @param storeId            local para el que se crea la orden
+     * @param origin             origen de la orden (manual o reabastecimiento)
+     * @param replenishmentRunId corrida que originó el borrador (opcional; solo tiene
+     *                           sentido con {@code origin=REPLENISHMENT})
+     * @param command            datos de la orden (proveedor, fecha, notas y líneas)
+     * @return identificador de la orden creada
+     */
+    @Transactional
+    public Long createDraft(Long storeId,
+                            PurchaseOrderOrigin origin,
+                            Long replenishmentRunId,
+                            SaveCommand command) {
+        Objects.requireNonNull(command, "command");
+        Objects.requireNonNull(storeId, "storeId");
+        Objects.requireNonNull(origin, "origin");
 
         Supplier supplier = requireActiveSupplier(command.supplierId());
         validateExpectedDate(command.expectedDate());
@@ -127,14 +169,13 @@ public class PurchaseOrderService {
                 number,
                 storeId,
                 supplier.getId(),
-                PurchaseOrderOrigin.MANUAL,
-                null,
+                origin,
+                replenishmentRunId,
                 command.expectedDate(),
                 normalizeNotes(command.notes()));
 
         populateLinesAndTotals(order, supplier.getId(), command.lines());
-        PurchaseOrder saved = orderRepository.saveAndFlush(order);
-        return queryService.getById(saved.getId(), storeId);
+        return orderRepository.saveAndFlush(order).getId();
     }
 
     /** Actualiza una orden de compra existente; solo permitido en estado {@code DRAFT} (RN-18). */
@@ -366,7 +407,7 @@ public class PurchaseOrderService {
                     qtyOrdered,
                     unitCostNet,
                     lineNetTotal,
-                    null));
+                    cmdLine.replenishmentLineId()));
         }
 
         order.applyTotals(netTotal, taxTotal, netTotal.add(taxTotal));

@@ -11,8 +11,8 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { getById6 } from '../../../api/fn/audit/get-by-id-6';
-import { list21, List21$Params } from '../../../api/fn/audit/list-21';
+import { getById8 } from '../../../api/fn/audit/get-by-id-8';
+import { list26, List26$Params } from '../../../api/fn/audit/list-26';
 import { verify } from '../../../api/fn/audit/verify';
 import { listUsers } from '../../../api/fn/security/list-users';
 import { AuditLogResponse } from '../../../api/models/audit-log-response';
@@ -112,15 +112,15 @@ export class AuditService {
 
   /** Consulta paginada de la bitácora de auditoría con filtros y orden en servidor (`HU-SEG-08`). */
   listLogs(
-    params?: List21$Params,
+    params?: List26$Params,
     context?: HttpContext,
   ): Observable<PageResponseAuditLogResponse> {
-    return unwrapApiResponse(list21(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list26(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de un registro de auditoría por su identificador (`HU-SEG-08`). */
   getLog(id: number, context?: HttpContext): Observable<AuditLogResponse> {
-    return unwrapApiResponse(getById6(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(getById8(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 
   /**

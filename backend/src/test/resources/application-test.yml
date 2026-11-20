@@ -11,6 +11,14 @@ spring:
   mail:
     host: localhost
     port: 3025
+  task:
+    execution:
+      pool:
+        # Un solo hilo para los listeners @Async (p. ej. @ApplicationModuleListener de billing):
+        # preserva el orden de publicación de eventos y evita tests flaky por carreras de folios.
+        core-size: 1
+        max-size: 1
+        queue-capacity: 1000
 
 springdoc:
   api-docs:

@@ -1,0 +1,332 @@
+<h2 mat-dialog-title>{{ isEdit ? 'Editar promoción' : 'Nueva promoción' }}</h2>
+
+@if (loading() || saving()) {
+  <mat-progress-bar mode="indeterminate" />
+}
+
+<mat-dialog-content>
+  @if (errorMessage(); as message) {
+    <div class="error-banner" role="alert">
+      <mat-icon aria-hidden="true">error_outline</mat-icon>
+      <span>{{ message }}</span>
+      @if (concurrentConflict()) {
+        <button mat-stroked-button type="button" (click)="reloadPromotion()">Recargar datos</button>
+      }
+    </div>
+  }
+
+  <form [formGroup]="form" class="promotion-form" (ngSubmit)="submit()">
+    <div class="grid-two">
+      <mat-form-field appearance="outline">
+        <mat-label>Nombre visible</mat-label>
+        <input matInput formControlName="name" maxlength="120" required />
+        @if (form.controls.name.hasError('required')) {
+          <mat-error>El nombre es obligatorio.</mat-error>
+        } @else if (form.controls.name.hasError('minlength')) {
+          <mat-error>Debe tener al menos 3 caracteres.</mat-error>
+        } @else if (form.controls.name.hasError('server')) {
+          <mat-error>{{ form.controls.name.getError('server') }}</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Tipo de promoción</mat-label>
+        <mat-select formControlName="promotionType" required>
+          @for (option of promotionTypeOptions; track option.value) {
+            <mat-option [value]="option.value">{{ option.label }}</mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Descripción</mat-label>
+      <textarea matInput formControlName="description" rows="2" maxlength="500"></textarea>
+    </mat-form-field>
+
+    <div class="grid-three">
+      <mat-form-field appearance="outline">
+        <mat-label>Prioridad</mat-label>
+        <input matInput type="number" formControlName="priority" min="1" max="1000" />
+        <mat-hint>Menor número se evalúa primero (1 a 1000).</mat-hint>
+        @if (
+          form.controls.priority.hasError('required') ||
+          form.controls.priority.hasError('min') ||
+          form.controls.priority.hasError('max') ||
+          form.controls.priority.hasError('integer')
+        ) {
+          <mat-error>Ingresa un entero entre 1 y 1000.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Máximo de aplicaciones por venta</mat-label>
+        <input matInput type="number" formControlName="maxApplicationsPerSale" min="1" />
+        <mat-hint>Opcional. Dejar vacío = sin límite.</mat-hint>
+        @if (
+          form.controls.maxApplicationsPerSale.hasError('min') ||
+          form.controls.maxApplicationsPerSale.hasError('integer')
+        ) {
+          <mat-error>Debe ser un entero mayor o igual a 1.</mat-error>
+        }
+      </mat-form-field>
+
+      <div class="checkbox-block">
+        <mat-checkbox formControlName="stackable">Acumulable con otras promociones</mat-checkbox>
+      </div>
+    </div>
+
+    <!-- Campos dinámicos según el tipo de promoción (CK por tipo en B.10). -->
+    @switch (form.controls.promotionType.value) {
+      @case ('PERCENT') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Porcentaje de descuento (%)</mat-label>
+          <input
+            matInput
+            type="number"
+            formControlName="percent"
+            min="0.01"
+            max="100"
+            step="0.01"
+          />
+          <mat-hint>Descuento porcentual sobre el precio, entre 0% (exclusivo) y 100%.</mat-hint>
+          @if (form.controls.percent.hasError('required')) {
+            <mat-error>El porcentaje es obligatorio.</mat-error>
+          } @else if (form.controls.percent.hasError('positive')) {
+            <mat-error>Debe ser mayor que 0.</mat-error>
+          } @else if (form.controls.percent.hasError('max')) {
+            <mat-error>No puede superar 100.</mat-error>
+          }
+        </mat-form-field>
+      }
+      @case ('FIXED_AMOUNT') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Monto de descuento (CLP)</mat-label>
+          <input matInput type="number" formControlName="amount" min="1" />
+          <mat-hint>Descuento fijo en pesos por línea aplicable.</mat-hint>
+          @if (form.controls.amount.hasError('required')) {
+            <mat-error>El monto es obligatorio.</mat-error>
+          } @else {
+            <mat-error>Debe ser un monto mayor que 0.</mat-error>
+          }
+        </mat-form-field>
+      }
+      @case ('BUY_X_PAY_Y') {
+        <div class="grid-two">
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad que se lleva (N)</mat-label>
+            <input matInput type="number" formControlName="buyQty" min="2" />
+            <mat-hint>Ejemplo: 3 en un 3×2.</mat-hint>
+            @if (form.controls.buyQty.hasError('required')) {
+              <mat-error>La cantidad es obligatoria.</mat-error>
+            } @else {
+              <mat-error>Debe ser un entero mayor que 0.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad que se paga (M)</mat-label>
+            <input matInput type="number" formControlName="payQty" min="1" />
+            <mat-hint>Debe ser menor que la cantidad que se lleva.</mat-hint>
+            @if (form.controls.payQty.hasError('required')) {
+              <mat-error>La cantidad es obligatoria.</mat-error>
+            } @else if (form.controls.payQty.hasError('payQtyNotLowerThanBuyQty')) {
+              <mat-error>M debe ser menor que N.</mat-error>
+            } @else {
+              <mat-error>Debe ser un entero mayor que 0.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      }
+      @case ('QUANTITY_PRICE') {
+        <div class="grid-two">
+          <mat-form-field appearance="outline">
+            <mat-label>Cantidad mínima</mat-label>
+            <input matInput type="number" formControlName="minQty" min="0.001" step="0.001" />
+            <mat-hint>Desde esta cantidad (admite decimales) aplica el precio especial.</mat-hint>
+            @if (form.controls.minQty.hasError('required')) {
+              <mat-error>La cantidad mínima es obligatoria.</mat-error>
+            } @else {
+              <mat-error>Debe ser mayor que 0.</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Precio unitario especial (CLP)</mat-label>
+            <input matInput type="number" formControlName="amount" min="1" />
+            @if (form.controls.amount.hasError('required')) {
+              <mat-error>El precio es obligatorio.</mat-error>
+            } @else {
+              <mat-error>Debe ser un monto mayor que 0.</mat-error>
+            }
+          </mat-form-field>
+        </div>
+      }
+      @case ('COMBO') {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Precio cerrado del combo (CLP)</mat-label>
+          <input matInput type="number" formControlName="comboPrice" min="1" />
+          <mat-hint>Precio total del combo; exige dos o más productos en los objetivos.</mat-hint>
+          @if (form.controls.comboPrice.hasError('required')) {
+            <mat-error>El precio del combo es obligatorio.</mat-error>
+          } @else {
+            <mat-error>Debe ser un monto mayor que 0.</mat-error>
+          }
+        </mat-form-field>
+      }
+    }
+
+    <fieldset class="section">
+      <legend>Objetivos</legend>
+      <p class="section-hint">
+        Productos, categorías o marcas a los que aplica la promoción.
+        @if (form.controls.promotionType.value === 'COMBO') {
+          Un combo exige dos o más productos concretos.
+        }
+      </p>
+
+      @if (items.hasError('itemsRequired') && items.touched) {
+        <p class="field-error" role="alert">Agrega al menos un objetivo.</p>
+      }
+      @if (items.hasError('comboNeedsTwoProducts') && items.touched) {
+        <p class="field-error" role="alert">Un combo requiere al menos dos productos.</p>
+      }
+      @if (items.hasError('comboOnlyProducts') && items.touched) {
+        <p class="field-error" role="alert">Un combo solo puede contener productos.</p>
+      }
+
+      <div formArrayName="items" class="items-array">
+        @for (item of items.controls; track $index) {
+          <div class="item-row" [formGroupName]="$index">
+            <mat-form-field appearance="outline" class="item-target-type">
+              <mat-label>Tipo</mat-label>
+              <mat-select formControlName="targetType">
+                @for (entry of targetTypeLabels | keyvalue; track entry.key) {
+                  <mat-option [value]="entry.key">{{ entry.value }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="item-target-id">
+              <mat-label>ID</mat-label>
+              <input matInput type="number" formControlName="targetId" min="1" />
+              <mat-hint>Identificador del producto, categoría o marca.</mat-hint>
+              @if (item.controls.targetId.hasError('required')) {
+                <mat-error>El ID es obligatorio.</mat-error>
+              }
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" class="item-required-qty">
+              <mat-label>Cantidad requerida</mat-label>
+              <input
+                matInput
+                type="number"
+                formControlName="requiredQty"
+                min="0.001"
+                step="0.001"
+              />
+              @if (item.controls.requiredQty.hasError('required')) {
+                <mat-error>La cantidad es obligatoria.</mat-error>
+              } @else if (item.controls.requiredQty.hasError('positive')) {
+                <mat-error>Debe ser mayor que 0.</mat-error>
+              }
+            </mat-form-field>
+
+            <button
+              mat-icon-button
+              type="button"
+              (click)="removeItem($index)"
+              [attr.aria-label]="'Quitar objetivo ' + ($index + 1)"
+              [disabled]="saving()"
+            >
+              <mat-icon aria-hidden="true">delete</mat-icon>
+            </button>
+          </div>
+        }
+      </div>
+
+      <button mat-stroked-button type="button" (click)="addItem()" [disabled]="saving()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Agregar objetivo
+      </button>
+    </fieldset>
+
+    <fieldset class="section">
+      <legend>Vigencia</legend>
+
+      <div class="grid-two">
+        <mat-form-field appearance="outline">
+          <mat-label>Desde (fecha y hora)</mat-label>
+          <input matInput type="datetime-local" formControlName="validFrom" required />
+          @if (form.controls.validFrom.hasError('required')) {
+            <mat-error>La fecha de inicio es obligatoria.</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Hasta (fecha y hora, opcional)</mat-label>
+          <input matInput type="datetime-local" formControlName="validTo" />
+          @if (form.controls.validTo.hasError('validToNotAfterValidFrom')) {
+            <mat-error>Debe ser posterior a la fecha de inicio.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Días de la semana</mat-label>
+        <mat-select formControlName="daysOfWeek" multiple>
+          @for (day of weekdays; track day.value) {
+            <mat-option [value]="day.value">{{ day.label }}</mat-option>
+          }
+        </mat-select>
+        <mat-hint>Sin selección = todos los días.</mat-hint>
+      </mat-form-field>
+
+      <div class="grid-two">
+        <mat-form-field appearance="outline">
+          <mat-label>Hora desde (opcional)</mat-label>
+          <input matInput type="time" formControlName="timeFrom" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Hora hasta (opcional)</mat-label>
+          <input matInput type="time" formControlName="timeTo" />
+          @if (form.controls.timeTo.hasError('timePairIncomplete')) {
+            <mat-error>Indica ambas horas o ninguna.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+    </fieldset>
+
+    <fieldset class="section">
+      <legend>Alcance por local</legend>
+      <mat-checkbox formControlName="allStores">Aplica a todos los locales</mat-checkbox>
+
+      @if (!form.controls.allStores.value) {
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Locales habilitados</mat-label>
+          <mat-select formControlName="storeIds" multiple>
+            @for (store of storeOptions(); track store.id) {
+              <mat-option [value]="store.id">{{ store.name }}</mat-option>
+            }
+          </mat-select>
+          @if (form.controls.storeIds.hasError('storeIdsRequired')) {
+            <mat-error>Selecciona al menos un local.</mat-error>
+          }
+        </mat-form-field>
+      }
+    </fieldset>
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" [mat-dialog-close]="null" [disabled]="saving()">Cancelar</button>
+  <button
+    mat-flat-button
+    type="button"
+    (click)="submit()"
+    [disabled]="loading() || saving() || form.invalid"
+  >
+    {{ isEdit ? 'Guardar cambios' : 'Crear promoción' }}
+  </button>
+</mat-dialog-actions>

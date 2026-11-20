@@ -1,0 +1,149 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <button mat-button type="button" class="back-link" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        Corridas
+      </button>
+      <h1>Detalle de corrida de reabastecimiento</h1>
+      <p class="subtitle">{{ runHeaderText() }}</p>
+    </div>
+
+    <div class="header-badges">
+      <span
+        class="badge"
+        [class.badge--running]="run()?.status === 'RUNNING'"
+        [class.badge--completed]="run()?.status === 'COMPLETED'"
+        [class.badge--failed]="run()?.status === 'FAILED'"
+      >
+        {{ runStatusText() }}
+      </span>
+      @if (runCountsText()) {
+        <span class="counts-summary">{{ runCountsText() }}</span>
+      }
+      @if (run()?.error) {
+        <span class="error-detail" role="alert">{{ run()?.error }}</span>
+      }
+    </div>
+
+    @if (canGenerate()) {
+      <button mat-flat-button type="button" (click)="generateDrafts()" [disabled]="mutating()">
+        <mat-icon>shopping_cart</mat-icon>
+        {{
+          selectedCount() > 0
+            ? 'Generar borradores (' + selectedCount() + ')'
+            : 'Generar borradores de OC'
+        }}
+      </button>
+    }
+  </header>
+
+  <form class="filters" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="status">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of lineStatusOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" subscriptSizing="dynamic">
+      <mat-label>Flag</mat-label>
+      <mat-select formControlName="flag">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (opt of lineFlagOptions; track opt.value) {
+          <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <div class="filter-actions">
+      <button mat-stroked-button type="submit">Filtrar</button>
+      <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+    </div>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Líneas de sugerencia de la corrida"
+    emptyMessage="No hay líneas para los filtros seleccionados."
+  />
+
+  <ng-template #selectTpl let-row>
+    <mat-checkbox
+      [checked]="isRowSelected(row)"
+      [disabled]="!isSelectable(row)"
+      (change)="toggleSelection(row, $event.checked)"
+      [attr.aria-label]="'Seleccionar ' + (row.product?.name ?? 'línea')"
+    />
+  </ng-template>
+
+  <ng-template #productTpl let-row>
+    <div class="product-cell">
+      <span class="product-name">{{ row.product?.name ?? '—' }}</span>
+      <span class="product-sku">{{ row.product?.sku ?? '' }}</span>
+    </div>
+  </ng-template>
+
+  <ng-template #supplierTpl let-row>
+    @if (row.supplier?.name) {
+      <span>{{ row.supplier.name }}</span>
+      @if (row.purchaseUnitName) {
+        <span class="muted">· {{ row.purchaseUnitName }}</span>
+      }
+    } @else {
+      <span class="muted">—</span>
+    }
+  </ng-template>
+
+  <ng-template #statusTpl let-row>
+    <span
+      class="badge"
+      [class.badge--suggested]="row.status === 'SUGGESTED'"
+      [class.badge--accepted]="row.status === 'ACCEPTED'"
+      [class.badge--discarded]="row.status === 'DISCARDED'"
+      [class.badge--info]="
+        row.status === 'NO_ACTION' || row.status === 'NO_SUPPLIER' || row.status === 'EXCLUDED'
+      "
+    >
+      {{ statusLabelFor(row) }}
+    </span>
+  </ng-template>
+
+  <ng-template #flagsTpl let-row>
+    @if (row.flags && row.flags.length > 0) {
+      <div class="flags-cell">
+        @for (flag of row.flags; track flag) {
+          <span class="flag-chip">{{ flagLabel(flag) }}</span>
+        }
+      </div>
+    } @else {
+      <span class="muted">—</span>
+    }
+  </ng-template>
+
+  <ng-template #finalUnitsTpl let-row>
+    @if (row.finalPurchaseUnits !== undefined && row.finalPurchaseUnits !== null) {
+      <span>{{ row.finalPurchaseUnits | qty }}</span>
+    } @else {
+      <span class="muted">—</span>
+    }
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    @if (canExecute() && isEditable(row)) {
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="openLineEditDialog(row)"
+        [disabled]="mutating()"
+      >
+        <mat-icon>edit</mat-icon>
+        Editar
+      </button>
+    }
+  </ng-template>
+</section>

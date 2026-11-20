@@ -11,13 +11,13 @@ import {
   throwError,
 } from 'rxjs';
 import { ApiConfiguration } from '../../../api/api-configuration';
-import { get2 } from '../../../api/fn/catalog/get-2';
-import { list9 } from '../../../api/fn/catalog/list-9';
+import { get3 } from '../../../api/fn/catalog/get-3';
+import { list11 } from '../../../api/fn/catalog/list-11';
 import { cancel1 } from '../../../api/fn/purchasing/cancel-1';
 import { create9 } from '../../../api/fn/purchasing/create-9';
 import { getById1 } from '../../../api/fn/purchasing/get-by-id-1';
-import { list1 } from '../../../api/fn/purchasing/list-1';
-import { list8, List8$Params } from '../../../api/fn/purchasing/list-8';
+import { list2 } from '../../../api/fn/purchasing/list-2';
+import { list9, List9$Params } from '../../../api/fn/purchasing/list-9';
 import { listBySupplier } from '../../../api/fn/purchasing/list-by-supplier';
 import { pdf } from '../../../api/fn/purchasing/pdf';
 import { receiptDraft } from '../../../api/fn/purchasing/receipt-draft';
@@ -126,10 +126,10 @@ export class PurchaseOrdersService {
 
   /** Lista órdenes de compra del local activo con filtros, paginación y ordenamiento. */
   listOrders(
-    params?: List8$Params,
+    params?: List9$Params,
     context?: HttpContext,
   ): Observable<PageResponsePurchaseOrderSummary> {
-    return unwrapApiResponse(list8(this.http, this.apiConfig.rootUrl, params, context));
+    return unwrapApiResponse(list9(this.http, this.apiConfig.rootUrl, params, context));
   }
 
   /** Obtiene el detalle completo de una orden de compra. */
@@ -194,7 +194,7 @@ export class PurchaseOrdersService {
   /** Lista proveedores activos para selección en filtros o formularios de OC. */
   listSuppliers(q?: string, context?: HttpContext): Observable<SupplierSummary[]> {
     return unwrapApiResponse(
-      list1(
+      list2(
         this.http,
         this.apiConfig.rootUrl,
         { active: true, size: 100, sort: ['legalName,asc'], q: q || undefined },
@@ -222,7 +222,7 @@ export class PurchaseOrdersService {
   /** Busca productos activos en el catálogo por texto (SKU, código de barras o nombre). */
   searchProducts(q: string, context?: HttpContext): Observable<ProductSummary[]> {
     return unwrapApiResponse(
-      list9(
+      list11(
         this.http,
         this.apiConfig.rootUrl,
         { q: q || undefined, active: true, size: 20, sort: ['name,asc'] },
@@ -233,6 +233,6 @@ export class PurchaseOrdersService {
 
   /** Obtiene el detalle de un producto del catálogo. */
   getProduct(id: number, context?: HttpContext): Observable<ProductResponse> {
-    return unwrapApiResponse(get2(this.http, this.apiConfig.rootUrl, { id }, context));
+    return unwrapApiResponse(get3(this.http, this.apiConfig.rootUrl, { id }, context));
   }
 }

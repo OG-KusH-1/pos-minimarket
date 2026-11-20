@@ -1,0 +1,75 @@
+<section class="page-container">
+  <header class="page-header">
+    <div>
+      <h1>Promociones</h1>
+      <p class="subtitle">
+        Administración de promociones: tipos, vigencias, alcance por local y objetivos.
+      </p>
+    </div>
+
+    @if (canManagePromotions()) {
+      <button mat-flat-button type="button" (click)="openCreate()">
+        <mat-icon aria-hidden="true">add</mat-icon>
+        Nueva promoción
+      </button>
+    }
+  </header>
+
+  <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <mat-form-field appearance="outline">
+      <mat-label>Estado</mat-label>
+      <mat-select formControlName="active">
+        <mat-option [value]="null">Todos</mat-option>
+        <mat-option [value]="true">Activas</mat-option>
+        <mat-option [value]="false">Inactivas</mat-option>
+      </mat-select>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Tipo</mat-label>
+      <mat-select formControlName="type">
+        <mat-option [value]="null">Todos</mat-option>
+        @for (option of promotionTypeOptions; track option.value) {
+          <mat-option [value]="option.value">{{ option.label }}</mat-option>
+        }
+      </mat-select>
+    </mat-form-field>
+
+    <button mat-stroked-button type="submit">Filtrar</button>
+    <button mat-button type="button" (click)="clearFilters()">Limpiar</button>
+  </form>
+
+  <pos-paginated-table
+    [dataSource]="dataSource"
+    [columns]="columns()"
+    label="Listado de promociones"
+    emptyMessage="No se encontraron promociones con los filtros aplicados."
+  />
+
+  <ng-template #statusTpl let-row>
+    <span class="status-badge" [class.active]="row.active" [class.inactive]="!row.active">
+      {{ row.active ? 'Activa' : 'Inactiva' }}
+    </span>
+  </ng-template>
+
+  <ng-template #actionsTpl let-row>
+    <div class="row-actions">
+      @if (canManagePromotions()) {
+        <button mat-button type="button" (click)="openEdit(row)">
+          <mat-icon aria-hidden="true">edit</mat-icon>
+          Editar
+        </button>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="toggleActive(row)"
+          [attr.aria-label]="
+            (row.active ? 'Desactivar promoción ' : 'Activar promoción ') + (row.name ?? '')
+          "
+        >
+          <mat-icon aria-hidden="true">{{ row.active ? 'block' : 'check_circle' }}</mat-icon>
+        </button>
+      }
+    </div>
+  </ng-template>
+</section>

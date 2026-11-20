@@ -21,6 +21,39 @@
     </div>
   }
 
+  @switch (taxDocumentState()) {
+    @case ('issued') {
+      <div
+        class="inline-alert inline-alert--info"
+        role="status"
+        data-testid="tax-document-issued"
+        aria-label="Documento tributario de la venta"
+      >
+        <mat-icon aria-hidden="true">verified</mat-icon>
+        <span>
+          {{ taxDocument()?.typeLabel ?? 'Documento tributario' }}
+          @if (taxDocument()?.folio; as folio) {
+            · Folio {{ folio }}
+          }
+          @if (taxDocument()?.stampText; as stamp) {
+            · {{ stamp }}
+          }
+        </span>
+      </div>
+    }
+    @case ('pending') {
+      <div
+        class="inline-alert inline-alert--info"
+        role="status"
+        data-testid="tax-document-pending"
+        aria-label="Documento tributario de la venta"
+      >
+        <mat-icon aria-hidden="true">schedule</mat-icon>
+        <span>Documento tributario pendiente de emisión.</span>
+      </div>
+    }
+  }
+
   @if (loading()) {
     <div class="loading-box" role="status">
       <mat-spinner diameter="32" />
@@ -44,6 +77,16 @@
   >
     <mat-icon aria-hidden="true">content_copy</mat-icon>
     {{ reprinting() ? 'Reimprimiendo…' : 'Reimprimir (COPIA)' }}
+  </button>
+  <button
+    mat-stroked-button
+    type="button"
+    [disabled]="loading() || !ticket()"
+    data-testid="ticket-email-btn"
+    (click)="openEmailDialog()"
+  >
+    <mat-icon aria-hidden="true">mail</mat-icon>
+    Enviar por correo
   </button>
   <button
     mat-flat-button

@@ -238,4 +238,6 @@ Todos guardan usuario, fecha, IP, local, terminal y traceId.
 | CUSTOMER_ACCOUNT_ADJUSTED | customer | monto, motivo, deuda antes y después |
 | OVERRIDE_GRANTED / OVERRIDE_DENIED | supervisor_authorization | acción y contexto |
 | DATA_EXPORTED / DATA_IMPORTED | report/import_job | tipo, filtros, filas |
+| TAX_DOCUMENT_RETRIED | tax_document | id, estado previo, resultado del reintento |
+| REPLENISHMENT_RUN_EXECUTED / REPLENISHMENT_DRAFTS_GENERATED / REPLENISHMENT_PARAMS_CHANGED | replenishment_run / purchase_order / replenishment_param | id de corrida y local(es), líneas calculadas / ids de OC generadas y sus líneas / alcance y valores antes y después |
 
