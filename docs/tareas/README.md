@@ -163,20 +163,20 @@ Ejecuta por fase y oleada, de arriba hacia abajo. Las tareas de una misma oleada
 
 | Oleada | Tarea | Tipo | Estado |
 |---|---|---|---|
-| O1 | [T83](T83.md) Dashboard | backend | pendiente |
-| O1 | [T84](T84.md) Reportes de venta: ventas, cajero, medio de pago, ranking, sin rotació… | backend | pendiente |
-| O1 | [T85](T85.md) Margen, valorización, compras, merma, diferencias de caja | backend | pendiente |
-| O2 🔍 | [T86](T86.md) Endpoints /export xlsx y pdf genéricos para todos los reportes, con au… | backend | pendiente |
-| O3 | [T87](T87.md) Regenerar contrato (9) | contrato | pendiente |
-| O4 🔍 | [T88](T88.md) Frontend dashboard | frontend | pendiente |
-| O4 🔍 | [T89](T89.md) Frontend reportes con filtros y export | frontend | pendiente |
+| O1 | [T83](T83.md) Dashboard | backend | entregada |
+| O1 | [T84](T84.md) Reportes de venta: ventas, cajero, medio de pago, ranking, sin rotació… | backend | entregada |
+| O1 | [T85](T85.md) Margen, valorización, compras, merma, diferencias de caja | backend | entregada |
+| O2 🔍 | [T86](T86.md) Endpoints /export xlsx y pdf genéricos para todos los reportes, con au… | backend | entregada |
+| O3 | [T87](T87.md) Regenerar contrato (9) | contrato | entregada |
+| O4 🔍 | [T88](T88.md) Frontend dashboard | frontend | entregada |
+| O4 🔍 | [T89](T89.md) Frontend reportes con filtros y export | frontend | entregada |
 
 ### Fase 8
 
 | Oleada | Tarea | Tipo | Estado |
 |---|---|---|---|
-| O1 | [T91](T91.md) Semilla demo completa: 90 días de ventas sintéticas (generador de perf… | backend | pendiente |
-| O1 | [T92](T92.md) e2e de humo con Playwright: venta solo con teclado y cierre de caja | frontend | pendiente |
+| O1 | [T91](T91.md) Semilla demo completa: 90 días de ventas sintéticas (generador de perf… | backend | asignada |
+| O1 | [T92](T92.md) e2e de humo con Playwright: venta solo con teclado y cierre de caja | frontend | asignada |
 | O2 | [T90](T90.md) Pruebas de rendimiento: índices (EXPLAIN de reportes), carga de 50 ven… | backend | pendiente |
 | O2 | [T93](T93.md) README de portafolio, docs finales, revisión de OpenAPI y capturas | backend | pendiente |
 | O3 | [T94](T94.md) Revisión OWASP Top 10 (checklist) | backend | pendiente |

@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<!--
+  Plantilla genérica de exportación PDF para reportes (T86, HU-REP-10, ADR-07).
+  Extiende el layout base.html y renderiza metadatos de filtros, KPIs opcionales y
+  una o más secciones tabulares con fila de totales opcional.
+-->
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{base :: layout(title=${title}, body=~{::main})}">
+<body>
+<main>
+  <p class="muted" th:if="${subtitle != null}" style="margin: 0 0 6pt 0;" th:text="${subtitle}">Subtítulo</p>
+
+  <table class="data" th:if="${filters != null and !#lists.isEmpty(filters)}" style="margin-top: 0; margin-bottom: 10pt;">
+    <tbody>
+      <tr th:each="f : ${filters}">
+        <td style="width: 28%;"><strong><span th:text="${f.label}">Filtro</span></strong></td>
+        <td th:text="${f.value}">Valor</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div th:if="${kpis != null and !#lists.isEmpty(kpis)}" style="margin-bottom: 10pt;">
+    <h2 class="section">Indicadores principales</h2>
+    <table class="data">
+      <thead>
+        <tr>
+          <th>Indicador</th>
+          <th class="num">Valor</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="k : ${kpis}">
+          <td th:text="${k.label}">Indicador</td>
+          <td class="num" th:text="${k.value}">$0</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div th:each="sec : ${sections}" style="margin-top: 8pt;">
+    <h2 class="section" th:if="${sec.heading != null}" th:text="${sec.heading}">Sección</h2>
+    <p class="muted" th:if="${#lists.isEmpty(sec.rows)}" th:text="${sec.emptyMessage}">
+      Sin datos para los filtros seleccionados.
+    </p>
+    <table class="data" th:if="${!#lists.isEmpty(sec.rows) or sec.totals != null}">
+      <thead>
+        <tr>
+          <th th:each="col : ${sec.columns}"
+              th:classappend="${col.numeric} ? 'num' : ''"
+              th:text="${col.header}">Columna</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr th:each="row : ${sec.rows}">
+          <td th:each="cell, stat : ${row}"
+              th:classappend="${sec.columns[stat.index].numeric} ? 'num' : ''"
+              th:text="${cell}">Valor</td>
+        </tr>
+        <tr class="total" th:if="${sec.totals != null}">
+          <td th:each="cell, stat : ${sec.totals}"
+              th:classappend="${sec.columns[stat.index].numeric} ? 'num' : ''"
+              th:text="${cell}">Total</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+</body>
+</html>

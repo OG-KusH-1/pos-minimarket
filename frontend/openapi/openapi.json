@@ -1,6 +1,41 @@
 {
   "components" : {
     "schemas" : {
+      "AbcRow" : {
+        "description" : "Clasificación ABC de un producto vendido en el rango.",
+        "properties" : {
+          "abcClass" : {
+            "description" : "Clase Pareto asignada (A, B o C).",
+            "type" : "string"
+          },
+          "cumulativePct" : {
+            "description" : "Porcentaje acumulado descendente (escala 4).",
+            "type" : "number"
+          },
+          "metricValue" : {
+            "description" : "Valor de la métrica evaluada (venta neta, cantidad o margen bruto).",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "Nombre del producto.",
+            "type" : "string"
+          },
+          "pct" : {
+            "description" : "Participación porcentual individual (escala 4).",
+            "type" : "number"
+          },
+          "productId" : {
+            "description" : "Identificador del producto.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sku" : {
+            "description" : "SKU del producto.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "ActivePromotionResponse" : {
         "description" : "Promoción vigente en el local y hora actuales.",
         "properties" : {
@@ -425,6 +460,50 @@
         },
         "type" : "object"
       },
+      "CashDifferenceRow" : {
+        "description" : "Fila del reporte de diferencias de caja.",
+        "properties" : {
+          "approvedBy" : {
+            "description" : "Nombre de quien aprobó la diferencia, si aplica.",
+            "type" : "string"
+          },
+          "businessDate" : {
+            "description" : "Fecha de negocio del turno (YYYY-MM-DD).",
+            "format" : "date",
+            "type" : "string"
+          },
+          "cashier" : {
+            "description" : "Nombre del cajero.",
+            "type" : "string"
+          },
+          "counted" : {
+            "description" : "Total contado en arqueo (CLP, escala 0).",
+            "type" : "number"
+          },
+          "difference" : {
+            "description" : "Diferencia de cierre counted - expected (CLP, escala 0).",
+            "type" : "number"
+          },
+          "expected" : {
+            "description" : "Total esperado al cierre (CLP, escala 0).",
+            "type" : "number"
+          },
+          "number" : {
+            "description" : "Número correlativo del turno de caja (o TOTAL).",
+            "type" : "string"
+          },
+          "sessionId" : {
+            "description" : "Identificador del turno de caja (null en la fila de totales).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "terminal" : {
+            "description" : "Nombre de la terminal.",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
       "CashMovementRequest" : {
         "properties" : {
           "amount" : {
@@ -572,6 +651,53 @@
           },
           "voidCount" : {
             "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "CashierSalesRow" : {
+        "description" : "Desempeño de ventas, devoluciones y overrides por cajero.",
+        "properties" : {
+          "avgTicket" : {
+            "description" : "Ticket promedio por venta no anulada (CLP).",
+            "type" : "number"
+          },
+          "discountTotal" : {
+            "description" : "Total de descuentos otorgados (CLP).",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "Nombre completo del cajero.",
+            "type" : "string"
+          },
+          "overridesCount" : {
+            "description" : "Cantidad de autorizaciones de supervisor (GRANTED) solicitadas.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "returns" : {
+            "description" : "Cantidad de devoluciones registradas (RETURN).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "total" : {
+            "description" : "Total bruto vendido neto de devoluciones y anulaciones (CLP).",
+            "type" : "number"
+          },
+          "transactions" : {
+            "description" : "Cantidad de ventas no anuladas del cajero.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "userId" : {
+            "description" : "Identificador del usuario cajero (null en la fila de totales).",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "voids" : {
+            "description" : "Cantidad de ventas anuladas (VOID).",
+            "format" : "int64",
             "type" : "integer"
           }
         },
@@ -1226,6 +1352,178 @@
           "version" : {
             "format" : "int64",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "DashboardAlerts" : {
+        "description" : "Alertas de inventario y aprobaciones pendientes.",
+        "properties" : {
+          "belowMin" : {
+            "description" : "Productos con stock igual o inferior al mínimo configurado.",
+            "example" : 4,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "expiringLots" : {
+            "description" : "Lotes con saldo positivo vencidos o dentro de la ventana de alerta.",
+            "example" : 3,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pendingAdjustments" : {
+            "description" : "Ajustes manuales de stock en estado PENDING_APPROVAL.",
+            "example" : 1,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pendingCashDifferences" : {
+            "description" : "Turnos cerrados con diferencia fuera de tolerancia pendientes de aprobación.",
+            "example" : 1,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pendingCounts" : {
+            "description" : "Tomas físicas de inventario en estado SUBMITTED esperando aprobación.",
+            "example" : 1,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "pendingShrinkages" : {
+            "description" : "Mermas en estado PENDING_APPROVAL.",
+            "example" : 1,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "zeroStock" : {
+            "description" : "Productos con stock en cero.",
+            "example" : 2,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "DashboardHourlySales" : {
+        "description" : "Ventas netas y transacciones en una hora del día.",
+        "properties" : {
+          "hour" : {
+            "description" : "Hora del día en zona de negocio (0..23).",
+            "example" : 10,
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "description" : "Total neto vendido en esa hora en CLP.",
+            "example" : 45000,
+            "type" : "number"
+          },
+          "transactions" : {
+            "description" : "Cantidad de transacciones en esa hora.",
+            "example" : 6,
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "DashboardPaymentMix" : {
+        "description" : "Monto neto recaudado por medio de pago.",
+        "properties" : {
+          "method" : {
+            "description" : "Código del medio de pago (CASH, DEBIT, CREDIT, TRANSFER, CUSTOMER_CREDIT).",
+            "example" : "CASH",
+            "type" : "string"
+          },
+          "total" : {
+            "description" : "Monto neto aplicado en CLP.",
+            "example" : 85000,
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "DashboardResponse" : {
+        "description" : "Resumen diario de ventas, mix de pagos, top 10 productos y alertas.",
+        "properties" : {
+          "alerts" : {
+            "$ref" : "#/components/schemas/DashboardAlerts",
+            "description" : "Contadores de alertas operativas vigentes."
+          },
+          "avgTicket" : {
+            "description" : "Ticket promedio del día en CLP (0 si no hay ventas).",
+            "example" : 6944,
+            "type" : "number"
+          },
+          "date" : {
+            "description" : "Fecha de negocio consultada.",
+            "example" : "2026-11-20",
+            "format" : "date",
+            "type" : "string"
+          },
+          "paymentMix" : {
+            "description" : "Totales netos del día agrupados por medio de pago.",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardPaymentMix"
+            },
+            "type" : "array"
+          },
+          "salesByHour" : {
+            "description" : "Serie horaria de las 24 horas del día (0..23) en la zona horaria de negocio.",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardHourlySales"
+            },
+            "type" : "array"
+          },
+          "salesTotal" : {
+            "description" : "Ventas netas de devoluciones del día en CLP.",
+            "example" : 125000,
+            "type" : "number"
+          },
+          "topProducts" : {
+            "description" : "Hasta 10 productos con mayor monto neto de venta en el día.",
+            "items" : {
+              "$ref" : "#/components/schemas/DashboardTopProduct"
+            },
+            "type" : "array"
+          },
+          "transactions" : {
+            "description" : "Cantidad de transacciones válidas (no anuladas) del día.",
+            "example" : 18,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "vsPreviousDayPct" : {
+            "description" : "Variación porcentual respecto del día anterior (null si el día anterior fue 0).",
+            "example" : 12.5,
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "DashboardTopProduct" : {
+        "description" : "Producto destacado del top 10 de ventas del día.",
+        "properties" : {
+          "name" : {
+            "description" : "Nombre del producto.",
+            "example" : "Pan Marraqueta 1 kg",
+            "type" : "string"
+          },
+          "productId" : {
+            "description" : "Identificador del producto.",
+            "example" : 12,
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "qty" : {
+            "description" : "Cantidad neta vendida (escala 3).",
+            "example" : 14.0,
+            "type" : "number"
+          },
+          "total" : {
+            "description" : "Monto neto vendido en CLP.",
+            "example" : 28000,
+            "type" : "number"
           }
         },
         "type" : "object"
@@ -2059,6 +2357,32 @@
         },
         "type" : "object"
       },
+      "InventoryValuationRow" : {
+        "description" : "Fila del reporte de valorización de inventario.",
+        "properties" : {
+          "key" : {
+            "description" : "Clave de agrupación (id de categoría, local o producto, o TOTAL).",
+            "type" : "string"
+          },
+          "label" : {
+            "description" : "Etiqueta legible del grupo.",
+            "type" : "string"
+          },
+          "pct" : {
+            "description" : "Porcentaje respecto al total valorizado (escala 2).",
+            "type" : "number"
+          },
+          "qty" : {
+            "description" : "Cantidad total en stock en unidad base (escala 3).",
+            "type" : "number"
+          },
+          "valuation" : {
+            "description" : "Valorización a costo promedio ponderado (escala 2).",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
       "JsonNode" : {
         "properties" : {
           "array" : {
@@ -2369,6 +2693,40 @@
         "required" : [ "lotNumber", "reason", "version" ],
         "type" : "object"
       },
+      "MarginRow" : {
+        "description" : "Fila del reporte de margen y utilidad.",
+        "properties" : {
+          "cost" : {
+            "description" : "Costo snapshot acumulado (escala 2).",
+            "type" : "number"
+          },
+          "grossMargin" : {
+            "description" : "Margen bruto (netSales - cost, escala 2).",
+            "type" : "number"
+          },
+          "key" : {
+            "description" : "Clave de agrupación (id de entidad, fecha YYYY-MM-DD o TOTAL).",
+            "type" : "string"
+          },
+          "label" : {
+            "description" : "Etiqueta legible del grupo.",
+            "type" : "string"
+          },
+          "marginPct" : {
+            "description" : "Porcentaje de margen sobre venta neta (escala 2).",
+            "type" : "number"
+          },
+          "netSales" : {
+            "description" : "Venta neta sin impuestos (CLP, escala 0).",
+            "type" : "number"
+          },
+          "qty" : {
+            "description" : "Cantidad neta vendida (descontadas devoluciones).",
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "defaultStoreId" : {
@@ -2435,6 +2793,43 @@
             "type" : "number"
           },
           "sales" : {
+            "type" : "number"
+          }
+        },
+        "type" : "object"
+      },
+      "NoRotationRow" : {
+        "description" : "Producto con existencia disponible y sin ventas en la ventana.",
+        "properties" : {
+          "daysWithoutSale" : {
+            "description" : "Días transcurridos desde la última venta hasta la fecha de corte, o null si nunca se vendió.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "lastSaleAt" : {
+            "description" : "Instante UTC de la última venta registrada hasta la fecha de corte, o null si nunca se vendió.",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "Nombre del producto.",
+            "type" : "string"
+          },
+          "productId" : {
+            "description" : "Identificador del producto.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sku" : {
+            "description" : "SKU del producto.",
+            "type" : "string"
+          },
+          "stock" : {
+            "description" : "Stock disponible agregado en los locales consultados (escala 3).",
+            "type" : "number"
+          },
+          "valuation" : {
+            "description" : "Valorización a costo promedio (null sin permiso catalog:cost:read).",
             "type" : "number"
           }
         },
@@ -3517,6 +3912,29 @@
         "required" : [ "method" ],
         "type" : "object"
       },
+      "PaymentMethodRow" : {
+        "description" : "Distribución de ventas netas por medio de pago.",
+        "properties" : {
+          "method" : {
+            "description" : "Medio de pago (CASH, DEBIT, CREDIT, TRANSFER, CUSTOMER_CREDIT o TOTAL).",
+            "type" : "string"
+          },
+          "pct" : {
+            "description" : "Participación porcentual sobre el total recaudado (escala 4).",
+            "type" : "number"
+          },
+          "total" : {
+            "description" : "Monto neto de reembolsos recibido por el medio de pago (CLP).",
+            "type" : "number"
+          },
+          "transactions" : {
+            "description" : "Cantidad de ventas distintas no anuladas con este medio de pago.",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "PermissionResponse" : {
         "properties" : {
           "code" : {
@@ -3661,6 +4079,47 @@
           }
         },
         "required" : [ "fileId" ],
+        "type" : "object"
+      },
+      "ProductRankingRow" : {
+        "description" : "Posición de un producto en el ranking de ventas.",
+        "properties" : {
+          "category" : {
+            "description" : "Nombre de la categoría del producto.",
+            "type" : "string"
+          },
+          "name" : {
+            "description" : "Nombre del producto.",
+            "type" : "string"
+          },
+          "netSales" : {
+            "description" : "Venta neta sin impuestos, neta de devoluciones (CLP).",
+            "type" : "number"
+          },
+          "productId" : {
+            "description" : "Identificador del producto.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "qty" : {
+            "description" : "Cantidad vendida neta de devoluciones (escala 3).",
+            "type" : "number"
+          },
+          "rank" : {
+            "description" : "Posición en el ranking (1 = primero).",
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sku" : {
+            "description" : "SKU del producto.",
+            "type" : "string"
+          },
+          "transactions" : {
+            "description" : "Cantidad de ventas no anuladas que incluyeron el producto.",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
         "type" : "object"
       },
       "ProductRequest" : {
@@ -4627,6 +5086,43 @@
         },
         "type" : "object"
       },
+      "PurchasesBySupplierRow" : {
+        "description" : "Fila del reporte de compras por proveedor.",
+        "properties" : {
+          "avgLeadTimeDays" : {
+            "description" : "Promedio real de días desde envío de OC hasta recepción confirmada (escala 2).",
+            "type" : "number"
+          },
+          "fillRatePct" : {
+            "description" : "Tasa de cumplimiento recibido / pedido × 100 (escala 2).",
+            "type" : "number"
+          },
+          "name" : {
+            "description" : "Nombre o razón social del proveedor.",
+            "type" : "string"
+          },
+          "netTotal" : {
+            "description" : "Monto neto total de recepciones confirmadas (CLP, escala 0).",
+            "type" : "number"
+          },
+          "orders" : {
+            "description" : "Cantidad de órdenes de compra emitidas en el período.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "receipts" : {
+            "description" : "Cantidad de recepciones confirmadas en el período.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "supplierId" : {
+            "description" : "Identificador del proveedor (null en la fila de totales).",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "ReplenishmentLineProduct" : {
         "description" : "Producto de la sugerencia.",
         "properties" : {
@@ -4984,6 +5480,257 @@
             "description" : "Local de la corrida.",
             "format" : "int64",
             "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportFilter" : {
+        "properties" : {
+          "from" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "storeIds" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          },
+          "to" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseAbcRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AbcRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/AbcRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseCashDifferenceRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CashDifferenceRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/CashDifferenceRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseCashierSalesRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CashierSalesRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/CashierSalesRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseInventoryValuationRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/InventoryValuationRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/InventoryValuationRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseMarginRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MarginRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/MarginRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseNoRotationRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NoRotationRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/NoRotationRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponsePaymentMethodRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PaymentMethodRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/PaymentMethodRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseProductRankingRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ProductRankingRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/ProductRankingRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponsePurchasesBySupplierRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PurchasesBySupplierRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/PurchasesBySupplierRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseSalesReportRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SalesReportRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/SalesReportRow"
+          }
+        },
+        "type" : "object"
+      },
+      "ReportResponseShrinkageReportRow" : {
+        "properties" : {
+          "filters" : {
+            "$ref" : "#/components/schemas/ReportFilter"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "rows" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ShrinkageReportRow"
+            },
+            "type" : "array"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/ShrinkageReportRow"
           }
         },
         "type" : "object"
@@ -5528,6 +6275,49 @@
         "required" : [ "reasonCode" ],
         "type" : "object"
       },
+      "SalesReportRow" : {
+        "description" : "Fila del reporte de ventas netas de devoluciones.",
+        "properties" : {
+          "avgTicket" : {
+            "description" : "Ticket promedio bruto neto de devoluciones por transacción (CLP).",
+            "type" : "number"
+          },
+          "discountTotal" : {
+            "description" : "Total de descuentos aplicados (CLP).",
+            "type" : "number"
+          },
+          "grossTotal" : {
+            "description" : "Total bruto vendido neto de devoluciones (CLP).",
+            "type" : "number"
+          },
+          "key" : {
+            "description" : "Clave de agrupación (fecha ISO, hora, día ISO, id de categoría/local o TOTAL).",
+            "type" : "string"
+          },
+          "label" : {
+            "description" : "Etiqueta legible del grupo.",
+            "type" : "string"
+          },
+          "netTotal" : {
+            "description" : "Total neto sin impuestos, neto de devoluciones (CLP).",
+            "type" : "number"
+          },
+          "returnsTotal" : {
+            "description" : "Total bruto de devoluciones y anulaciones descontadas (CLP).",
+            "type" : "number"
+          },
+          "taxTotal" : {
+            "description" : "Total de impuestos, neto de devoluciones (CLP).",
+            "type" : "number"
+          },
+          "transactions" : {
+            "description" : "Cantidad de ventas no anuladas en el grupo.",
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "type" : "object"
+      },
       "ScaleBarcodeConfigRequest" : {
         "properties" : {
           "embeddedType" : {
@@ -5780,6 +6570,37 @@
           }
         },
         "required" : [ "reason" ],
+        "type" : "object"
+      },
+      "ShrinkageReportRow" : {
+        "description" : "Fila del reporte de mermas.",
+        "properties" : {
+          "cost" : {
+            "description" : "Costo total de merma aprobada (escala 2).",
+            "type" : "number"
+          },
+          "count" : {
+            "description" : "Número de registros de merma aprobados.",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "key" : {
+            "description" : "Clave de agrupación (tipo, id de entidad, mes YYYY-MM o TOTAL).",
+            "type" : "string"
+          },
+          "label" : {
+            "description" : "Etiqueta legible del grupo.",
+            "type" : "string"
+          },
+          "pctOfSales" : {
+            "description" : "Porcentaje del costo de merma sobre ventas netas del mismo filtro (escala 2).",
+            "type" : "number"
+          },
+          "qty" : {
+            "description" : "Cantidad total mermada (escala 3).",
+            "type" : "number"
+          }
+        },
         "type" : "object"
       },
       "ShrinkageRequest" : {
@@ -13449,6 +14270,2246 @@
         },
         "summary" : "Generar borradores de OC desde la corrida",
         "tags" : [ "Replenishment" ]
+      }
+    },
+    "/api/v1/reports/abc" : {
+      "get" : {
+        "description" : "Permiso: report:sales:read (metric=margin exige además report:margin:read). Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "abc",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "metric",
+          "required" : false,
+          "schema" : {
+            "default" : "amount",
+            "enum" : [ "amount", "qty", "margin" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseAbcRow"
+                }
+              }
+            },
+            "description" : "Clasificación ABC generada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseAbcRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por fechas, rango o metric inválido"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseAbcRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED (sin permiso o sin report:margin:read) o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Análisis ABC de productos",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/abc/export" : {
+      "get" : {
+        "description" : "Permisos: report:sales:read y report:export:execute (metric=margin exige además report:margin:read). Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportAbc",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "metric",
+          "required" : false,
+          "schema" : {
+            "default" : "amount",
+            "enum" : [ "amount", "qty", "margin" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar análisis ABC de productos",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/cash-differences" : {
+      "get" : {
+        "description" : "Permiso: report:cash:read. Lista turnos cerrados con esperado, contado, diferencia y aprobador, filtrando opcionalmente por cashierId y withDifference. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getCashDifferencesReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Identificador opcional del cajero.",
+          "in" : "query",
+          "name" : "cashierId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Si es true, devuelve solo turnos con diferencia distinta de cero.",
+          "in" : "query",
+          "name" : "withDifference",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashDifferenceRow"
+                }
+              }
+            },
+            "description" : "Reporte de diferencias de caja generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashDifferenceRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango inválido, cashierId o storeIds inválidos)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashDifferenceRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashDifferenceRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de diferencias de caja",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/cash-differences/export" : {
+      "get" : {
+        "description" : "Permisos: report:cash:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportCashDifferences",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cashierId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "withDifference",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar diferencias de caja",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/dashboard" : {
+      "get" : {
+        "description" : "Permiso: report:dashboard:read. Resume ventas netas, transacciones, ticket promedio, variación vs día anterior, serie por hora, top 10 productos, mix de pagos y alertas.",
+        "operationId" : "dashboard",
+        "parameters" : [ {
+          "description" : "Fecha de negocio (YYYY-MM-DD); por defecto hoy en la zona de negocio.",
+          "in" : "query",
+          "name" : "date",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Locales a consultar (opcional; por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardResponse"
+                }
+              }
+            },
+            "description" : "Dashboard diario generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardResponse"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR si date o storeIds son inválidos"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardResponse"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/DashboardResponse"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Dashboard del día",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/dashboard/export" : {
+      "get" : {
+        "description" : "Permisos: report:dashboard:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportDashboard",
+        "parameters" : [ {
+          "description" : "Fecha de negocio (YYYY-MM-DD); por defecto hoy en la zona de negocio.",
+          "in" : "query",
+          "name" : "date",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Locales a consolidar (opcional; por defecto el local activo X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Formato de exportación.",
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar dashboard del día",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/inventory-valuation" : {
+      "get" : {
+        "description" : "Permiso: report:inventory:read. Valoriza el stock actual con products.avg_cost (sin rango obligatorio) agrupado por category, store o product. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getInventoryValuationReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial opcional (YYYY-MM-DD); no altera la valorización actual.",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final opcional (YYYY-MM-DD); debe acompañarse de from si se indica.",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Criterio de agrupación.",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "category",
+            "enum" : [ "category", "store", "product" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseInventoryValuationRow"
+                }
+              }
+            },
+            "description" : "Valorización de inventario generada"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseInventoryValuationRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango parcial/inválido o groupBy inválido)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseInventoryValuationRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseInventoryValuationRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de valorización de inventario",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/inventory-valuation/export" : {
+      "get" : {
+        "description" : "Permisos: report:inventory:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportInventoryValuation",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "category",
+            "enum" : [ "category", "store", "product" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar valorización de inventario",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/margin" : {
+      "get" : {
+        "description" : "Permiso: report:margin:read. Calcula margen = neto − costo de la línea (snapshot) agrupado por product, category, brand o day. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getMarginReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Criterio de agrupación.",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "product",
+            "enum" : [ "product", "category", "brand", "day" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseMarginRow"
+                }
+              }
+            },
+            "description" : "Reporte de margen generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseMarginRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango inválido o groupBy inválido)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseMarginRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseMarginRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de margen y utilidad",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/margin/export" : {
+      "get" : {
+        "description" : "Permisos: report:margin:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportMargin",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "product",
+            "enum" : [ "product", "category", "brand", "day" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar reporte de margen y utilidad",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/no-rotation" : {
+      "get" : {
+        "description" : "Permiso: report:inventory:read. Valorización visible solo con catalog:cost:read. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "noRotation",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Ventana de días sin ventas hasta la fecha final (por defecto 30).",
+          "in" : "query",
+          "name" : "days",
+          "required" : false,
+          "schema" : {
+            "default" : 30,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseNoRotationRow"
+                }
+              }
+            },
+            "description" : "Listado de productos sin rotación generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseNoRotationRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por fechas, rango o days inválido"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseNoRotationRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Productos sin rotación",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/no-rotation/export" : {
+      "get" : {
+        "description" : "Permisos: report:inventory:read y report:export:execute. Valorización visible solo con catalog:cost:read. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportNoRotation",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "days",
+          "required" : false,
+          "schema" : {
+            "default" : 30,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar productos sin rotación",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/product-ranking" : {
+      "get" : {
+        "description" : "Permiso: report:sales:read. Soporta order=most|least, metric=qty|amount, limit <= 100 y categoryId (incluye subcategorías). Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "productRanking",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "order",
+          "required" : false,
+          "schema" : {
+            "default" : "most",
+            "enum" : [ "most", "least" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "metric",
+          "required" : false,
+          "schema" : {
+            "default" : "qty",
+            "enum" : [ "qty", "amount" ],
+            "type" : "string"
+          }
+        }, {
+          "description" : "Cantidad máxima de productos (1..100).",
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Categoría opcional (incluye subcategorías).",
+          "in" : "query",
+          "name" : "categoryId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseProductRankingRow"
+                }
+              }
+            },
+            "description" : "Ranking de productos generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseProductRankingRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por filtros, rango o limit inválido"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseProductRankingRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Ranking de productos",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/product-ranking/export" : {
+      "get" : {
+        "description" : "Permisos: report:sales:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportProductRanking",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "order",
+          "required" : false,
+          "schema" : {
+            "default" : "most",
+            "enum" : [ "most", "least" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "metric",
+          "required" : false,
+          "schema" : {
+            "default" : "qty",
+            "enum" : [ "qty", "amount" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : 20,
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "categoryId",
+          "required" : false,
+          "schema" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar ranking de productos",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/purchases-by-supplier" : {
+      "get" : {
+        "description" : "Permiso: report:purchasing:read. Resume órdenes emitidas, recepciones confirmadas, neto recibido, lead time real y fill rate (recibido / pedido). Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getPurchasesBySupplierReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePurchasesBySupplierRow"
+                }
+              }
+            },
+            "description" : "Reporte de compras por proveedor generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePurchasesBySupplierRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango inválido o storeIds inválidos)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePurchasesBySupplierRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePurchasesBySupplierRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de compras por proveedor",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/purchases-by-supplier/export" : {
+      "get" : {
+        "description" : "Permisos: report:purchasing:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportPurchasesBySupplier",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar compras por proveedor",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales" : {
+      "get" : {
+        "description" : "Permiso: report:sales:read. Rango obligatorio <= 366 días; agrupa por day, hour, weekday, category o store. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "sales",
+        "parameters" : [ {
+          "description" : "Fecha inicial del rango (YYYY-MM-DD, obligatoria).",
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final del rango (YYYY-MM-DD, obligatoria, >= from, rango <= 366 días).",
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Locales a incluir (por defecto el local activo X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Criterio de agrupación.",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "day",
+            "enum" : [ "day", "hour", "weekday", "category", "store" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseSalesReportRow"
+                }
+              }
+            },
+            "description" : "Reporte de ventas generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseSalesReportRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por fechas, rango > 366 días o groupBy inválido"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseSalesReportRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de ventas",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales-by-cashier" : {
+      "get" : {
+        "description" : "Permiso: report:sales:read. Incluye voids, devoluciones, descuentos y overrides por cajero. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "salesByCashier",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashierSalesRow"
+                }
+              }
+            },
+            "description" : "Reporte por cajero generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashierSalesRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por fechas o rango > 366 días"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseCashierSalesRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Ventas por cajero",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales-by-cashier/export" : {
+      "get" : {
+        "description" : "Permisos: report:sales:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportSalesByCashier",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar ventas por cajero",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales-by-payment-method" : {
+      "get" : {
+        "description" : "Permiso: report:sales:read. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "salesByPaymentMethod",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePaymentMethodRow"
+                }
+              }
+            },
+            "description" : "Reporte por medio de pago generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePaymentMethodRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR por fechas o rango > 366 días"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponsePaymentMethodRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Ventas por medio de pago",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales-by-payment-method/export" : {
+      "get" : {
+        "description" : "Permisos: report:sales:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportSalesByPaymentMethod",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar ventas por medio de pago",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/sales/export" : {
+      "get" : {
+        "description" : "Permisos: report:sales:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportSales",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "day",
+            "enum" : [ "day", "hour", "weekday", "category", "store" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar reporte de ventas",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/shrinkage" : {
+      "get" : {
+        "description" : "Permiso: report:shrinkage:read. Contabiliza solo mermas APPROVED agrupadas por type, product, category, store o month con pctOfSales respecto a las ventas netas. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getShrinkageReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Criterio de agrupación.",
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "type",
+            "enum" : [ "type", "product", "category", "store", "month" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "Reporte de mermas generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango inválido o groupBy inválido)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Reporte de mermas",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/shrinkage/export" : {
+      "get" : {
+        "description" : "Permisos: report:shrinkage:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportShrinkage",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "groupBy",
+          "required" : false,
+          "schema" : {
+            "default" : "type",
+            "enum" : [ "type", "product", "category", "store", "month" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar reporte de mermas",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/shrinkage/top-products" : {
+      "get" : {
+        "description" : "Permiso: report:shrinkage:read. Devuelve hasta limit productos ordenados por costo descendente de mermas APPROVED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "getTopShrinkageProductsReport",
+        "parameters" : [ {
+          "description" : "Fecha inicial de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Fecha final de negocio (YYYY-MM-DD, inclusive).",
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "description" : "Ids de locales a incluir (por defecto el local activo de X-Store-Id).",
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "description" : "Cantidad máxima de productos a devolver (1 a 100).",
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "default" : "10",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "Ranking de mermas por producto generado"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR (rango inválido o limit fuera de 1..100)"
+          },
+          "401" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "UNAUTHENTICATED"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ReportResponseShrinkageReportRow"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Ranking de productos con mayor merma",
+        "tags" : [ "Reporting" ]
+      }
+    },
+    "/api/v1/reports/shrinkage/top-products/export" : {
+      "get" : {
+        "description" : "Permisos: report:shrinkage:read y report:export:execute. Audita DATA_EXPORTED. Errores: VALIDATION_ERROR, ACCESS_DENIED, STORE_ACCESS_DENIED.",
+        "operationId" : "exportShrinkageTopProducts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "storeIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int64",
+              "type" : "integer"
+            },
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "format",
+          "required" : false,
+          "schema" : {
+            "default" : "xlsx",
+            "enum" : [ "xlsx", "pdf" ],
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "Archivo exportado en formato xlsx o pdf"
+          },
+          "400" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "VALIDATION_ERROR"
+          },
+          "403" : {
+            "content" : {
+              "*/*" : {
+                "schema" : {
+                  "format" : "byte",
+                  "type" : "string"
+                }
+              }
+            },
+            "description" : "ACCESS_DENIED o STORE_ACCESS_DENIED"
+          }
+        },
+        "summary" : "Exportar ranking de productos con mayor merma",
+        "tags" : [ "Reporting" ]
       }
     },
     "/api/v1/roles" : {

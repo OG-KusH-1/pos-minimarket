@@ -1,0 +1,175 @@
+.hourly-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--mat-sys-outline-variant);
+  background: var(--mat-sys-surface-container-lowest);
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.hourly-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+
+  h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 500;
+  }
+}
+
+.hourly-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.chart-wrapper {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 4px 0 22px;
+  font-size: 0.72rem;
+  color: var(--mat-sys-on-surface-variant);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bars-scroll {
+  overflow-x: auto;
+}
+
+.bars-grid {
+  display: grid;
+  grid-template-columns: repeat(24, minmax(16px, 1fr));
+  gap: 4px;
+  min-width: 460px;
+  padding: 4px 2px 0;
+}
+
+.hour-bar-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--mat-sys-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+.bar-track {
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+  height: 180px;
+  padding: 0 2px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--mat-sys-outline-variant);
+  background: linear-gradient(
+    to top,
+    transparent 49.5%,
+    var(--mat-sys-surface-container) 50%,
+    transparent 50.5%
+  );
+}
+
+.bar-fill {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: var(--mat-sys-primary-container);
+  transition:
+    height 0.2s ease,
+    background-color 0.15s ease;
+}
+
+.hour-bar-btn.has-sales .bar-fill {
+  background: var(--mat-sys-primary);
+  opacity: 0.75;
+}
+
+.hour-bar-btn.is-peak .bar-fill {
+  background: var(--mat-sys-tertiary);
+  opacity: 1;
+}
+
+.hour-bar-btn.is-selected .bar-fill,
+.hour-bar-btn:hover .bar-fill {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--mat-sys-primary);
+}
+
+.hour-label {
+  font-size: 0.72rem;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.hour-bar-btn.is-selected .hour-label {
+  font-weight: 700;
+  color: var(--mat-sys-on-surface);
+}
+
+.selected-detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--mat-sys-surface-container-low);
+  font-size: 0.875rem;
+}
+
+.detail-hour {
+  font-weight: 600;
+}
+
+.detail-amount {
+  font-weight: 600;
+  color: var(--mat-sys-primary);
+}
+
+.detail-tx {
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.empty-state {
+  margin: 0;
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--mat-sys-on-surface-variant);
+}
+
+.table-scroll {
+  max-height: 260px;
+  overflow: auto;
+}
+
+.hourly-table {
+  width: 100%;
+}
+
+.align-end {
+  text-align: right;
+}

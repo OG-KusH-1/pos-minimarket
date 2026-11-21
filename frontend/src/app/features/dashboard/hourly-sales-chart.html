@@ -1,0 +1,109 @@
+<section class="hourly-card" aria-label="Ventas por hora">
+  <header class="hourly-header">
+    <div>
+      <h2>Ventas por hora</h2>
+      @if (peakHour(); as peak) {
+        <p class="hourly-subtitle" data-testid="peak-hour-summary">
+          Hora punta: <strong>{{ peak.label }}</strong> ({{ peak.total | clp }} ·
+          {{ formatTransactions(peak.transactions) }})
+        </p>
+      } @else {
+        <p class="hourly-subtitle">
+          @if (businessDate()) {
+            Distribución de las 24 horas del {{ formattedDate() }}
+          } @else {
+            Distribución de las 24 horas del día
+          }
+        </p>
+      }
+    </div>
+
+    <button
+      mat-stroked-button
+      type="button"
+      (click)="toggleViewMode()"
+      [attr.aria-label]="
+        viewMode() === 'chart' ? 'Ver tabla de ventas por hora' : 'Ver gráfico de ventas por hora'
+      "
+    >
+      <mat-icon fontSet="material-symbols-outlined" aria-hidden="true">
+        {{ viewMode() === 'chart' ? 'table_rows' : 'bar_chart' }}
+      </mat-icon>
+      {{ viewMode() === 'chart' ? 'Tabla' : 'Gráfico' }}
+    </button>
+  </header>
+
+  @if (!hasSales()) {
+    <p class="empty-state" role="status">Sin ventas registradas en las 24 horas del día.</p>
+  } @else if (viewMode() === 'chart') {
+    <div class="chart-wrapper">
+      <div class="y-axis" aria-hidden="true">
+        <span>{{ maxTotal() | clp }}</span>
+        <span>{{ halfMaxTotal() | clp }}</span>
+        <span>{{ 0 | clp }}</span>
+      </div>
+
+      <div class="bars-scroll">
+        <div class="bars-grid" role="group" aria-label="Barras de ventas por hora">
+          @for (point of points(); track point.hour) {
+            <button
+              type="button"
+              class="hour-bar-btn"
+              [attr.data-hour]="point.hour"
+              [class.is-peak]="peakHour()?.hour === point.hour"
+              [class.is-selected]="activePoint()?.hour === point.hour"
+              [class.has-sales]="point.total > 0"
+              [attr.aria-pressed]="selectedHour() === point.hour"
+              [attr.aria-label]="barAriaLabel(point)"
+              [matTooltip]="barAriaLabel(point)"
+              (click)="selectHour(point.hour)"
+              (focus)="selectHour(point.hour)"
+            >
+              <span class="bar-track">
+                <span class="bar-fill" [style.height.%]="barHeightPct(point)"></span>
+              </span>
+              <span class="hour-label">{{ point.shortLabel }}</span>
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (activePoint(); as detail) {
+      <div class="selected-detail" aria-live="polite" data-testid="hourly-selected-detail">
+        <span class="detail-hour">{{ detail.label }} hrs</span>
+        <span class="detail-amount">{{ detail.total | clp }}</span>
+        <span class="detail-tx">{{ formatTransactions(detail.transactions) }}</span>
+      </div>
+    }
+  } @else {
+    <div class="table-scroll">
+      <table
+        mat-table
+        [dataSource]="points()"
+        class="hourly-table"
+        aria-label="Detalle de ventas por hora"
+      >
+        <ng-container matColumnDef="hour">
+          <th mat-header-cell *matHeaderCellDef>Hora</th>
+          <td mat-cell *matCellDef="let row">{{ row.label }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="transactions">
+          <th mat-header-cell *matHeaderCellDef class="align-end">Transacciones</th>
+          <td mat-cell *matCellDef="let row" class="align-end">
+            {{ formatInt(row.transactions) }}
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="total">
+          <th mat-header-cell *matHeaderCellDef class="align-end">Total neto</th>
+          <td mat-cell *matCellDef="let row" class="align-end">{{ row.total | clp }}</td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="tableColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: tableColumns"></tr>
+      </table>
+    </div>
+  }
+</section>

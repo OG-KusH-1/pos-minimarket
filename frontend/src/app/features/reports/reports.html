@@ -1,0 +1,369 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Reportes</h1>
+      <p class="subtitle">
+        Análisis de ventas, márgenes, inventario, compras, mermas y diferencias de caja con
+        exportación a Excel y PDF.
+      </p>
+    </div>
+
+    @if (canExport() && activeReport()) {
+      <div class="export-actions">
+        <button
+          mat-stroked-button
+          type="button"
+          [disabled]="loading() || exportingFormat() !== null"
+          (click)="exportReport('xlsx')"
+        >
+          <mat-icon>table_view</mat-icon>
+          {{ exportingFormat() === 'xlsx' ? 'Exportando…' : 'Exportar Excel' }}
+        </button>
+        <button
+          mat-flat-button
+          type="button"
+          [disabled]="loading() || exportingFormat() !== null"
+          (click)="exportReport('pdf')"
+        >
+          <mat-icon>picture_as_pdf</mat-icon>
+          {{ exportingFormat() === 'pdf' ? 'Exportando…' : 'Exportar PDF' }}
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (availableReports().length === 0) {
+    <mat-card appearance="outlined" class="empty-permissions" role="status">
+      <mat-card-content>
+        <p class="empty-title">No tienes reportes detallados habilitados</p>
+        <p class="subtitle">
+          Tu usuario no cuenta con permisos de lectura de reportes operativos (ventas, margen,
+          inventario, compras, mermas o caja).
+        </p>
+      </mat-card-content>
+    </mat-card>
+  } @else if (activeReport(); as current) {
+    <mat-tab-group
+      animationDuration="0ms"
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="selectReportByIndex($event)"
+    >
+      @for (report of availableReports(); track report.key) {
+        <mat-tab [label]="report.shortLabel" />
+      }
+    </mat-tab-group>
+
+    <mat-card appearance="outlined" class="filters-card">
+      <mat-card-content>
+        <div class="presets-bar">
+          <span class="presets-label">Rango rápido:</span>
+          <button mat-button type="button" (click)="applyDatePreset('today')">Hoy</button>
+          <button mat-button type="button" (click)="applyDatePreset('7d')">Últimos 7 días</button>
+          <button mat-button type="button" (click)="applyDatePreset('30d')">Últimos 30 días</button>
+          <button mat-button type="button" (click)="applyDatePreset('month')">Este mes</button>
+          @if (!current.requiresDateRange) {
+            <button mat-button type="button" (click)="clearValuationDates()">Stock actual</button>
+          }
+        </div>
+
+        <form class="filters-form" [formGroup]="filterForm" (ngSubmit)="submitFilters()">
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ current.requiresDateRange ? 'Desde' : 'Desde (opcional)' }}</mat-label>
+            <input matInput type="date" formControlName="from" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic">
+            <mat-label>{{ current.requiresDateRange ? 'Hasta' : 'Hasta (opcional)' }}</mat-label>
+            <input matInput type="date" formControlName="to" />
+          </mat-form-field>
+
+          @if (availableStores().length > 0) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic" class="stores-field">
+              <mat-label>Locales</mat-label>
+              <mat-select formControlName="storeIds" multiple>
+                @for (store of availableStores(); track store.id) {
+                  @if (store.id !== undefined) {
+                    <mat-option [value]="store.id">
+                      {{ store.code ? store.code + ' — ' + store.name : store.name }}
+                    </mat-option>
+                  }
+                }
+              </mat-select>
+              <mat-hint>Vacío usa el local activo</mat-hint>
+            </mat-form-field>
+          }
+
+          @switch (current.key) {
+            @case ('sales') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Agrupar por</mat-label>
+                <mat-select formControlName="salesGroupBy">
+                  @for (opt of salesGroupByOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            @case ('product-ranking') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Orden</mat-label>
+                <mat-select formControlName="rankingOrder">
+                  @for (opt of rankingOrderOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Métrica</mat-label>
+                <mat-select formControlName="rankingMetric">
+                  @for (opt of rankingMetricOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="compact-number">
+                <mat-label>Límite (1–100)</mat-label>
+                <input matInput type="number" min="1" max="100" formControlName="rankingLimit" />
+                @if (filterForm.controls.rankingLimit.invalid) {
+                  <mat-error>Ingresa un entero entre 1 y 100.</mat-error>
+                }
+              </mat-form-field>
+
+              @if (canReadCategories() && categories().length > 0) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-select">
+                  <mat-label>Categoría</mat-label>
+                  <mat-select formControlName="categoryId">
+                    <mat-option [value]="null">Todas las categorías</mat-option>
+                    @for (cat of categories(); track cat.id) {
+                      <mat-option [value]="cat.id">{{ cat.label }}</mat-option>
+                    }
+                  </mat-select>
+                </mat-form-field>
+              }
+            }
+
+            @case ('no-rotation') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="compact-number">
+                <mat-label>Días sin venta</mat-label>
+                <input matInput type="number" min="1" max="3650" formControlName="noRotationDays" />
+                @if (filterForm.controls.noRotationDays.invalid) {
+                  <mat-error>Ingresa un entero entre 1 y 3650.</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            @case ('abc') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Métrica ABC</mat-label>
+                <mat-select formControlName="abcMetric">
+                  @for (opt of availableAbcMetrics(); track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            @case ('margin') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Agrupar por</mat-label>
+                <mat-select formControlName="marginGroupBy">
+                  @for (opt of marginGroupByOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            @case ('inventory-valuation') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Agrupar por</mat-label>
+                <mat-select formControlName="valuationGroupBy">
+                  @for (opt of valuationGroupByOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            @case ('shrinkage') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic">
+                <mat-label>Agrupar por</mat-label>
+                <mat-select formControlName="shrinkageGroupBy">
+                  @for (opt of shrinkageGroupByOptions; track opt.value) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+
+            @case ('shrinkage-top-products') {
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="compact-number">
+                <mat-label>Límite (1–100)</mat-label>
+                <input
+                  matInput
+                  type="number"
+                  min="1"
+                  max="100"
+                  formControlName="shrinkageTopLimit"
+                />
+                @if (filterForm.controls.shrinkageTopLimit.invalid) {
+                  <mat-error>Ingresa un entero entre 1 y 100.</mat-error>
+                }
+              </mat-form-field>
+            }
+
+            @case ('cash-differences') {
+              @if (canReadUsers() && users().length > 0) {
+                <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-select">
+                  <mat-label>Cajero</mat-label>
+                  <mat-select formControlName="cashierId">
+                    <mat-option [value]="null">Todos los cajeros</mat-option>
+                    @for (user of users(); track user.id) {
+                      @if (user.id !== undefined) {
+                        <mat-option [value]="user.id">
+                          {{ user.fullName || user.username }}
+                        </mat-option>
+                      }
+                    }
+                  </mat-select>
+                </mat-form-field>
+              } @else {
+                <mat-form-field
+                  appearance="outline"
+                  subscriptSizing="dynamic"
+                  class="compact-number"
+                >
+                  <mat-label>ID cajero (opcional)</mat-label>
+                  <input matInput type="number" min="1" formControlName="cashierId" />
+                  @if (filterForm.controls.cashierId.invalid) {
+                    <mat-error>Debe ser un entero positivo.</mat-error>
+                  }
+                </mat-form-field>
+              }
+
+              <mat-form-field appearance="outline" subscriptSizing="dynamic" class="wide-select">
+                <mat-label>Diferencia de arqueo</mat-label>
+                <mat-select formControlName="withDifference">
+                  @for (opt of withDifferenceOptions; track opt.label) {
+                    <mat-option [value]="opt.value">{{ opt.label }}</mat-option>
+                  }
+                </mat-select>
+              </mat-form-field>
+            }
+          }
+
+          <div class="filter-actions">
+            <button mat-flat-button type="submit" [disabled]="loading()">
+              <mat-icon>search</mat-icon>
+              Consultar
+            </button>
+            <button mat-button type="button" [disabled]="loading()" (click)="resetFilters()">
+              Restablecer
+            </button>
+          </div>
+        </form>
+
+        @if (dateRangeErrorMessage(); as rangeError) {
+          <p class="range-error" role="alert">
+            <mat-icon aria-hidden="true">error_outline</mat-icon>
+            <span>{{ rangeError }}</span>
+          </p>
+        }
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined" class="results-card">
+      <div class="results-header">
+        <div>
+          <h2 class="results-title">{{ current.label }}</h2>
+          <p class="subtitle">{{ current.description }}</p>
+        </div>
+
+        @if (reportResult(); as res) {
+          <div class="results-meta" role="status">
+            <span>{{ res.rows.length }} registro(s)</span>
+            @if (generatedAtText()) {
+              <span>· Generado el {{ generatedAtText() }}</span>
+            }
+          </div>
+        }
+      </div>
+
+      @if (loading()) {
+        <mat-progress-bar mode="indeterminate" aria-label="Cargando resultados del reporte" />
+      }
+
+      @if (loadError(); as err) {
+        <div class="state state-error" role="alert">
+          <p>{{ err }}</p>
+          <button mat-stroked-button type="button" (click)="retryLoad()">Reintentar</button>
+        </div>
+      } @else if (!loading() && reportResult() && rows().length === 0) {
+        <p class="state" role="status">No hay datos registrados para los filtros seleccionados.</p>
+      } @else if (rows().length > 0) {
+        <div class="table-scroll">
+          <table
+            mat-table
+            [dataSource]="rows()"
+            [attr.aria-label]="current.label"
+            class="report-table"
+          >
+            @for (col of activeColumns(); track col.key) {
+              <ng-container [matColumnDef]="col.key">
+                <th mat-header-cell *matHeaderCellDef [class.align-end]="col.align === 'end'">
+                  {{ col.header }}
+                </th>
+
+                <td
+                  mat-cell
+                  *matCellDef="let row"
+                  [class.align-end]="col.align === 'end'"
+                  [class.diff-positive]="
+                    col.kind === 'difference' && cashDifferenceSign(row) === 'positive'
+                  "
+                  [class.diff-negative]="
+                    col.kind === 'difference' && cashDifferenceSign(row) === 'negative'
+                  "
+                >
+                  @if (col.kind === 'abcBadge') {
+                    <span
+                      class="abc-badge"
+                      [class.abc-badge--a]="abcClassOf(row) === 'A'"
+                      [class.abc-badge--b]="abcClassOf(row) === 'B'"
+                      [class.abc-badge--c]="abcClassOf(row) === 'C'"
+                    >
+                      {{ cellText(row, col) }}
+                    </span>
+                  } @else {
+                    {{ cellText(row, col) }}
+                  }
+                </td>
+
+                <td
+                  mat-footer-cell
+                  *matFooterCellDef
+                  [class.align-end]="col.align === 'end'"
+                  class="totals-cell"
+                >
+                  {{ footerText(col) }}
+                </td>
+              </ng-container>
+            }
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns()"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+            <tr
+              mat-footer-row
+              *matFooterRowDef="displayedColumns()"
+              [class.is-hidden-footer]="!hasTotals()"
+              [attr.aria-hidden]="!hasTotals()"
+            ></tr>
+          </table>
+        </div>
+      }
+    </mat-card>
+  }
+</section>
